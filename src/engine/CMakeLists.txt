@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 aux_source_directory(./ SRC_LIST)
 include_directories(./)
 include_directories(./include)
-
+set(EXECUTABLE_OUTPUT_PATH ../../build)
 add_executable(TerarkDB_Test_Framework ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
         db/db_iter.cc db/filename.cc db/log_reader.cc db/log_writer.cc db/memtable.cc db/repair.cc
         db/table_cache.cc db/version_edit.cc db/version_set.cc db/write_batch.cc table/block_builder.cc
