@@ -66,7 +66,7 @@ using namespace db;
 
 // Number of key/values to place in database
 
-Setting setting;
+//Setting setting;
 namespace leveldb {
 
     namespace {
@@ -102,8 +102,9 @@ namespace leveldb {
             double last_op_finish_;
             Histogram hist_;
             std::string message_;
+            Setting &setting;
         public:
-            Stats() { Start(); }
+            Stats(Setting &setting1) :setting(setting1) { Start(); }
 
             void Start() {
                 next_report_ = 100;
@@ -220,12 +221,16 @@ namespace leveldb {
         struct ThreadState {
             int tid;             // 0..n-1 when running in n threads
             Random rand;         // Has different seeds for different threads
-            Stats stats;
+            Stats *stats;
             SharedState* shared;
 
-            ThreadState(int index)
+            ThreadState(int index,Setting &setting1)
                     : tid(index),
                       rand(1000 + index) {
+                stats = new Stats(setting1);
+            }
+            ~ThreadState(){
+                delete(stats);
             }
         };
 
@@ -265,7 +270,7 @@ namespace leveldb {
         WriteOptions write_options_;
         int reads_;
         int heap_counter_;
-
+        Setting &setting;
         void PrintHeader() {
             fprintf(stdout, "NarkDB Test Begins!");
         }
@@ -329,14 +334,15 @@ namespace leveldb {
         }
 
     public:
-        Benchmark()
+        Benchmark(Setting &setting1)
                 : tab(NULL),
-
-                  num_(setting.FLAGS_num),
-                  value_size_(setting.FLAGS_value_size),
+                  num_(setting1.FLAGS_num),
+                  value_size_(setting1.FLAGS_value_size),
                   entries_per_batch_(1),
-                  reads_(setting.FLAGS_reads < 0 ? setting.FLAGS_num : setting.FLAGS_reads),
-                  heap_counter_(0) {
+                  reads_(setting1.FLAGS_reads < 0 ? setting1.FLAGS_num : setting1.FLAGS_reads),
+                  heap_counter_(0),
+                  setting(setting1)
+                {
             std::vector<std::string> files;
             Env::Default()->GetChildren(setting.FLAGS_db, &files);
             for (int i = 0; i < files.size(); i++) {
@@ -539,9 +545,9 @@ namespace leveldb {
                 }
             }
 
-            thread->stats.Start();
+            thread->stats->Start();
             (arg->bm->*(arg->method))(thread);
-            thread->stats.Stop();
+            thread->stats->Stop();
 
             {
                 MutexLock l(&shared->mu);
@@ -565,7 +571,7 @@ namespace leveldb {
                 arg[i].bm = this;
                 arg[i].method = method;
                 arg[i].shared = &shared;
-                arg[i].thread = new ThreadState(i);
+                arg[i].thread = new ThreadState(i,setting);
                 arg[i].thread->shared = &shared;
                 Env::Default()->StartThread(ThreadBody, &arg[i]);
             }
@@ -583,9 +589,9 @@ namespace leveldb {
             shared.mu.Unlock();
 
             for (int i = 1; i < n; i++) {
-                arg[0].thread->stats.Merge(arg[i].thread->stats);
+                arg[0].thread->stats->Merge(*(arg[i].thread->stats));
             }
-            arg[0].thread->stats.Report(name);
+            arg[0].thread->stats->Report(name);
 
             for (int i = 0; i < n; i++) {
                 delete arg[i].thread;
@@ -602,14 +608,14 @@ namespace leveldb {
             uint32_t crc = 0;
             while (bytes < 500 * 1048576) {
                 crc = crc32c::Value(data.data(), size);
-                thread->stats.FinishedSingleOp();
+                thread->stats->FinishedSingleOp();
                 bytes += size;
             }
             // Print so result is not dead
             fprintf(stderr, "... crc=0x%x\r", static_cast<unsigned int>(crc));
 
-            thread->stats.AddBytes(bytes);
-            thread->stats.AddMessage(label);
+            thread->stats->AddBytes(bytes);
+            thread->stats->AddMessage(label);
         }
 
         void AcquireLoad(ThreadState* thread) {
@@ -617,13 +623,13 @@ namespace leveldb {
             port::AtomicPointer ap(&dummy);
             int count = 0;
             void *ptr = NULL;
-            thread->stats.AddMessage("(each op is 1000 loads)");
+            thread->stats->AddMessage("(each op is 1000 loads)");
             while (count < 100000) {
                 for (int i = 0; i < 1000; i++) {
                     ptr = ap.Acquire_Load();
                 }
                 count++;
-                thread->stats.FinishedSingleOp();
+                thread->stats->FinishedSingleOp();
             }
             if (ptr == NULL) exit(1); // Disable unused variable warning.
         }
@@ -655,7 +661,7 @@ namespace leveldb {
             if (num_ != setting.FLAGS_num) {
                 char msg[100];
                 snprintf(msg, sizeof(msg), "(%d ops)", num_);
-                thread->stats.AddMessage(msg);
+                thread->stats->AddMessage(msg);
             }
 
 
@@ -731,7 +737,7 @@ namespace leveldb {
                         printf("Insert failed: %s\n", ctxw->errMsg.c_str());
                         exit(-1);
                     }
-                    thread->stats.FinishedSingleOp();
+                    thread->stats->FinishedSingleOp();
                     writen ++;
                     avg --;
                     continue;
@@ -790,11 +796,11 @@ namespace leveldb {
                 }
                 if(idvec.size() > 0)
                     found++;
-                thread->stats.FinishedSingleOp();
+                thread->stats->FinishedSingleOp();
             }
             char msg[100];
             snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
-            thread->stats.AddMessage(msg);
+            thread->stats->AddMessage(msg);
 
         }
 
@@ -814,7 +820,7 @@ namespace leveldb {
             for (int i = 0; i < reads_; i++) {
                 recId = thread->rand.Next() % range;
                 ctxr->getValue(recId, &val);
-                thread->stats.FinishedSingleOp();
+                thread->stats->FinishedSingleOp();
             }
         }
 
@@ -996,7 +1002,7 @@ namespace leveldb {
                             found++;
                         readnew++;
                     }
-                    thread->stats.FinishedSingleOp();
+                    thread->stats->FinishedSingleOp();
                 } else {
                     size_t rdiw = thread->rand.Next();
                     double rddw = rdiw / double(INT32_MAX);
@@ -1045,7 +1051,7 @@ namespace leveldb {
                                     continue;
                                 }
                                 writenadd++;
-                                thread->stats.FinishedSingleOp();
+                                thread->stats->FinishedSingleOp();
                                 break;
                             }
                         }
@@ -1095,7 +1101,7 @@ namespace leveldb {
                                     continue;
                                 }
                                 writenupdate++;
-                                thread->stats.FinishedSingleOp();
+                                thread->stats->FinishedSingleOp();
                                 break;
                             }
                         }
@@ -1165,7 +1171,7 @@ namespace leveldb {
 }  // namespace leveldb
 
 int main(int argc, char** argv) {
- 
+    Setting setting;
     setting.FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
     setting.FLAGS_open_files = leveldb::Options().max_open_files;
     std::string default_db_path;
@@ -1231,7 +1237,7 @@ int main(int argc, char** argv) {
     for (int i=0; i<setting.FLAGS_threads; i++)
         setting.shuff[i] = i;
 
-    leveldb::Benchmark benchmark;
+    leveldb::Benchmark benchmark(setting);
     benchmark.Run();
     fprintf(stdout, "db movies terark completed\n");
     return 0;
