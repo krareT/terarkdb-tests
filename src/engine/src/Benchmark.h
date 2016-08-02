@@ -42,7 +42,7 @@
 using namespace terark;
 using namespace db;
 namespace leveldb {
-    class Benchmark {
+    class TerarkBenchmark {
     private:
         CompositeTablePtr tab;
 
@@ -119,7 +119,7 @@ namespace leveldb {
         }
 
     public:
-        Benchmark(Setting &setting1)
+        TerarkBenchmark(Setting &setting1)
                 : tab(NULL),
                   num_(setting1.FLAGS_num),
                   value_size_(setting1.FLAGS_value_size),
@@ -139,7 +139,7 @@ namespace leveldb {
             }
         }
 
-        ~Benchmark() {
+        ~TerarkBenchmark() {
             tab->safeStopAndWaitForCompress();
             tab = NULL;
         }
@@ -191,31 +191,31 @@ namespace leveldb {
                 entries_per_batch_ = 1;
                 write_options_ = WriteOptions();
 
-                void (Benchmark::*method)(ThreadState *) = NULL;
+                void (TerarkBenchmark::*method)(ThreadState *) = NULL;
                 bool fresh_db = false;
                 int num_threads = setting.FLAGS_threads;
 
                 if (name == Slice("fillseq")) {
                     fresh_db = true;
-                    method = &Benchmark::WriteSeq;
+                    method = &TerarkBenchmark::WriteSeq;
                 } else if (name == Slice("fillseqbatch")) {
                     fresh_db = true;
                     entries_per_batch_ = 1000;
-                    method = &Benchmark::WriteSeq;
+                    method = &TerarkBenchmark::WriteSeq;
                 } else if (name == Slice("fillrandbatch")) {
                     fresh_db = true;
                     entries_per_batch_ = 1000;
-                    method = &Benchmark::WriteRandom;
+                    method = &TerarkBenchmark::WriteRandom;
                 } else if (name == Slice("fillrandom")) {
                     fresh_db = true;
-                    method = &Benchmark::WriteRandom;
+                    method = &TerarkBenchmark::WriteRandom;
 
                     Random rand(1000);
                     rand.Shuffle(setting.shuff, setting.FLAGS_threads);
 
                 } else if (name == Slice("overwrite")) {
                     fresh_db = false;
-                    method = &Benchmark::WriteRandom;
+                    method = &TerarkBenchmark::WriteRandom;
                 } else if (name == Slice("fillseqsync")) {
                     fresh_db = true;
 #if 1
@@ -223,7 +223,7 @@ namespace leveldb {
                     if (num_ < 10) num_ = 10;
 #endif
                     write_options_.sync = true;
-                    method = &Benchmark::WriteSeq;
+                    method = &TerarkBenchmark::WriteSeq;
                 } else if (name == Slice("fillrandsync")) {
                     fresh_db = true;
 #if 1
@@ -231,46 +231,46 @@ namespace leveldb {
                     if (num_ < 10) num_ = 10;
 #endif
                     write_options_.sync = true;
-                    method = &Benchmark::WriteRandom;
+                    method = &TerarkBenchmark::WriteRandom;
                 } else if (name == Slice("fill100K")) {
                     fresh_db = true;
                     num_ /= 1000;
                     value_size_ = 100 * 1000;
-                    method = &Benchmark::WriteRandom;
+                    method = &TerarkBenchmark::WriteRandom;
                 } else if (name == Slice("readseq")) {
-                    method = &Benchmark::ReadSequential;
+                    method = &TerarkBenchmark::ReadSequential;
                 } else if (name == Slice("readreverse")) {
-                    method = &Benchmark::ReadReverse;
+                    method = &TerarkBenchmark::ReadReverse;
                 } else if (name == Slice("readrandom")) {
-                    method = &Benchmark::ReadRandom;
+                    method = &TerarkBenchmark::ReadRandom;
                 } else if (name == Slice("readmissing")) {
-                    method = &Benchmark::ReadMissing;
+                    method = &TerarkBenchmark::ReadMissing;
                 } else if (name == Slice("seekrandom")) {
-                    method = &Benchmark::SeekRandom;
+                    method = &TerarkBenchmark::SeekRandom;
                 } else if (name == Slice("readhot")) {
-                    method = &Benchmark::ReadHot;
+                    method = &TerarkBenchmark::ReadHot;
                 } else if (name == Slice("readrandomsmall")) {
                     reads_ /= 1000;
-                    method = &Benchmark::ReadRandom;
+                    method = &TerarkBenchmark::ReadRandom;
                 } else if (name == Slice("deleteseq")) {
-                    method = &Benchmark::DeleteSeq;
+                    method = &TerarkBenchmark::DeleteSeq;
                 } else if (name == Slice("deleterandom")) {
-                    method = &Benchmark::DeleteRandom;
+                    method = &TerarkBenchmark::DeleteRandom;
                 } else if (name == Slice("readwhilewriting")) {
                     // num_threads++;  // Add extra thread for writing
-                    // method = &Benchmark::ReadWhileWriting;
-                    // method = &Benchmark::ReadWhileWritingNew;
-                    method = &Benchmark::ReadWhileWritingNew4;
+                    // method = &TerarkBenchmark::ReadWhileWriting;
+                    // method = &TerarkBenchmark::ReadWhileWritingNew;
+                    method = &TerarkBenchmark::ReadWhileWritingNew4;
                     Random rand(1000);
                     rand.Shuffle(setting.shuff, setting.FLAGS_threads);
                 } else if (name == Slice("readwritedel")) {
-                    method = &Benchmark::ReadWriteDel;
+                    method = &TerarkBenchmark::ReadWriteDel;
                 } else if (name == Slice("compact")) {
-                    method = &Benchmark::Compact;
+                    method = &TerarkBenchmark::Compact;
                 } else if (name == Slice("crc32c")) {
-                    method = &Benchmark::Crc32c;
+                    method = &TerarkBenchmark::Crc32c;
                 } else if (name == Slice("acquireload")) {
-                    method = &Benchmark::AcquireLoad;
+                    method = &TerarkBenchmark::AcquireLoad;
                 } else if (name == Slice("heapprofile")) {
                     HeapProfile();
                 } else if (name == Slice("stats")) {
@@ -295,12 +295,12 @@ namespace leveldb {
                 struct timespec start, end;
                 clock_gettime(CLOCK_MONOTONIC, &start);
                 if (method != NULL) {
-                    printf("RunBenchmark %s\n", name.data());
-                    RunBenchmark(num_threads, name, method);
+                    printf("RunTerarkBenchmark %s\n", name.data());
+                    RunTerarkBenchmark(num_threads, name, method);
                 }
                 clock_gettime(CLOCK_MONOTONIC, &end);
                 long long timeuse = 1000000000LL * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-                printf("RunBenchmark total time is : %lld \n", timeuse / 1000000000LL);
+                printf("RunTerarkBenchmark total time is : %lld \n", timeuse / 1000000000LL);
                 tab->syncFinishWriting();
             }
             allkeys_.erase_all();
@@ -308,11 +308,11 @@ namespace leveldb {
 
     private:
         struct ThreadArg {
-            Benchmark *bm;
+            TerarkBenchmark *bm;
             SharedState *shared;
             ThreadState *thread;
 
-            void (Benchmark::*method)(ThreadState *);
+            void (TerarkBenchmark::*method)(ThreadState *);
         };
 
         static void ThreadBody(void *v) {
@@ -343,8 +343,8 @@ namespace leveldb {
             }
         }
 
-        void RunBenchmark(int n, Slice name,
-                          void (Benchmark::*method)(ThreadState *)) {
+        void RunTerarkBenchmark(int n, Slice name,
+                          void (TerarkBenchmark::*method)(ThreadState *)) {
             SharedState shared;
             shared.total = n;
             shared.num_initialized = 0;

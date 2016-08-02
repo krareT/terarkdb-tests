@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
     for (int i=0; i<setting.FLAGS_threads; i++)
         setting.shuff[i] = i;
 
-    leveldb::Benchmark benchmark(setting);
+    leveldb::TerarkBenchmark benchmark(setting);
     benchmark.Run();
     fprintf(stdout, "db movies terark completed\n");
     return 0;
