@@ -12,7 +12,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
-
+#include <boost/array.hpp>
 using boost::asio::ip::tcp;
 
 class tcp_connection : public boost::enable_shared_from_this<tcp_connection>{
@@ -25,7 +25,12 @@ public:
         return socket_;
     }
     void start(){
-        message_ = std::string("Hi!");
+        message_ = std::string("Hi!I am Terark_Engine_Test!\n");
+        boost::system::error_code error;
+        boost::array<char,128> buf;
+        size_t len = socket_.read_some(boost::asio::buffer(buf),error);
+        std::cout.write(buf.data(),len)<<std::endl;
+
         boost::asio::async_write(socket_, boost::asio::buffer(message_),
                                  boost::bind(&tcp_connection::handle_write, shared_from_this(),
                                              boost::asio::placeholders::error,

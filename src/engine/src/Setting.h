@@ -5,9 +5,22 @@
 #ifndef TERARKDB_TEST_FRAMEWORK_SETTING_H
 #define TERARKDB_TEST_FRAMEWORK_SETTING_H
 
-
-class Setting {
+#include <string>
+class BaseSetting{
 public:
+    std::string INIT_DATA_SOURCE;
+    std::string WRITE_DATA_SOURCE;
+    const uint32_t SOCKET_PORT;
+    enum READ_TYPE{
+    };
+    double READ_PERCENT;
+    double WRITE_INSERT_PERCENT;
+    uint32_t THREAD_NUMS;
+    uint64_t OPS_RECORD_STEP;
+};
+class Setting{
+public:
+
     const char* FLAGS_benchmarks =
             "fillseq,"
                     "deleteseq,"
