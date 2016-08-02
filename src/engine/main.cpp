@@ -35,6 +35,7 @@
 #include <terark/util/autofree.hpp>
 #include <terark/util/fstrvec.hpp>
 #include <port/port_posix.h>
+#include <src/Setting.h>
 
 using namespace terark;
 using namespace db;
@@ -97,59 +98,8 @@ static const char* FLAGS_benchmarks =
 ;
 
 // Number of key/values to place in database
-static int FLAGS_num = 0;
 
-// Number of read operations to do.  If negative, do FLAGS_num reads.
-static int FLAGS_reads = -1;
-
-// Number of concurrent threads to run.
-static int FLAGS_threads = 1;
-
-// Size of each value
-static int FLAGS_value_size = 100;
-
-// Arrange to generate values that shrink to this fraction of
-// their original size after compression
-static double FLAGS_compression_ratio = 0.5;
-
-// Print histogram of operation timings
-//static bool FLAGS_histogram = false;
-static bool FLAGS_histogram = true;
-
-static bool FLAGS_sync_index = true;
-
-// Number of bytes to buffer in memtable before compacting
-// (initialized to default value by "main")
-static int FLAGS_write_buffer_size = 0;
-
-// Number of bytes to use as a cache of uncompressed data.
-// Negative means use default settings.
-static int FLAGS_cache_size = -1;
-
-// Maximum number of files to keep open at the same time (use default if == 0)
-static int FLAGS_open_files = 0;
-
-// Bloom filter bits per key.
-// Negative means use default settings.
-static int FLAGS_bloom_bits = -1;
-
-// read write percent
-static double FLAGS_read_write_percent = 100.0;
-static double FLAGS_write_new_record_percent = 80.0;
-static double FLAGS_read_old_record_percent = 50.0;
-
-// If true, do not destroy the existing database.  If you set this
-// flag and also specify a benchmark that wants a fresh database, that
-// benchmark will fail.
-static bool FLAGS_use_existing_db = true;
-
-// Use the db with the following name.
-static const char* FLAGS_db = NULL;
-static const char* FLAGS_db_table = NULL;
-static const char* FLAGS_resource_data = NULL;
-
-static int *shuff = NULL;
-
+Setting setting;
 namespace leveldb {
 
     namespace {
@@ -223,7 +173,7 @@ namespace leveldb {
             }
 
             void FinishedSingleOp() {
-                if (FLAGS_histogram) {
+                if (setting.FLAGS_histogram) {
                     double now = Env::Default()->NowMicros();
                     double micros = now - last_op_finish_;
                     hist_.Add(micros);
@@ -274,7 +224,7 @@ namespace leveldb {
                         seconds_ * 1e6 / done_,
                         (extra.empty() ? "" : " "),
                         extra.c_str());
-                if (FLAGS_histogram) {
+                if (setting.FLAGS_histogram) {
                     fprintf(stdout, "Microseconds per op:\n%s\n", hist_.ToString().c_str());
                 }
                 fflush(stdout);
@@ -416,20 +366,20 @@ namespace leveldb {
         Benchmark()
                 : tab(NULL),
 
-                  num_(FLAGS_num),
-                  value_size_(FLAGS_value_size),
+                  num_(setting.FLAGS_num),
+                  value_size_(setting.FLAGS_value_size),
                   entries_per_batch_(1),
-                  reads_(FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads),
+                  reads_(setting.FLAGS_reads < 0 ? setting.FLAGS_num : setting.FLAGS_reads),
                   heap_counter_(0) {
             std::vector<std::string> files;
-            Env::Default()->GetChildren(FLAGS_db, &files);
+            Env::Default()->GetChildren(setting.FLAGS_db, &files);
             for (int i = 0; i < files.size(); i++) {
                 if (Slice(files[i]).starts_with("heap-")) {
-                    Env::Default()->DeleteFile(std::string(FLAGS_db) + "/" + files[i]);
+                    Env::Default()->DeleteFile(std::string(setting.FLAGS_db) + "/" + files[i]);
                 }
             }
-            if (!FLAGS_use_existing_db) {
-                DestroyDB(FLAGS_db, Options());
+            if (!setting.FLAGS_use_existing_db) {
+                DestroyDB(setting.FLAGS_db, Options());
             }
         }
 
@@ -442,7 +392,7 @@ namespace leveldb {
             PrintHeader();
             std::cout << " Run() " << std::endl;
 
-            std::ifstream ifs(FLAGS_resource_data);
+            std::ifstream ifs(setting.FLAGS_resource_data);
             std::string str;
             std::string key1;
             std::string key2;
@@ -460,7 +410,7 @@ namespace leveldb {
             }
             allkeys_.shrink_to_fit();
             printf("allkeys_.mem_size=%zd\n", allkeys_.full_mem_size());
-            assert(allkeys_.size() == FLAGS_num);
+            assert(allkeys_.size() == setting.FLAGS_num);
 
             Open();
 
@@ -479,15 +429,15 @@ namespace leveldb {
                 printf("benchmark name %s\n", name.data());
 
                 // Reset parameters that may be overriddden bwlow
-                num_ = FLAGS_num;
-                reads_ = (FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads);
-                value_size_ = FLAGS_value_size;
+                num_ = setting.FLAGS_num;
+                reads_ = (setting.FLAGS_reads < 0 ? setting.FLAGS_num : setting.FLAGS_reads);
+                value_size_ = setting.FLAGS_value_size;
                 entries_per_batch_ = 1;
                 write_options_ = WriteOptions();
 
                 void (Benchmark::*method)(ThreadState*) = NULL;
                 bool fresh_db = false;
-                int num_threads = FLAGS_threads;
+                int num_threads = setting.FLAGS_threads;
 
                 if (name == Slice("fillseq")) {
                     fresh_db = true;
@@ -505,7 +455,7 @@ namespace leveldb {
                     method = &Benchmark::WriteRandom;
 
                     Random rand(1000);
-                    rand.Shuffle(shuff, FLAGS_threads);
+                    rand.Shuffle(setting.shuff, setting.FLAGS_threads);
 
                 } else if (name == Slice("overwrite")) {
                     fresh_db = false;
@@ -556,7 +506,7 @@ namespace leveldb {
                     // method = &Benchmark::ReadWhileWritingNew;
                     method = &Benchmark::ReadWhileWritingNew4;
                     Random rand(1000);
-                    rand.Shuffle(shuff, FLAGS_threads);
+                    rand.Shuffle(setting.shuff, setting.FLAGS_threads);
                 } else if (name == Slice("readwritedel")) {
                     method = &Benchmark::ReadWriteDel;
                 } else if (name == Slice("compact")) {
@@ -578,7 +528,7 @@ namespace leveldb {
                 }
 
                 if (fresh_db) {
-                    if (FLAGS_use_existing_db) {
+                    if (setting.FLAGS_use_existing_db) {
                         /*do nothing*/
                     } else {
                         tab = NULL;
@@ -715,10 +665,10 @@ namespace leveldb {
 
         void Open() {
             assert(tab == NULL);
-            std::cout << "Create database " << FLAGS_db << std::endl;
+            std::cout << "Create database " << setting.FLAGS_db << std::endl;
 
-            tab = CompositeTable::createTable(FLAGS_db_table);
-            tab->load(FLAGS_db);
+            tab = CompositeTable::createTable(setting.FLAGS_db_table);
+            tab->load(setting.FLAGS_db);
         }
 
         void WriteSeq(ThreadState* thread) {
@@ -730,13 +680,13 @@ namespace leveldb {
         }
 
         void DoWrite(ThreadState* thread, bool seq) {
-            std::cout << " DoWrite now! num_ " << num_ << " FLAGS_num " << FLAGS_num << std::endl;
+            std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
 
             DbContextPtr ctxw;
             ctxw = tab->createDbContext();
-            ctxw->syncIndex = FLAGS_sync_index;
+            ctxw->syncIndex = setting.FLAGS_sync_index;
 
-            if (num_ != FLAGS_num) {
+            if (num_ != setting.FLAGS_num) {
                 char msg[100];
                 snprintf(msg, sizeof(msg), "(%d ops)", num_);
                 thread->stats.AddMessage(msg);
@@ -744,13 +694,13 @@ namespace leveldb {
 
 
             terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
-            std::ifstream ifs(FLAGS_resource_data);
+            std::ifstream ifs(setting.FLAGS_resource_data);
             std::string str;
 
-            int64_t avg = FLAGS_num/FLAGS_threads;
+            int64_t avg = setting.FLAGS_num/setting.FLAGS_threads;
             int64_t copyavg = avg;
-            int offset = shuff[thread->tid];
-            if (avg != FLAGS_num) {
+            int offset = setting.shuff[thread->tid];
+            if (avg != setting.FLAGS_num) {
                 if (offset != 0) {
                     int64_t skip = offset * avg;
                     if (skip != 0) {
@@ -845,25 +795,25 @@ namespace leveldb {
             valvec<size_t> colgroups;
             DbContextPtr ctxr;
             ctxr = tab->createDbContext();
-            ctxr->syncIndex = FLAGS_sync_index;
+            ctxr->syncIndex = setting.FLAGS_sync_index;
             // std::cout << " tab->getIndexNum() " << tab->getIndexNum() << " tab->getColgroupNum() " << tab->getColgroupNum() << std::endl;
             for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
                 colgroups.push_back(i);
             }
 
             int *shuffr = NULL;
-            shuffr = (int *)malloc(FLAGS_num * sizeof(int));
-            printf("Thread:%d ReadRandom. FLAGS_num:%d allkeys_.size():%d reads_:%d\n",
-                   thread->tid,FLAGS_num,allkeys_.size(),reads_);
-            for (int i=0; i<FLAGS_num; i++)
+            shuffr = (int *)malloc(setting.FLAGS_num * sizeof(int));
+            printf("Thread:%d ReadRandom. setting.FLAGS_num:%d allkeys_.size():%d reads_:%d\n",
+                   thread->tid,setting.FLAGS_num,allkeys_.size(),reads_);
+            for (int i=0; i<setting.FLAGS_num; i++)
                 shuffr[i] = i % allkeys_.size();
-            thread->rand.Shuffle(shuffr, FLAGS_num);
+            thread->rand.Shuffle(shuffr, setting.FLAGS_num);
 
             int found = 0;
             size_t indexId = 0;
 
             for (size_t i = 0; i < reads_; ++i) {
-                int k = shuffr[i%FLAGS_num];
+                int k = shuffr[i%setting.FLAGS_num];
                 //printf("Thread:%d ReadRandom. allkeys_.size():%d  k:%d\n",thread->tid,allkeys_.size(),k);
 
                 fstring key(allkeys_.at(k));
@@ -893,8 +843,8 @@ namespace leveldb {
 
             DbContextPtr ctxr;
             ctxr = tab->createDbContext();
-            ctxr->syncIndex = FLAGS_sync_index;
-            const int range = (FLAGS_num + 99) / 100;
+            ctxr->syncIndex = setting.FLAGS_sync_index;
+            const int range = (setting.FLAGS_num + 99) / 100;
             for (int i = 0; i < reads_; i++) {
                 recId = thread->rand.Next() % range;
                 ctxr->getValue(recId, &val);
@@ -928,10 +878,10 @@ namespace leveldb {
                 terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
                 DbContextPtr ctxw;
                 ctxw = tab->createDbContext();
-                ctxw->syncIndex = FLAGS_sync_index;
+                ctxw->syncIndex = setting.FLAGS_sync_index;
 
                 while(true) {
-                    std::ifstream ifs(FLAGS_resource_data);
+                    std::ifstream ifs(setting.FLAGS_resource_data);
                     std::string str;
                     std::string key1;
                     std::string key2;
@@ -979,7 +929,7 @@ namespace leveldb {
                         }
 
                         MutexLock l(&thread->shared->mu);
-                        if (thread->shared->num_done + 2*FLAGS_threads/3 >= thread->shared->num_initialized) {
+                        if (thread->shared->num_done + 2*setting.FLAGS_threads/3 >= thread->shared->num_initialized) {
                             printf("extra write operations number %d\n", num);
                             return;
                         }
@@ -990,12 +940,12 @@ namespace leveldb {
                 valvec<llong> idvec;
                 DbContextPtr ctxr;
                 ctxr = tab->createDbContext();
-                ctxr->syncIndex = FLAGS_sync_index;
+                ctxr->syncIndex = setting.FLAGS_sync_index;
                 int64_t num = 0;
 
                 size_t indexId = 0;
                 while(true) {
-                    const int k = thread->rand.Next() % FLAGS_num;
+                    const int k = thread->rand.Next() % setting.FLAGS_num;
                     fstring key(allkeys_.at(k));
 
                     tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
@@ -1004,7 +954,7 @@ namespace leveldb {
                     }
                     num ++;
                     MutexLock l(&thread->shared->mu);
-                    if (thread->shared->num_done + 2*FLAGS_threads/3 >= thread->shared->num_initialized) {
+                    if (thread->shared->num_done + 2*setting.FLAGS_threads/3 >= thread->shared->num_initialized) {
                         printf("extra del operations number %d\n", num);
                         return;
                     }
@@ -1012,267 +962,7 @@ namespace leveldb {
             }
         }
 
-        void ReadWhileWritingNew(ThreadState* thread) {
-            int loop=10;
-            while(loop--) {
-                AutoFree<int> shuffrw(FLAGS_num);
-                AutoFree<int> shuffr(FLAGS_num);
-                int read_num = int(FLAGS_num * FLAGS_read_write_percent / 100.0);
 
-                std::fill_n(shuffrw.p , read_num, 1);
-                std::fill_n(shuffrw.p + read_num, FLAGS_num-read_num, 0);
-
-                for (int i=0; i<FLAGS_num; i++) {
-                    shuffr[i] = i;
-                }
-
-                int64_t readn = 0;
-                int64_t writen = 0;
-                thread->rand.Shuffle(shuffrw, FLAGS_num);
-                thread->rand.Shuffle(shuffr, FLAGS_num);
-
-                valvec<byte> keyHit, val;
-                valvec<valvec<byte> > cgDataVec;
-                valvec<llong> idvec;
-                valvec<size_t> colgroups;
-                DbContextPtr ctxrw;
-                ctxrw = tab->createDbContext();
-                ctxrw->syncIndex = FLAGS_sync_index;
-
-                for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-                    colgroups.push_back(i);
-                }
-
-                int found = 0;
-                size_t indexId = 0;
-
-                terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
-                std::ifstream ifs(FLAGS_resource_data);
-                std::string str;
-
-                int64_t avg = FLAGS_num/FLAGS_threads;
-                int64_t copyavg = avg;
-                int offset = shuff[thread->tid];
-                if (avg != FLAGS_num) {
-                    if (offset != 0) {
-                        int64_t skip = offset * avg;
-                        if (skip != 0) {
-                            while(getline(ifs, str)) {
-                                if (str.find("review/text:") == 0) {
-                                    skip --;
-                                    if (skip == 0)
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                std::string key1;
-                std::string key2;
-
-                TestRow recRow;
-                struct timespec start, end;
-                long long readtime = 0;
-                long long writetime = 0;
-                long long timeuse = 0;
-
-                clock_gettime(CLOCK_MONOTONIC, &start);
-
-                for (int i=0; i<FLAGS_reads; i++) {
-                    if (shuffrw[i] == 1) {
-                        // read
-                        int k = shuffr[i];
-                        fstring key(allkeys_.at(k));
-                        tab->indexSearchExact(indexId, key, &idvec, ctxrw.get());
-                        for (auto recId : idvec) {
-                            tab->selectColgroups(recId, colgroups, &cgDataVec, ctxrw.get());
-                        }
-                        if(idvec.size() > 0)
-                            found++;
-                        readn ++;
-                        thread->stats.FinishedSingleOp();
-                    } else {
-                        // write
-                        while(getline(ifs, str) && avg != 0) {
-                            fstring fstr(str);
-                            if (fstr.startsWith("product/productId:")) {
-                                key1 = str.substr(19);
-                                continue;
-                            }
-                            if (fstr.startsWith("review/userId:")) {
-                                key2 = str.substr(15);
-                                continue;
-                            }
-                            if (fstr.startsWith("review/profileName:")) {
-                                recRow.profileName = str.substr(20);
-                                continue;
-                            }
-                            if (fstr.startsWith("review/helpfulness:")) {
-                                char* pos2 = NULL;
-                                recRow.helpfulness1 = strtol(fstr.data()+20, &pos2, 10);
-                                recRow.helpfulness2 = strtol(pos2+1, NULL, 10);
-                                continue;
-                            }
-                            if (fstr.startsWith("review/score:")) {
-                                recRow.score = lcast(fstr.substr(14));
-                                continue;
-                            }
-                            if (fstr.startsWith("review/time:")) {
-                                recRow.time = lcast(fstr.substr(13));
-                                continue;
-                            }
-                            if (fstr.startsWith("review/summary:")) {
-                                recRow.summary = str.substr(16);
-                                continue;
-                            }
-                            if (fstr.startsWith("review/text:")) {
-                                recRow.text = str.substr(13);
-                                recRow.product_userId = key1 + " " + key2;
-
-                                rowBuilder.rewind();
-                                rowBuilder << recRow;
-                                fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-
-                                if (ctxrw->upsertRow(binRow) < 0) { // unique index
-                                    printf("Insert failed: %s\n", ctxrw->errMsg.c_str());
-                                    exit(-1);
-                                }
-                                writen ++;
-                                avg --;
-                                thread->stats.FinishedSingleOp();
-                                break;
-                            }
-                        }
-                    }
-                    if((i+1)%80000 == 0) {
-                        clock_gettime(CLOCK_MONOTONIC, &end);
-                        timeuse = 1000000000LL * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
-                        printf("i %d thread %d current qps %0.2f, timeuse %lld\n", i, thread->tid, 80000.0/(timeuse/1000000000.0), timeuse/1000000000LL);
-                        clock_gettime(CLOCK_MONOTONIC, &start);
-                    }
-                }
-                time_t now;
-                struct tm *timenow;
-                time(&now);
-                timenow = localtime(&now);
-                printf("readnum %lld, writenum %lld, avg %lld, offset %d, time %s, readtime %lld, writetime %lld\n", readn, writen, copyavg, offset, asctime(timenow), readtime/1000, writetime/1000);
-            }
-        }
-
-        void ReadWhileWritingNew2(ThreadState* thread) {
-            int64_t readn = 0;
-            int64_t writen = 0;
-            valvec<valvec<byte> > cgDataVec;
-            valvec<llong> idvec;
-            valvec<size_t> colgroups;
-            DbContextPtr ctxrw = tab->createDbContext();
-            ctxrw->syncIndex = FLAGS_sync_index;
-            for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-                colgroups.push_back(i);
-            }
-            int found = 0;
-            size_t indexId = 0;
-            terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
-            terark::AutoFree<char> szPath;
-            asprintf(&szPath.p, "%s.%d", FLAGS_resource_data, thread->tid);
-            std::ifstream ifs(szPath.p);
-            std::string str;
-            std::string key1;
-            std::string key2;
-
-            TestRow recRow;
-            struct timespec start, end;
-            long long readtime = 0;
-            long long writetime = 0;
-            const double percent = FLAGS_read_write_percent / 100.0;
-
-            clock_gettime(CLOCK_MONOTONIC, &start);
-
-            for (int i=0; i<FLAGS_reads; i++) {
-                size_t rdi = thread->rand.Next();
-                double rdd = rdi / double(INT32_MAX);
-                if (rdd < percent) {
-                    // read
-                    size_t k = thread->rand.Next() % allkeys_.size();
-                    fstring key(allkeys_.at(k));
-                    ctxrw->indexSearchExact(indexId, key, &idvec);
-                    for (auto recId : idvec) {
-                        ctxrw->selectColgroups(recId, colgroups, &cgDataVec);
-                    }
-                    if(idvec.size() > 0)
-                        found++;
-                    readn++;
-                    thread->stats.FinishedSingleOp();
-                } else {
-                    // write
-                    while(getline(ifs, str)) {
-                        fstring fstr(str);
-                        if (fstr.startsWith("product/productId:")) {
-                            key1 = str.substr(19);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/userId:")) {
-                            key2 = str.substr(15);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/profileName:")) {
-                            recRow.profileName = str.substr(20);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/helpfulness:")) {
-                            char* pos2 = NULL;
-                            recRow.helpfulness1 = strtol(fstr.data()+20, &pos2, 10);
-                            recRow.helpfulness2 = strtol(pos2+1, NULL, 10);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/score:")) {
-                            recRow.score = lcast(fstr.substr(14));
-                            continue;
-                        }
-                        if (fstr.startsWith("review/time:")) {
-                            recRow.time = lcast(fstr.substr(13));
-                            continue;
-                        }
-                        if (fstr.startsWith("review/summary:")) {
-                            recRow.summary = str.substr(16);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/text:")) {
-                            recRow.text = str.substr(13);
-                            recRow.product_userId = key1 + " " + key2;
-
-                            rowBuilder.rewind();
-                            rowBuilder << recRow;
-                            fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-
-                            if (ctxrw->upsertRow(binRow) < 0) { // unique index
-                                printf("Insert failed: %s\n", ctxrw->errMsg.c_str());
-                                continue;
-                            }
-                            writen++;
-                            thread->stats.FinishedSingleOp();
-                            break;
-                        }
-                    }
-                    if(ifs.eof()) {
-                        ifs.clear();
-                        ifs.seekg(0, std::ios::beg);
-                    }
-                }
-                if((i+1)%80000 == 0) {
-                    clock_gettime(CLOCK_MONOTONIC, &end);
-                    long long timeuse = 1000000000LL * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
-                    printf("i %d thread %d current qps %0.2f, timeuse %f\n", i, thread->tid, 80000.0/(timeuse/1000000000.0), timeuse/1000000000.0);
-                    clock_gettime(CLOCK_MONOTONIC, &start);
-                }
-            }
-            time_t now;
-            struct tm *timenow;
-            time(&now);
-            timenow = localtime(&now);
-            printf("readnum %lld, writenum %lld, time %s, readtime %lld, writetime %lld\n", readn, writen, asctime(timenow), readtime/1000, writetime/1000);
-        }
 
         void ReadWhileWritingNew4(ThreadState* thread) {
             int64_t readold = 0;
@@ -1283,7 +973,7 @@ namespace leveldb {
             valvec<llong> idvec;
             valvec<size_t> colgroups;
             DbContextPtr ctxrw = tab->createDbContext();
-            ctxrw->syncIndex = FLAGS_sync_index;
+            ctxrw->syncIndex = setting.FLAGS_sync_index;
             for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
                 colgroups.push_back(i);
             }
@@ -1291,7 +981,7 @@ namespace leveldb {
             size_t indexId = 0;
             terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
             terark::AutoFree<char> szPath;
-            asprintf(&szPath.p, "%s.%d", FLAGS_resource_data, thread->tid);
+            asprintf(&szPath.p, "%s.%d", setting.FLAGS_resource_data, thread->tid);
             std::ifstream ifs(szPath.p);
             std::string str;
             std::string key1;
@@ -1302,9 +992,9 @@ namespace leveldb {
             long long readtime = 0;
             long long writetime = 0;
             long long totaltime = 0;
-            double percent = FLAGS_read_write_percent / 100.0;
-            double percenr = FLAGS_read_old_record_percent / 100.0;
-            double percentw = FLAGS_write_new_record_percent / 100.0;
+            double percent = setting.FLAGS_read_write_percent / 100.0;
+            double percenr = setting.FLAGS_read_old_record_percent / 100.0;
+            double percentw = setting.FLAGS_write_new_record_percent / 100.0;
             long long newrecord = 1;
             std::string record;
             std::stringstream recordstreamo;
@@ -1470,194 +1160,9 @@ namespace leveldb {
         }
 
 
-        void ReadWhileWritingNew3(ThreadState* thread) {
-            int64_t readn = 0;
-            int64_t writen = 0;
-            valvec<valvec<byte> > cgDataVec;
-            valvec<llong> idvec;
-            valvec<size_t> colgroups;
-            DbContextPtr ctxrw = tab->createDbContext();
-            ctxrw->syncIndex = FLAGS_sync_index;
-            for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-                colgroups.push_back(i);
-            }
-            int found = 0;
-            size_t indexId = 0;
-            terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
-            terark::AutoFree<char> szPath;
-            asprintf(&szPath.p, "%s.%d", FLAGS_resource_data, thread->tid);
-            std::ifstream ifs(szPath.p);
-            std::string str;
-            std::string key1;
-            std::string key2;
-
-            TestRow recRow;
-            struct timespec start, end;
-            long long readtime = 0;
-            long long writetime = 0;
-            long long totaltime = 0;
-            double percent = FLAGS_read_write_percent / 100.0;
-
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            int i = 0;
-            while(1) {
-                size_t rdi = thread->rand.Next();
-                double rdd = rdi / double(INT32_MAX);
-                if (rdd < percent) {
-                    size_t k = thread->rand.Next() % allkeys_.size();
-                    fstring key(allkeys_.at(k));
-                    ctxrw->indexSearchExact(indexId, key, &idvec);
-                    for (auto recId : idvec) {
-                        ctxrw->selectColgroups(recId, colgroups, &cgDataVec);
-                    }
-                    if(idvec.size() > 0)
-                        found++;
-                    readn++;
-                    thread->stats.FinishedSingleOp();
-                } else {
-                    while(getline(ifs, str)) {
-                        fstring fstr(str);
-                        if (fstr.startsWith("product/productId:")) {
-                            key1 = str.substr(19);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/userId:")) {
-                            key2 = str.substr(15);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/profileName:")) {
-                            recRow.profileName = str.substr(20);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/helpfulness:")) {
-                            char* pos2 = NULL;
-                            recRow.helpfulness1 = strtol(fstr.data()+20, &pos2, 10);
-                            recRow.helpfulness2 = strtol(pos2+1, NULL, 10);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/score:")) {
-                            recRow.score = lcast(fstr.substr(14));
-                            continue;
-                        }
-                        if (fstr.startsWith("review/time:")) {
-                            recRow.time = lcast(fstr.substr(13));
-                            continue;
-                        }
-                        if (fstr.startsWith("review/summary:")) {
-                            recRow.summary = str.substr(16);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/text:")) {
-                            recRow.text = str.substr(13);
-                            recRow.product_userId = key1 + " " + key2;
-
-                            rowBuilder.rewind();
-                            rowBuilder << recRow;
-                            fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-
-                            if (ctxrw->upsertRow(binRow) < 0) { // unique index
-                                printf("Insert failed: %s\n", ctxrw->errMsg.c_str());
-                                continue;
-                            }
-                            writen++;
-                            thread->stats.FinishedSingleOp();
-                            break;
-                        }
-                    }
-                    if(ifs.eof()) {
-                        ifs.clear();
-                        ifs.seekg(0, std::ios::beg);
-                    }
-                }
-                i++;
-                if((i+1)%1000 == 0) {
-                    clock_gettime(CLOCK_MONOTONIC, &end);
-                    long long timeuse = 1000000000LL * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
-                    totaltime += timeuse;
-                    if(totaltime/1000000000.0 > 14400) {
-                        printf("i %d thread %d current qps %0.2f, total qps %0.2f, timeuse %f totaltime %f\n", i, thread->tid, 1000.0/(timeuse/1000000000.0), i/(totaltime/1000000000.0), timeuse/1000000000.0, totaltime/1000000000.0);
-                        break;
-                    }
-                    printf("i %d thread %d current qps %0.2f, total qps %0.2f, timeuse %f totaltime %f\n", i, thread->tid, 1000.0/(timeuse/1000000000.0), i/(totaltime/1000000000.0), timeuse/1000000000.0, totaltime/1000000000.0);
-                    clock_gettime(CLOCK_MONOTONIC, &start);
-                }
-
-            }
-            time_t now;
-            struct tm *timenow;
-            time(&now);
-            timenow = localtime(&now);
-            printf("readnum %lld, writenum %lld, time %s, readtime %lld, writetime %lld\n", readn, writen, asctime(timenow), readtime/1000, writetime/1000);
-        }
 
 
-        void ReadWhileWriting(ThreadState* thread) {
-            if (thread->tid > 0) {
-                ReadRandom(thread);
-            } else {
-                int64_t num = 0;
-                terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
-                DbContextPtr ctxw;
-                ctxw = tab->createDbContext();
-                ctxw->syncIndex = FLAGS_sync_index;
-
-                while(true) {
-                    std::ifstream ifs(FLAGS_resource_data);
-                    std::string str;
-                    std::string key1;
-                    std::string key2;
-
-                    TestRow recRow;
-
-                    while(getline(ifs, str)) {
-                        fstring fstr(str);
-                        if (fstr.startsWith("product/productId:")) {
-                            key1 = str.substr(19);
-                        }
-                        if (fstr.startsWith("review/userId:")) {
-                            key2 = str.substr(15);
-                        }
-                        if (fstr.startsWith("review/profileName:")) {
-                            recRow.profileName = str.substr(20);
-                        }
-                        if (fstr.startsWith("review/helpfulness:")) {
-                            char* pos2 = NULL;
-                            recRow.helpfulness1 = strtol(fstr.data()+20, &pos2, 10);
-                            recRow.helpfulness2 = strtol(pos2+1, NULL, 10);
-                        }
-                        if (fstr.startsWith("review/score:")) {
-                            recRow.score = lcast(fstr.substr(14));
-                        }
-                        if (fstr.startsWith("review/time:")) {
-                            recRow.time = lcast(fstr.substr(13));
-                        }
-                        if (fstr.startsWith("review/summary:")) {
-                            recRow.summary = str.substr(16);
-                        }
-                        if (fstr.startsWith("review/text:")) {
-                            recRow.text = str.substr(13);
-                            recRow.product_userId = key1 + " " + key2;
-
-                            rowBuilder.rewind();
-                            rowBuilder << recRow;
-                            fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-
-                            if (ctxw->insertRow(binRow) < 0) {
-                                printf("Insert failed: %s\n", ctxw->errMsg.c_str());
-                                exit(-1);
-                            }
-                            num ++;
-                        }
-
-                        MutexLock l(&thread->shared->mu);
-                        if (thread->shared->num_done + 1 >= thread->shared->num_initialized) {
-                            printf("extra write operations number %d\n", num);
-                            return;
-                        }
-                    }
-                }
-            }
-        }
+       
 
         void Compact(ThreadState* thread) {
             fprintf(stderr, "Compact not supported\n");
@@ -1675,7 +1180,7 @@ namespace leveldb {
 
         void HeapProfile() {
             char fname[100];
-            snprintf(fname, sizeof(fname), "%s/heap-%04d", FLAGS_db, ++heap_counter_);
+            snprintf(fname, sizeof(fname), "%s/heap-%04d", setting.FLAGS_db, ++heap_counter_);
             WritableFile* file;
             Status s = Env::Default()->NewWritableFile(fname, &file);
             if (!s.ok()) {
@@ -1694,8 +1199,8 @@ namespace leveldb {
 }  // namespace leveldb
 
 int main(int argc, char** argv) {
-    FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
-    FLAGS_open_files = leveldb::Options().max_open_files;
+    setting.FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
+    setting.FLAGS_open_files = leveldb::Options().max_open_files;
     std::string default_db_path;
     std::string default_db_table;
 
@@ -1706,32 +1211,32 @@ int main(int argc, char** argv) {
         if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
             FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
         } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_compression_ratio = d;
+            setting.FLAGS_compression_ratio = d;
         } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
-            FLAGS_histogram = n;
+            setting.FLAGS_histogram = n;
         } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
-            FLAGS_use_existing_db = n;
+            setting.FLAGS_use_existing_db = n;
         } else if (sscanf(argv[i], "--sync_index=%d%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
-            FLAGS_sync_index = n;
+            setting.FLAGS_sync_index = n;
         } else if (sscanf(argv[i], "--num=%d%c", &n, &junk) == 1) {
-            FLAGS_num = n;
+            setting.FLAGS_num = n;
         } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
-            FLAGS_reads = n;
+            setting.FLAGS_reads = n;
         } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
-            FLAGS_threads = n;
+            setting.FLAGS_threads = n;
         } else if (strncmp(argv[i], "--db=", 5) == 0) {
-            FLAGS_db = argv[i] + 5;
+            setting.FLAGS_db = argv[i] + 5;
         } else if (sscanf(argv[i], "--read_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_read_write_percent = d;
+            setting.FLAGS_read_write_percent = d;
         } else if (sscanf(argv[i], "--read_old_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_read_old_record_percent = d;
+            setting.FLAGS_read_old_record_percent = d;
         } else if (sscanf(argv[i], "--write_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_write_new_record_percent = d;
+            setting.FLAGS_write_new_record_percent = d;
         } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
-            FLAGS_resource_data = argv[i] + 16;
+            setting.FLAGS_resource_data = argv[i] + 16;
         } else {
             fprintf(stderr, "Invalid flag '%s'\n", argv[i]);
             exit(1);
@@ -1739,25 +1244,25 @@ int main(int argc, char** argv) {
     }
 
     // Choose a location for the test database if none given with --db=<path>
-    if (FLAGS_db == NULL) {
+    if (setting.FLAGS_db == NULL) {
         leveldb::Env::Default()->GetTestDirectory(&default_db_path);
         default_db_path += "/dbbench";
-        FLAGS_db = default_db_path.c_str();
+        setting.FLAGS_db = default_db_path.c_str();
     }
 
-    if (FLAGS_db_table == NULL) {
+    if (setting.FLAGS_db_table == NULL) {
         default_db_table += "DfaDbTable";
-        FLAGS_db_table = default_db_table.c_str();
+        setting.FLAGS_db_table = default_db_table.c_str();
     }
 
-    if (FLAGS_resource_data == NULL) {
+    if (setting.FLAGS_resource_data == NULL) {
         fprintf(stderr, "Please input the resource data file\n");
         exit(-1);
     }
 
-    shuff = (int *)malloc(FLAGS_threads * sizeof(int));
-    for (int i=0; i<FLAGS_threads; i++)
-        shuff[i] = i;
+    setting.shuff = (int *)malloc(setting.FLAGS_threads * sizeof(int));
+    for (int i=0; i<setting.FLAGS_threads; i++)
+        setting.shuff[i] = i;
 
     leveldb::Benchmark benchmark;
     benchmark.Run();
