@@ -25,6 +25,18 @@
 #include "util/logging.h"
 #include "util/posix_logger.h"
 
+// fread_unlocked and fdatasync is not available on MacOS.
+#ifdef __APPLE__
+extern "C" {
+  size_t fread_unlocked(void *ptr, size_t size, size_t n, FILE *file) {
+    return fread(ptr, size, n, file);
+  }
+  int fdatasync(int filedes) {
+    return fsync(filedes);
+  }
+}
+#endif
+
 namespace leveldb {
 
 namespace {
