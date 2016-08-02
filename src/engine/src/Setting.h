@@ -8,6 +8,25 @@
 
 class Setting {
 public:
+    const char* FLAGS_benchmarks =
+            "fillseq,"
+                    "deleteseq,"
+                    "fillseq,"
+                    "deleterandom,"
+                    "fillrandom,"
+                    "deleteseq,"
+                    "fillrandom,"
+                    "deleterandom,"
+                    "fillseqsync,"
+                    "fillrandsync,"
+                    "fillseq,"
+                    "fillseqbatch,"
+                    "fillrandom,"
+                    "fillrandbatch,"
+                    "overwrite,"
+                    "readrandom,"
+                    "readseq,"
+                    "readreverse,";
      int FLAGS_num = 0;
 
 // Number of read operations to do.  If negative, do FLAGS_num reads.
@@ -52,7 +71,7 @@ public:
 // If true, do not destroy the existing database.  If you set this
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
-     bool FLAGS_use_existing_db = true;
+     bool FLAGS_use_existing_db = false;
 
 // Use the db with the following name.
      const char* FLAGS_db = nullptr;
@@ -60,6 +79,21 @@ public:
      const char* FLAGS_resource_data = nullptr;
 
      int *shuff = nullptr;
+
+    bool FLAGS_use_lsm = true;
+
+
+// Stagger starting point of reads for sequential (or reverse).
+    bool FLAGS_stagger = false;
+
+// Stagger starting point of reads for sequential (or reverse).
+    int FLAGS_max_compact_wait = 1200;
+
+// read write percent
+
+
+// Use the db with the following name.
+
 };
 
 
