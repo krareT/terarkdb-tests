@@ -50,7 +50,7 @@ int clock_gettime(int clk_id, struct timespec *t){
 #include <fstream>
 #include <string.h>
 #include <string>
-
+#include <boost/asio.hpp>
 //#include "stdafx.h"
 #include <terark/db/db_table.hpp>
 #include <terark/io/MemStream.hpp>
@@ -64,6 +64,7 @@ int clock_gettime(int clk_id, struct timespec *t){
 #include "src/leveldb.h"
 #include "src/TerarkBenchmark.h"
 #include "src/WiredTigerBenchmark.h"
+#include "src/TcpServer.h"
 // Comma-separated list of operations to run in the specified order
 //   Actual benchmarks:
 //      fillseq       -- write N values in sequential key order in async mode
@@ -92,8 +93,23 @@ int clock_gettime(int clk_id, struct timespec *t){
 
 //Setting setting;
 
-
+void tcpServer(){
+    std::cout << "------------Tcp Server start-------------" << std::endl;
+    try
+    {
+        boost::asio::io_service io_service;
+        tcp_server server(io_service);
+        io_service.run();
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+    }
+}
 int main(int argc, char** argv) {
+
+    std::cout <<"Init tcp thread" << std::endl;
+    std::thread tcpServerThread(tcpServer);
     Setting setting;
     std::string default_db_path;
 
@@ -160,7 +176,11 @@ int main(int argc, char** argv) {
     for (int i=0; i<setting.FLAGS_threads; i++)
         setting.shuff[i] = i;
 
+
+
     leveldb::WiredTIgerBenchmark benchmark(setting);
     benchmark.Run();
+    tcpServerThread.join();
+
     return 0;
 }

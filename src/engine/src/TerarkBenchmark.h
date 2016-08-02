@@ -39,6 +39,8 @@
 #include <port/port_posix.h>
 #include <src/Setting.h>
 #include "src/leveldb.h"
+#include "src/TcpServer.h"
+
 using namespace terark;
 using namespace db;
 namespace leveldb {
@@ -366,8 +368,10 @@ namespace leveldb {
                 shared.cv.Wait();
             }
 
+
             shared.start = true;
             shared.cv.SignalAll();
+
             while (shared.num_done < n) {
                 shared.cv.Wait();
             }

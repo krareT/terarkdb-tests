@@ -29,10 +29,12 @@
 #include "util/testutil.h"
 #include "port/port.h"
 #include "wiredtiger.h"
+#include "TcpServer.h"
 
 #include <terark/util/autofree.hpp>
 #include <terark/util/fstrvec.hpp>
 #include <terark/fstring.hpp>
+#include <thread>
 
 namespace leveldb {
 
@@ -445,6 +447,7 @@ namespace leveldb {
             }
         }
 
+
         void RunWiredTIgerBenchmark(int n, Slice name,
                           void (WiredTIgerBenchmark::*method)(ThreadState*)) {
             SharedState shared;
@@ -464,12 +467,11 @@ namespace leveldb {
             }
 
             shared.mu.Lock();
-            while (shared.num_initialized < n) {
-                shared.cv.Wait();
-            }
 
             shared.start = true;
+
             shared.cv.SignalAll();
+
             while (shared.num_done < n) {
                 shared.cv.Wait();
             }
