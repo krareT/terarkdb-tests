@@ -79,6 +79,21 @@ public:
      const char* FLAGS_resource_data = nullptr;
 
      int *shuff = nullptr;
+
+    bool FLAGS_use_lsm = true;
+
+
+// Stagger starting point of reads for sequential (or reverse).
+    bool FLAGS_stagger = false;
+
+// Stagger starting point of reads for sequential (or reverse).
+    int FLAGS_max_compact_wait = 1200;
+
+// read write percent
+
+
+// Use the db with the following name.
+
 };
 
 

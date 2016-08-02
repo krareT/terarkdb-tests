@@ -34,7 +34,7 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         util/cache.cc util/coding.cc util/comparator.cc util/crc32c.cc util/env.cc util/env_posix.cc
         util/filter_policy.cc util/hash.cc util/histogram.cc util/logging.cc util/options.cc util/status.cc
         port/port_posix.cc ./util/testutil.h src/Setting.cpp src/Setting.h src/leveldb.h
-        src/Benchmark.cpp src/Benchmark.h)
+        src/TerarkBenchmark.cpp src/TerarkBenchmark.h src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h)
 
 target_link_libraries(Terark_Engine_Test tbb boost_system boost_filesystem
         terark-fsa_all-${CMAKE_CXX_COMPILER}-${COMPILER_VERSION}-r

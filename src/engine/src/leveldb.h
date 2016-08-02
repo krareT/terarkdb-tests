@@ -38,6 +38,8 @@
 #include <terark/util/fstrvec.hpp>
 #include <port/port_posix.h>
 #include <src/Setting.h>
+#include <wiredtiger.h>
+
 using namespace terark;
 using namespace db;
 namespace leveldb {
@@ -196,11 +198,18 @@ namespace leveldb {
             Random rand;         // Has different seeds for different threads
             Stats *stats;
             SharedState* shared;
-
+            WT_SESSION *session;
             ThreadState(int index,Setting &setting1)
                     : tid(index),
                       rand(1000 + index) {
                 stats = new Stats(setting1);
+            }
+            ThreadState(int index,Setting &setting1,WT_CONNECTION *conn)
+            :tid(index),rand(index + 1000){
+
+                stats = new Stats(setting1);
+                conn->open_session(conn, NULL, NULL, &session);
+                assert(session != NULL);
             }
             ~ThreadState(){
                 delete(stats);
