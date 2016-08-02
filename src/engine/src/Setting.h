@@ -8,6 +8,25 @@
 
 class Setting {
 public:
+    const char* FLAGS_benchmarks =
+            "fillseq,"
+                    "deleteseq,"
+                    "fillseq,"
+                    "deleterandom,"
+                    "fillrandom,"
+                    "deleteseq,"
+                    "fillrandom,"
+                    "deleterandom,"
+                    "fillseqsync,"
+                    "fillrandsync,"
+                    "fillseq,"
+                    "fillseqbatch,"
+                    "fillrandom,"
+                    "fillrandbatch,"
+                    "overwrite,"
+                    "readrandom,"
+                    "readseq,"
+                    "readreverse,";
      int FLAGS_num = 0;
 
 // Number of read operations to do.  If negative, do FLAGS_num reads.

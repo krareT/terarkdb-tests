@@ -62,40 +62,7 @@ using namespace db;
 //      stats       -- Print DB stats
 //      sstables    -- Print sstable info
 //      heapprofile -- Dump a heap profile (if supported by this port)
-static const char* FLAGS_benchmarks =
-        "fillseq,"
-                "deleteseq,"
-                "fillseq,"
-                "deleterandom,"
-                "fillrandom,"
-                "deleteseq,"
-                "fillrandom,"
-                "deleterandom,"
-                "fillseqsync,"
-                "fillrandsync,"
-                "fillseq,"
-                "fillseqbatch,"
-                "fillrandom,"
-                "fillrandbatch,"
-                "overwrite,"
-                "readrandom,"
-#if 0
-                "readrandom,"  // Extra run to allow previous compactions to quiesce
-#endif
-                "readseq,"
-                "readreverse,"
-#if 0
-"compact,"
-    "readrandom,"
-    "readseq,"
-    "readreverse,"
-    "fill100K,"
-    "crc32c,"
-    "snappycomp,"
-    "snappyuncomp,"
-    "acquireload,"
-#endif
-;
+
 
 // Number of key/values to place in database
 
@@ -135,7 +102,6 @@ namespace leveldb {
             double last_op_finish_;
             Histogram hist_;
             std::string message_;
-
         public:
             Stats() { Start(); }
 
@@ -414,7 +380,7 @@ namespace leveldb {
 
             Open();
 
-            const char* benchmarks = FLAGS_benchmarks;
+            const char* benchmarks = setting.FLAGS_benchmarks;
             while (benchmarks != NULL) {
                 const char* sep = strchr(benchmarks, ',');
                 Slice name;
@@ -1199,6 +1165,7 @@ namespace leveldb {
 }  // namespace leveldb
 
 int main(int argc, char** argv) {
+ 
     setting.FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
     setting.FLAGS_open_files = leveldb::Options().max_open_files;
     std::string default_db_path;
@@ -1209,7 +1176,7 @@ int main(int argc, char** argv) {
         int n;
         char junk;
         if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
-            FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
+            setting.FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
         } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
             setting.FLAGS_compression_ratio = d;
         } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
