@@ -71,7 +71,7 @@ public:
 // If true, do not destroy the existing database.  If you set this
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
-     bool FLAGS_use_existing_db = true;
+     bool FLAGS_use_existing_db = false;
 
 // Use the db with the following name.
      const char* FLAGS_db = nullptr;

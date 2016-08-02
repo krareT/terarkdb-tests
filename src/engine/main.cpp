@@ -39,6 +39,7 @@
 #include <src/Setting.h>
 #include "src/leveldb.h"
 #include "src/TerarkBenchmark.h"
+#include "src/WiredTigerBenchmark.h"
 // Comma-separated list of operations to run in the specified order
 //   Actual benchmarks:
 //      fillseq       -- write N values in sequential key order in async mode
@@ -70,14 +71,12 @@
 
 int main(int argc, char** argv) {
     Setting setting;
-    setting.FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
-    setting.FLAGS_open_files = leveldb::Options().max_open_files;
     std::string default_db_path;
-    std::string default_db_table;
 
     for (int i = 1; i < argc; i++) {
         double d;
         int n;
+        long size;
         char junk;
         if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
             setting.FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
@@ -86,26 +85,38 @@ int main(int argc, char** argv) {
         } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
             setting.FLAGS_histogram = n;
+        } else if (sscanf(argv[i], "--use_lsm=%d%c", &n, &junk) == 1 &&
+                   (n == 0 || n == 1)) {
+            setting.FLAGS_use_lsm = n;
         } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
             setting.FLAGS_use_existing_db = n;
-        } else if (sscanf(argv[i], "--sync_index=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            setting.FLAGS_sync_index = n;
+        } else if (sscanf(argv[i], "--max_compact_wait=%d%c", &n, &junk) == 1) {
+            setting.FLAGS_max_compact_wait = n;
         } else if (sscanf(argv[i], "--num=%d%c", &n, &junk) == 1) {
             setting.FLAGS_num = n;
         } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
             setting.FLAGS_reads = n;
+        } else if (sscanf(argv[i], "--stagger=%d%c", &n, &junk) == 1 &&
+                   (n == 0 || n == 1)) {
+            setting.FLAGS_stagger = n;
         } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
             setting.FLAGS_threads = n;
+        } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
+            setting.FLAGS_value_size = n;
+        } else if (sscanf(argv[i], "--write_buffer_size=%d%c", &n, &junk) == 1) {
+            setting.FLAGS_write_buffer_size = n;
+        } else if (sscanf(argv[i], "--cache_size=%ld%c", &size, &junk) == 1) {
+            std::cout << "cache_size " << size << std::endl;
+            setting.FLAGS_cache_size = size;
+        } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
+            setting.FLAGS_bloom_bits = n;
+        } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
+            setting.FLAGS_open_files = n;
         } else if (strncmp(argv[i], "--db=", 5) == 0) {
             setting.FLAGS_db = argv[i] + 5;
         } else if (sscanf(argv[i], "--read_ratio=%lf%c", &d, &junk) == 1) {
             setting.FLAGS_read_write_percent = d;
-        } else if (sscanf(argv[i], "--read_old_ratio=%lf%c", &d, &junk) == 1) {
-            setting.FLAGS_read_old_record_percent = d;
-        } else if (sscanf(argv[i], "--write_ratio=%lf%c", &d, &junk) == 1) {
-            setting.FLAGS_write_new_record_percent = d;
         } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
             setting.FLAGS_resource_data = argv[i] + 16;
         } else {
@@ -121,22 +132,11 @@ int main(int argc, char** argv) {
         setting.FLAGS_db = default_db_path.c_str();
     }
 
-    if (setting.FLAGS_db_table == NULL) {
-        default_db_table += "DfaDbTable";
-        setting.FLAGS_db_table = default_db_table.c_str();
-    }
-
-    if (setting.FLAGS_resource_data == NULL) {
-        fprintf(stderr, "Please input the resource data file\n");
-        exit(-1);
-    }
-
     setting.shuff = (int *)malloc(setting.FLAGS_threads * sizeof(int));
     for (int i=0; i<setting.FLAGS_threads; i++)
         setting.shuff[i] = i;
 
-    leveldb::TerarkBenchmark benchmark(setting);
+    leveldb::WiredTIgerBenchmark benchmark(setting);
     benchmark.Run();
-    fprintf(stdout, "db movies terark completed\n");
     return 0;
 }

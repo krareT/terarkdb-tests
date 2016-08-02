@@ -7,10 +7,36 @@
 
 #include <wiredtiger.h>
 #include "src/leveldb.h"
+#include <sys/types.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sstream>
+#include <vector>
+
+#include <iostream>
+#include <fstream>
+#include <string.h>
+
+#include <unistd.h>
+#include <errno.h> /* For ETIMEDOUT */
+#include "util/crc32c.h"
+#include "util/histogram.h"
+#include "util/mutexlock.h"
+#include "util/random.h"
+#include "util/testutil.h"
+#include "port/port.h"
+#include "wiredtiger.h"
+
+#include <terark/util/autofree.hpp>
+#include <terark/util/fstrvec.hpp>
+#include <terark/fstring.hpp>
 
 namespace leveldb {
 
-    namespace {
+
 
 // Helper for quickly generating random data.
         class RandomGenerator {
@@ -28,6 +54,7 @@ namespace leveldb {
                 while (data_.size() < 1048576) {
                     // Add a short fragment that is as compressible as specified
                     // by setting.FLAGS_compression_ratio.
+
                     test::CompressibleString(&rnd, setting.FLAGS_compression_ratio, 100, &piece);
                     data_.append(piece);
                 }
@@ -43,7 +70,7 @@ namespace leveldb {
                 return Slice(data_.data() + pos_ - len, len);
             }
         };
-    }  // namespace
+
 
     class WiredTIgerBenchmark {
     private:
@@ -561,6 +588,7 @@ namespace leveldb {
 #endif
             //config << ",verbose=[lsm]";
             Env::Default()->CreateDir(setting.FLAGS_db);
+            std::cout << "Config:" << config.str().c_str() << std::endl;
             wiredtiger_open(setting.FLAGS_db, NULL, config.str().c_str(), &conn_);
             assert(conn_ != NULL);
 
