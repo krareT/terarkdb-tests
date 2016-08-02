@@ -38,6 +38,7 @@
 #include <port/port_posix.h>
 #include <src/Setting.h>
 #include "src/leveldb.h"
+#include "src/Benchmark.h"
 // Comma-separated list of operations to run in the specified order
 //   Actual benchmarks:
 //      fillseq       -- write N values in sequential key order in async mode
