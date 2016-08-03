@@ -296,6 +296,8 @@ namespace leveldb {
 
                 struct timespec start, end;
                 clock_gettime(CLOCK_MONOTONIC, &start);
+
+                method = &TerarkBenchmark::ReadWhileWriting;
                 if (method != NULL) {
                     printf("RunTerarkBenchmark %s\n", name.data());
                     RunTerarkBenchmark(num_threads, name, method);
@@ -363,6 +365,7 @@ namespace leveldb {
                 Env::Default()->StartThread(ThreadBody, &arg[i]);
             }
 
+
             shared.mu.Lock();
             while (shared.num_initialized < n) {
                 shared.cv.Wait();
@@ -371,7 +374,7 @@ namespace leveldb {
 
             shared.start = true;
             shared.cv.SignalAll();
-
+            printf("-----------All thread is start!\n");
             while (shared.num_done < n) {
                 shared.cv.Wait();
             }
@@ -538,12 +541,110 @@ namespace leveldb {
             timenow = localtime(&now);
             printf("writenum %lld, avg %lld, offset %d, time %s\n", writen, copyavg, offset, asctime(timenow));
         }
+        void DoWrite(ThreadState *thread, bool seq,int times) {
+     //       std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
+
+            DbContextPtr ctxw;
+            ctxw = tab->createDbContext();
+            ctxw->syncIndex = setting.FLAGS_sync_index;
+
+            if (num_ != setting.FLAGS_num) {
+                char msg[100];
+                snprintf(msg, sizeof(msg), "(%d ops)", num_);
+                thread->stats->AddMessage(msg);
+            }
+
+
+            terark::NativeDataOutput <terark::AutoGrownMemIO> rowBuilder;
+            std::ifstream ifs(setting.FLAGS_resource_data);
+            std::string str;
+
+            int64_t avg = setting.FLAGS_num / setting.FLAGS_threads;
+            int64_t copyavg = avg;
+            int offset = setting.shuff[thread->tid];
+            if (avg != setting.FLAGS_num) {
+                if (offset != 0) {
+                    int64_t skip = offset * avg;
+                    if (skip != 0) {
+                        while (getline(ifs, str)) {
+                            if (str.find("review/text:") == 0) {
+                                skip--;
+                                if (skip == 0)
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            std::string key1;
+            std::string key2;
+            TestRow recRow;
+            int64_t writen = 0;
+
+            while (getline(ifs, str) && times != 0) {
+                times--;
+                fstring fstr(str);
+                if (fstr.startsWith("product/productId:")) {
+                    key1 = str.substr(19);
+                    continue;
+                }
+                if (fstr.startsWith("review/userId:")) {
+                    key2 = str.substr(15);
+                    continue;
+                }
+                if (fstr.startsWith("review/profileName:")) {
+                    recRow.profileName = str.substr(20);
+                    continue;
+                }
+                if (fstr.startsWith("review/helpfulness:")) {
+                    char *pos2 = NULL;
+                    recRow.helpfulness1 = strtol(fstr.data() + 20, &pos2, 10);
+                    recRow.helpfulness2 = strtol(pos2 + 1, NULL, 10);
+                    continue;
+                }
+                if (fstr.startsWith("review/score:")) {
+                    recRow.score = lcast(fstr.substr(14));
+                    continue;
+                }
+                if (fstr.startsWith("review/time:")) {
+                    recRow.time = lcast(fstr.substr(13));
+                    continue;
+                }
+                if (fstr.startsWith("review/summary:")) {
+                    recRow.summary = str.substr(16);
+                    continue;
+                }
+                if (fstr.startsWith("review/text:")) {
+                    recRow.text = str.substr(13);
+                    recRow.product_userId = key1 + " " + key2;
+
+                    rowBuilder.rewind();
+                    rowBuilder << recRow;
+                    fstring binRow(rowBuilder.begin(), rowBuilder.tell());
+
+                    // if (ctxw->insertRow(binRow) < 0) { // non unique index
+                    if (ctxw->upsertRow(binRow) < 0) { // unique index
+                        printf("Insert failed: %s\n", ctxw->errMsg.c_str());
+                        exit(-1);
+                    }
+                    thread->stats->FinishedSingleOp();
+                    writen++;
+                    avg--;
+                    continue;
+                }
+            }
+            time_t now;
+            struct tm *timenow;
+            time(&now);
+            timenow = localtime(&now);
+     //       printf("writenum %lld, avg %lld, offset %d, time %s\n", writen, copyavg, offset, asctime(timenow));
+        }
 
         void ReadSequential(ThreadState *thread) {
             fprintf(stderr, "ReadSequential not supported\n");
             return;
         }
-
         void ReadReverse(ThreadState *thread) {
             fprintf(stderr, "ReadReverse not supported\n");
             return;
@@ -592,6 +693,68 @@ namespace leveldb {
             thread->stats->AddMessage(msg);
 
         }
+
+
+            void ReadOneKey(ThreadState *thread) {
+
+
+                valvec <byte> keyHit, val;
+                valvec <valvec<byte>> cgDataVec;
+                valvec <llong> idvec;
+                valvec <size_t> colgroups;
+                DbContextPtr ctxr;
+                ctxr = tab->createDbContext();
+                ctxr->syncIndex = setting.FLAGS_sync_index;
+                fstring key(allkeys_.at(rand()%allkeys_.size()));
+
+                size_t indexId = 0;
+                tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
+                for (auto recId : idvec) {
+                    tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
+                }
+            }
+
+            void WriteOneKey(ThreadState *thread) {
+                DoWrite(thread,false,1);
+            }
+
+            void updatePlan(std::vector<uint8_t> &plan, int readPercent,ThreadState *thread) {
+                plan.clear();
+                for (int i = 0; i < readPercent; i++) {
+                    plan.push_back(1);
+                }
+                while(plan.size() < 100){
+                    plan.push_back(0);
+                }
+                thread->rand.Shuffle(plan);
+            }
+
+            void ReadWhileWriting(ThreadState *thread) {
+
+                printf("ReadWhileWriting\n");
+                static std::unordered_map<uint8_t, void (TerarkBenchmark::*)(ThreadState *thread)> func_map;
+                func_map[1] = &TerarkBenchmark::ReadOneKey;
+                func_map[0] = &TerarkBenchmark::WriteOneKey;
+                int readPercent;
+                int old_readPercent = -1;
+                std::vector<uint8_t> plan;
+                bool STOP = false;
+                while (!STOP) {
+
+                    readPercent = setting.baseSetting.getReadPercent();
+                    if (readPercent > 100) {
+                        readPercent = 100;
+                    }
+                    if (old_readPercent != readPercent) {
+                        old_readPercent = readPercent;
+                        updatePlan(plan,readPercent,thread);
+                    }
+                    for (auto each : plan) {
+                        (this->*func_map[each])(thread);
+                        thread->stats->FinishedSingleOp(each);
+                    }
+                }
+            }
 
         void ReadMissing(ThreadState *thread) {
             fprintf(stderr, "ReadMissing not supported\n");

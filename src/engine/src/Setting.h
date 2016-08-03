@@ -6,27 +6,33 @@
 #define TERARKDB_TEST_FRAMEWORK_SETTING_H
 
 #include <string>
-#
+#include <atomic>
 class BaseSetting{
 private:
     //应当使用读写锁。暂时用互斥锁
+    std::atomic<int8_t > READ_PERCENT;
 
 public:
+    BaseSetting();
+    BaseSetting (const BaseSetting&) = delete;
     std::string INIT_DATA_SOURCE;
     std::string WRITE_DATA_SOURCE;
     enum READ_TYPE{
         READ_SEQ,
         READ_RANDOM
     };
-    double READ_PERCENT;
     double WRITE_INSERT_PERCENT;
     uint32_t THREAD_NUMS;
     uint64_t OPS_RECORD_STEP;
 
+    void setReadPercent(uint8_t);
+
+    uint8_t getReadPercent(void);
 };
 class Setting{
-public:
 
+public:
+    BaseSetting baseSetting;
     const char* FLAGS_benchmarks =
             "fillseq,"
                     "deleteseq,"

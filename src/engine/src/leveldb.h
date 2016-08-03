@@ -139,7 +139,13 @@ namespace leveldb {
                     fflush(stderr);
                 }
             }
-
+            void FinishedSingleOp(unsigned char type){
+                static long long typeDone[2];
+                assert(type < 2);
+                typeDone[type] ++;
+                fprintf(stderr,"Read:%lld,Write:%lld\r",typeDone[1],typeDone[0]);
+                fflush(stderr);
+            }
             void AddBytes(int64_t n) {
                 bytes_ += n;
             }

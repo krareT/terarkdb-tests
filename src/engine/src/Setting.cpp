@@ -156,3 +156,20 @@ Setting::Setting(int argc,char **argv,char *name){
     }
 
 }
+BaseSetting::BaseSetting() {
+    READ_PERCENT.store(100);
+}
+
+void BaseSetting::setReadPercent(uint8_t readPercent) {
+
+    if ( readPercent < 0)
+        readPercent = 0;
+    if ( readPercent > 100)
+        readPercent = 100;
+    READ_PERCENT.store(readPercent);
+}
+
+uint8_t BaseSetting::getReadPercent(void) {
+
+    return READ_PERCENT.load();
+}

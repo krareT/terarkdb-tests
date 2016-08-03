@@ -90,12 +90,12 @@ int clock_gettime(int clk_id, struct timespec *t){
 
 
 // Number of key/values to place in database
-void tcpServer(){
+void tcpServer(Setting *setting){
     std::cout << "------------Tcp Server start-------------" << std::endl;
     try
     {
         boost::asio::io_service io_service;
-        tcp_server server(io_service);
+        tcp_server server(io_service,*setting);
         io_service.run();
     }
     catch (std::exception& e)
@@ -105,8 +105,6 @@ void tcpServer(){
 }
 int main(int argc, char** argv) {
 
-    std::cout <<"Init tcp thread" << std::endl;
-    std::thread tcpServerThread(tcpServer);
 
     std::string default_db_path;
     if (argc < 2){
@@ -115,6 +113,7 @@ int main(int argc, char** argv) {
     }
     Setting setting(argc,argv,argv[1]);
     // Choose a location for the test database if none given with --db=<path>
+    std::thread tcpServerThread(tcpServer,&setting);
 
     if (strcmp(argv[1],"Terark") == 0) {
         printf("Terark!\n");
@@ -124,9 +123,9 @@ int main(int argc, char** argv) {
     }
     else {
         printf("WiredTiger!\n");
-        leveldb::WiredTIgerBenchmark wiredTIgerBenchmark(setting);
+        leveldb::WiredTigerBenchmark wiredTigerBenchmark(setting);
 
-        wiredTIgerBenchmark.Run();
+        wiredTigerBenchmark.Run();
     }
     tcpServerThread.join();
     return 0;

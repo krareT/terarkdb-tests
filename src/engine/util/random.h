@@ -6,6 +6,7 @@
 #define STORAGE_LEVELDB_UTIL_RANDOM_H_
 
 #include <stdint.h>
+#include <vector>
 
 namespace leveldb {
 
@@ -65,6 +66,15 @@ class Random {
 	  }
 	}
   }
+    void Shuffle(std::vector<uint8_t > &vec){
+        int n = vec.size();
+        for(int i = 0; i < n;i++){
+            int j = i + Next() / (2147483647 / (n-i) + 1);
+            uint8_t t = vec[j];
+            vec[j] = vec[i];
+            vec[i] = t;
+        }
+    }
 };
 
 }  // namespace leveldb

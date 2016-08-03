@@ -13,6 +13,8 @@
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/array.hpp>
+#include "Setting.h"
+
 using boost::asio::ip::tcp;
 
 class tcp_connection : public boost::enable_shared_from_this<tcp_connection>{
@@ -24,13 +26,17 @@ public:
     tcp::socket& socket(){
         return socket_;
     }
-    void start(){
+    void start(Setting &setting){
         message_ = std::string("Hi!I am Terark_Engine_Test!\n");
         boost::system::error_code error;
         boost::array<char,128> buf;
         size_t len = socket_.read_some(boost::asio::buffer(buf),error);
-        std::cout.write(buf.data(),len)<<std::endl;
 
+        if (setting.baseSetting.getReadPercent() == 100)
+            setting.baseSetting.setReadPercent(0);
+        else
+            setting.baseSetting.setReadPercent(100);
+        std::cout << "\nREAD_PERCENT:" << (int) (setting.baseSetting.getReadPercent()) << std::endl;
         boost::asio::async_write(socket_, boost::asio::buffer(message_),
                                  boost::bind(&tcp_connection::handle_write, shared_from_this(),
                                              boost::asio::placeholders::error,
@@ -54,9 +60,12 @@ private:
 class tcp_server{
 private:
     tcp::acceptor acceptor_;
+    Setting &setting;
+
 public:
-    tcp_server(boost::asio::io_service& io_service)
-            : acceptor_(io_service, tcp::endpoint(tcp::v4(),13)){
+    tcp_server(boost::asio::io_service& io_service,Setting &setting1)
+            :   acceptor_(io_service, tcp::endpoint(tcp::v4(),13)),
+                setting(setting1){
         start_accept();
     }
 private:
@@ -68,7 +77,7 @@ private:
     }
     void handle_accept(tcp_connection::pointer new_conn, const boost::system::error_code& error){
         if (!error){
-            new_conn->start();
+            new_conn->start(setting);
         }
         start_accept();
     }
