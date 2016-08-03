@@ -188,7 +188,6 @@ namespace leveldb {
             int num_initialized;
             int num_done;
             bool start;
-
             SharedState() : cv(&mu) { }
         };
 

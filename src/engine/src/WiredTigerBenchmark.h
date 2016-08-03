@@ -405,6 +405,7 @@ namespace leveldb {
                 printf("RunWiredTIgerBenchmark total time is : %lld \n", timeuse/1000000000);
             }
             allkeys_.erase_all();
+            std::cout << "---------" << std::endl;
             if (conn_ != NULL) {
                 conn_->close(conn_, NULL);
                 conn_ = NULL;
@@ -589,6 +590,7 @@ namespace leveldb {
             config << ",extensions=[libwiredtiger_snappy.so]";
 #endif
             //config << ",verbose=[lsm]";
+           // std::cout <<"------------" <<setting.FLAGS_db << std::endl;
             Env::Default()->CreateDir(setting.FLAGS_db);
             std::cout << "Config:" << config.str().c_str() << std::endl;
             wiredtiger_open(setting.FLAGS_db, NULL, config.str().c_str(), &conn_);

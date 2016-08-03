@@ -6,17 +6,23 @@
 #define TERARKDB_TEST_FRAMEWORK_SETTING_H
 
 #include <string>
+#
 class BaseSetting{
+private:
+    //应当使用读写锁。暂时用互斥锁
+
 public:
     std::string INIT_DATA_SOURCE;
     std::string WRITE_DATA_SOURCE;
-    const uint32_t SOCKET_PORT;
     enum READ_TYPE{
+        READ_SEQ,
+        READ_RANDOM
     };
     double READ_PERCENT;
     double WRITE_INSERT_PERCENT;
     uint32_t THREAD_NUMS;
     uint64_t OPS_RECORD_STEP;
+
 };
 class Setting{
 public:
@@ -88,7 +94,7 @@ public:
 
 // Use the db with the following name.
      const char* FLAGS_db = nullptr;
-     const char* FLAGS_db_table = nullptr;
+     std::string FLAGS_db_table;
      const char* FLAGS_resource_data = nullptr;
 
      int *shuff = nullptr;
@@ -106,7 +112,9 @@ public:
 
 
 // Use the db with the following name.
-
+    void terarkSetting(int argc,char **argv);
+    void wiredTigerSetting(int argc,char **argv);
+    Setting(int argc,char **argv,char *name);
 };
 
 

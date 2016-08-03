@@ -428,7 +428,7 @@ namespace leveldb {
             assert(tab == NULL);
             std::cout << "Create database " << setting.FLAGS_db << std::endl;
 
-            tab = CompositeTable::createTable(setting.FLAGS_db_table);
+            tab = CompositeTable::createTable(setting.FLAGS_db_table.c_str());
             tab->load(setting.FLAGS_db);
         }
 
