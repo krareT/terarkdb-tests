@@ -7,11 +7,17 @@
 
 #include <string>
 #include <atomic>
+#include <boost/algorithm/string.hpp>
+#include <unordered_map>
+
 class BaseSetting{
 private:
     //应当使用读写锁。暂时用互斥锁
-    std::atomic<int8_t > READ_PERCENT;
-
+    std::atomic<uint8_t > READ_PERCENT;
+    std::atomic<uint8_t > STOP;
+    std::atomic<uint32_t> THREAD_NUMS;
+    std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFunc_map;
+    enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
 public:
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
@@ -22,12 +28,20 @@ public:
         READ_RANDOM
     };
     double WRITE_INSERT_PERCENT;
-    uint32_t THREAD_NUMS;
     uint64_t OPS_RECORD_STEP;
 
     void setReadPercent(uint8_t);
-
     uint8_t getReadPercent(void);
+    bool ifStop(void);
+    void setStop(void);
+    void setThreadNums(uint32_t);
+    uint32_t getThreadNums(void);
+    std::string setBaseSetting(std::string &line);
+    std::string toString();
+
+    bool strSetStop(std::string&);
+    bool strSetReadPercent(std::string&);
+    bool strSetThreadNums(std::string&);
 };
 class Setting{
 

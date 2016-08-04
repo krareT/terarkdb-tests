@@ -144,6 +144,7 @@ void Setting::terarkSetting(int argc, char **argv) {
 
 
 }
+
 Setting::Setting(int argc,char **argv,char *name){
     if ( strcmp(name,"WiredTiger") == 0){
         wiredTigerSetting(argc,argv);
@@ -154,12 +155,50 @@ Setting::Setting(int argc,char **argv,char *name){
         exit(1);
 
     }
+    baseSetting.setThreadNums(FLAGS_threads);
 
 }
 BaseSetting::BaseSetting() {
-    READ_PERCENT.store(100);
-}
 
+    READ_PERCENT.store(100);
+    STOP.store(false);
+    setFunc_map["stop"] = &BaseSetting::strSetStop;
+    setFunc_map["read_percent"] = &BaseSetting::strSetReadPercent;
+    setFunc_map["thread_num"] = &BaseSetting::strSetThreadNums;
+}
+bool BaseSetting::strSetStop(std::string &value) {
+
+    if (value == "true"){
+        STOP.store(true);
+        return true;
+    }else if (value == "false"){
+        STOP.store(false);
+        return true;
+    }else{
+        return false;
+    }
+}
+bool BaseSetting::strSetReadPercent(std::string& value) {
+
+    uint32_t readPercent = stoi(value);
+
+    if ( readPercent > MAX_READ_PERCNT)
+        return false;
+    setReadPercent(readPercent);
+    return true;
+}
+bool BaseSetting::strSetThreadNums(std::string &value) {
+
+    uint32_t threadNums = stoi(value);
+    if (threadNums > MAX_THREAD_NUMS)
+        return false;
+    setThreadNums(threadNums);
+    return true;
+}
+bool BaseSetting::ifStop()
+{
+    return STOP.load();
+}
 void BaseSetting::setReadPercent(uint8_t readPercent) {
 
     if ( readPercent < 0)
@@ -172,4 +211,49 @@ void BaseSetting::setReadPercent(uint8_t readPercent) {
 uint8_t BaseSetting::getReadPercent(void) {
 
     return READ_PERCENT.load();
+}
+void BaseSetting::setThreadNums(uint32_t num)
+{
+    THREAD_NUMS.store(num);
+}
+uint32_t BaseSetting::getThreadNums(void) {
+    return THREAD_NUMS.load();
+}
+void BaseSetting::setStop(void){
+    STOP.store(true);
+}
+std::string BaseSetting::toString() {
+
+    char buf[1024];
+    snprintf(buf,1024,"read_percent:%u\nstop:%u\nthreads_num:%u\n",
+             READ_PERCENT.load(),STOP.load(),THREAD_NUMS.load());
+    std::string msg(buf);
+    return msg;
+}
+std::string BaseSetting::setBaseSetting(std::string &line){
+
+    std::vector<std::string> strvec;
+    boost::split(strvec,line,boost::is_any_of("\t"));
+    std::string message;
+    if (strvec.size() == 0)
+        message += "Empty Input\n";
+
+    for(auto& each_kv : strvec){
+        //key=value
+        size_t div = each_kv.find('=');
+        std::string key = each_kv.substr(0,div);
+        std::string value = each_kv.substr(div+1);
+        if (setFunc_map.count(key) > 0){
+
+            if ((this->*setFunc_map[key])(value)){
+                message += "set\t" + key + "\tsuccess\n";
+            }
+            else{
+                message += "set\t" + key + "\tfailure\n";
+            }
+        }else{
+            message += "invalid command:" + key + "\n";
+        }
+    }
+    return message + toString();
 }

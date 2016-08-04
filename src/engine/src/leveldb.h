@@ -143,8 +143,8 @@ namespace leveldb {
                 static long long typeDone[2];
                 assert(type < 2);
                 typeDone[type] ++;
-                fprintf(stderr,"Read:%lld,Write:%lld\r",typeDone[1],typeDone[0]);
-                fflush(stderr);
+                //fprintf(stderr,"Read:%lld,Write:%lld\r",typeDone[1],typeDone[0]);
+                //fflush(stderr);
             }
             void AddBytes(int64_t n) {
                 bytes_ += n;
@@ -184,7 +184,7 @@ namespace leveldb {
             port::Mutex mu;
             port::CondVar cv;
             int total;
-
+            Setting *setting;
             // Each thread goes through the following states:
             //    (1) initializing
             //    (2) waiting for others to be initialized
@@ -203,11 +203,13 @@ namespace leveldb {
             Random rand;         // Has different seeds for different threads
             Stats *stats;
             SharedState* shared;
+            std::atomic<uint8_t> STOP;
             WT_SESSION *session;
             ThreadState(int index,Setting &setting1)
                     : tid(index),
                       rand(1000 + index) {
                 stats = new Stats(setting1);
+                STOP.store(false);
             }
             ThreadState(int index,Setting &setting1,WT_CONNECTION *conn)
             :tid(index),rand(index + 1000){

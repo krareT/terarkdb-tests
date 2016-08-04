@@ -95,7 +95,7 @@ void tcpServer(Setting *setting){
     try
     {
         boost::asio::io_service io_service;
-        Server server(io_service,6666);
+        Server server(io_service,6666,*setting);
         io_service.run();
     }
     catch (std::exception& e)
@@ -112,7 +112,6 @@ int main(int argc, char** argv) {
         fprintf(stderr,"WiredTiger or Terark?");
     }
     Setting setting(argc,argv,argv[1]);
-    // Choose a location for the test database if none given with --db=<path>
     std::thread tcpServerThread(tcpServer,&setting);
 
     if (strcmp(argv[1],"Terark") == 0) {
@@ -127,6 +126,6 @@ int main(int argc, char** argv) {
 
         wiredTigerBenchmark.Run();
     }
-    tcpServerThread.join();
-    return 0;
+
+    exit(1);
 }

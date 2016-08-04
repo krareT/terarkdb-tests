@@ -38,6 +38,7 @@
 #include <terark/util/fstrvec.hpp>
 #include <port/port_posix.h>
 #include <src/Setting.h>
+#include <thread>
 #include "src/leveldb.h"
 #include "src/TcpServer.h"
 
@@ -317,13 +318,20 @@ namespace leveldb {
             ThreadState *thread;
 
             void (TerarkBenchmark::*method)(ThreadState *);
+            ThreadArg(TerarkBenchmark *b,SharedState *s,ThreadState *t,void (TerarkBenchmark::*m)(ThreadState *))
+                    :   bm(b),
+                        shared(s),
+                        thread(t),
+                        method(m){
+                thread->shared = s;
+            }
         };
 
         static void ThreadBody(void *v) {
             ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
             SharedState *shared = arg->shared;
             ThreadState *thread = arg->thread;
-            {
+            /*{
                 MutexLock l(&shared->mu);
                 shared->num_initialized++;
                 if (shared->num_initialized >= shared->total) {
@@ -333,11 +341,11 @@ namespace leveldb {
                     shared->cv.Wait();
                 }
             }
-
+            */
             thread->stats->Start();
             (arg->bm->*(arg->method))(thread);
             thread->stats->Stop();
-
+/*
             {
                 MutexLock l(&shared->mu);
                 shared->num_done++;
@@ -345,6 +353,7 @@ namespace leveldb {
                     shared->cv.SignalAll();
                 }
             }
+           */
         }
 
         void RunTerarkBenchmark(int n, Slice name,
@@ -354,18 +363,37 @@ namespace leveldb {
             shared.num_initialized = 0;
             shared.num_done = 0;
             shared.start = false;
+            shared.setting = & (this->setting);
+            //ThreadArg *arg = new ThreadArg[n];
+            std::vector<std::pair<std::thread,ThreadArg*>> threads;
 
-            ThreadArg *arg = new ThreadArg[n];
-            for (int i = 0; i < n; i++) {
-                arg[i].bm = this;
-                arg[i].method = method;
-                arg[i].shared = &shared;
-                arg[i].thread = new ThreadState(i, setting);
-                arg[i].thread->shared = &shared;
-                Env::Default()->StartThread(ThreadBody, &arg[i]);
+            while( !setting.baseSetting.ifStop()){
+
+                int threadNum = setting.baseSetting.getThreadNums();
+
+                while (threadNum > threads.size()){
+
+                    ThreadArg *threadArg = new ThreadArg(this,&shared,new ThreadState(threads.size(),setting),method);
+                    threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
+                }
+                while (threadNum < threads.size()){
+
+                    threads.back().second->thread->STOP.store(true);
+                    threads.back().first.join();
+                    delete threads.back().second->thread;
+                    delete threads.back().second;
+                    threads.pop_back();
+                }
+                sleep(5);
             }
-
-
+            while(threads.size() > 0){
+                threads.back().second->thread->STOP.store(true);
+                threads.back().first.join();
+                delete threads.back().second->thread;
+                delete threads.back().second;
+                threads.pop_back();
+            }
+/*
             shared.mu.Lock();
             while (shared.num_initialized < n) {
                 shared.cv.Wait();
@@ -373,22 +401,19 @@ namespace leveldb {
 
 
             shared.start = true;
-            shared.cv.SignalAll();
-            printf("-----------All thread is start!\n");
-            while (shared.num_done < n) {
+            shared.cv.SignalAll();*/
+            /*while (shared.num_done < n) {
                 shared.cv.Wait();
-            }
-            shared.mu.Unlock();
+            }*/
+            //shared.mu.Unlock();
 
-            for (int i = 1; i < n; i++) {
-                arg[0].thread->stats->Merge(*(arg[i].thread->stats));
-            }
-            arg[0].thread->stats->Report(name);
+            //for (int i = 1; i < n; i++) {
+           //     arg[0].thread->stats->Merge(*(arg[i].thread->stats));
+            //}
+            //arg[0].thread->stats->Report(name);
 
-            for (int i = 0; i < n; i++) {
-                delete arg[i].thread;
-            }
-            delete[] arg;
+
+
         }
 
         void Crc32c(ThreadState *thread) {
@@ -731,7 +756,7 @@ namespace leveldb {
 
             void ReadWhileWriting(ThreadState *thread) {
 
-                printf("ReadWhileWriting\n");
+                std::cout << "Thread " << thread->tid << " start!" << std::endl;
                 static std::unordered_map<uint8_t, void (TerarkBenchmark::*)(ThreadState *thread)> func_map;
                 func_map[1] = &TerarkBenchmark::ReadOneKey;
                 func_map[0] = &TerarkBenchmark::WriteOneKey;
@@ -739,9 +764,10 @@ namespace leveldb {
                 int old_readPercent = -1;
                 std::vector<uint8_t> plan;
                 bool STOP = false;
-                while (!STOP) {
+                while (thread->STOP.load() == false) {
 
-                    readPercent = setting.baseSetting.getReadPercent();
+                    //readPercent = setting.baseSetting.getReadPercent();
+                    readPercent = thread->shared->setting->baseSetting.getReadPercent();
                     if (readPercent > 100) {
                         readPercent = 100;
                     }
@@ -754,6 +780,7 @@ namespace leveldb {
                         thread->stats->FinishedSingleOp(each);
                     }
                 }
+                std::cout << "Thread " << thread->tid << " stop!" << std::endl;
             }
 
         void ReadMissing(ThreadState *thread) {

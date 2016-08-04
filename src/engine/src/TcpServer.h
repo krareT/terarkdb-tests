@@ -14,6 +14,8 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/array.hpp>
 #include "Setting.h"
+#include <boost/algorithm/string.hpp>
+#include <unordered_map>
 
 using boost::asio::ip::tcp;
 
@@ -106,8 +108,9 @@ public:
     {
     }
 
-    void start()
+    void start(Setting *setting1)
     {
+        setting = setting1;
         do_read();
     }
 
@@ -120,6 +123,8 @@ private:
                                       [this,self](boost::system::error_code ec, std::size_t lenth)
                                       {
                                           read_line_handler(ec,lenth);
+                                          do_read();
+
                                       });
     }
     void read_line_handler(const boost::system::error_code& ec,std::size_t size){
@@ -130,7 +135,9 @@ private:
         std::string line;
         std::getline(is, line);
         std::cout <<"Get:" << line << std::endl;
-        do_read();
+        //-thread=[number],-read_percent=[number]
+        std::string message = setting->baseSetting.setBaseSetting(line);
+        do_write(message);
     }
     void do_write(std::string &message)
     {
@@ -138,23 +145,23 @@ private:
         boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
                                  [this, self](boost::system::error_code ec, std::size_t)
                                  {
-                                     if (!ec)
-                                     {
-                                         do_read();
-                                     }
                                  });
         std::cout << "Send:" << message << std::endl;
     }
 
     tcp::socket socket_;
     boost::asio::streambuf buf_;
+    Setting *setting;
+    std::unordered_map<std::string,int > map;
 };
 class Server
 {
+    Setting &setting;
 public:
-    Server(boost::asio::io_service& io_service, short port)
+    Server(boost::asio::io_service& io_service, short port, Setting &setting1)
             : acceptor_(io_service, tcp::endpoint(tcp::v4(), port)),
-              socket_(io_service)
+              socket_(io_service),
+              setting(setting1)
     {
         do_accept();
     }
@@ -167,7 +174,7 @@ private:
                                {
                                    if (!ec)
                                    {
-                                       std::make_shared<session>(std::move(socket_))->start();
+                                       std::make_shared<session>(std::move(socket_))->start(&setting);
                                    }
 
                                    do_accept();
