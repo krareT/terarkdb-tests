@@ -115,15 +115,13 @@ int main(int argc, char** argv) {
     std::thread tcpServerThread(tcpServer,&setting);
 
     if (strcmp(argv[1],"Terark") == 0) {
-        printf("Terark!\n");
 
         leveldb::TerarkBenchmark terarkBenchmark(setting);
         terarkBenchmark.Run();
     }
     else {
-        printf("WiredTiger!\n");
-        leveldb::WiredTigerBenchmark wiredTigerBenchmark(setting);
 
+        leveldb::WiredTigerBenchmark wiredTigerBenchmark(setting);
         wiredTigerBenchmark.Run();
     }
 

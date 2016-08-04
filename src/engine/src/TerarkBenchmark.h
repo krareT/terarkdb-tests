@@ -329,33 +329,31 @@ namespace leveldb {
 
         static void ThreadBody(void *v) {
             ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
-            SharedState *shared = arg->shared;
             ThreadState *thread = arg->thread;
-            /*{
-                MutexLock l(&shared->mu);
-                shared->num_initialized++;
-                if (shared->num_initialized >= shared->total) {
-                    shared->cv.SignalAll();
-                }
-                while (!shared->start) {
-                    shared->cv.Wait();
-                }
-            }
-            */
+
             thread->stats->Start();
             (arg->bm->*(arg->method))(thread);
             thread->stats->Stop();
-/*
-            {
-                MutexLock l(&shared->mu);
-                shared->num_done++;
-                if (shared->num_done >= shared->total) {
-                    shared->cv.SignalAll();
-                }
-            }
-           */
         }
+        void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadArg*>> &threads,
+                                uint32_t target,
+                                SharedState *shared,
+                                void (TerarkBenchmark::*method)(ThreadState *)){
 
+            while (target > threads.size()){
+                //Add new thread.
+                ThreadArg *threadArg = new ThreadArg(this,shared,new ThreadState(threads.size(),setting),method);
+                threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
+            }
+            while (target < threads.size()){
+                //delete thread
+                threads.back().second->thread->STOP.store(true);
+                threads.back().first.join();
+                delete threads.back().second->thread;
+                delete threads.back().second;
+                threads.pop_back();
+            }
+        }
         void RunTerarkBenchmark(int n, Slice name,
                           void (TerarkBenchmark::*method)(ThreadState *)) {
             SharedState shared;
@@ -364,56 +362,17 @@ namespace leveldb {
             shared.num_done = 0;
             shared.start = false;
             shared.setting = & (this->setting);
-            //ThreadArg *arg = new ThreadArg[n];
+
             std::vector<std::pair<std::thread,ThreadArg*>> threads;
 
             while( !setting.baseSetting.ifStop()){
 
                 int threadNum = setting.baseSetting.getThreadNums();
+                adjustThreadNum(threads,threadNum,&shared,method);
 
-                while (threadNum > threads.size()){
-
-                    ThreadArg *threadArg = new ThreadArg(this,&shared,new ThreadState(threads.size(),setting),method);
-                    threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
-                }
-                while (threadNum < threads.size()){
-
-                    threads.back().second->thread->STOP.store(true);
-                    threads.back().first.join();
-                    delete threads.back().second->thread;
-                    delete threads.back().second;
-                    threads.pop_back();
-                }
                 sleep(5);
             }
-            while(threads.size() > 0){
-                threads.back().second->thread->STOP.store(true);
-                threads.back().first.join();
-                delete threads.back().second->thread;
-                delete threads.back().second;
-                threads.pop_back();
-            }
-/*
-            shared.mu.Lock();
-            while (shared.num_initialized < n) {
-                shared.cv.Wait();
-            }
-
-
-            shared.start = true;
-            shared.cv.SignalAll();*/
-            /*while (shared.num_done < n) {
-                shared.cv.Wait();
-            }*/
-            //shared.mu.Unlock();
-
-            //for (int i = 1; i < n; i++) {
-           //     arg[0].thread->stats->Merge(*(arg[i].thread->stats));
-            //}
-            //arg[0].thread->stats->Report(name);
-
-
-
+            adjustThreadNum(threads,0,NULL,NULL);
         }
 
         void Crc32c(ThreadState *thread) {

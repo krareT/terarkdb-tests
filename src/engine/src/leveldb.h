@@ -78,8 +78,15 @@ namespace leveldb {
             Histogram hist_;
             std::string message_;
             Setting &setting;
+
+            std::atomic<uint_fast64_t > typedDone_[2];//0:write 1:read
         public:
-            Stats(Setting &setting1) :setting(setting1) { Start(); }
+            Stats(Setting &setting1) :setting(setting1) {
+
+                typedDone_[0].store(0);
+                typedDone_[0].store(1);
+                Start();
+            }
 
             void Start() {
                 next_report_ = 100;
@@ -140,11 +147,7 @@ namespace leveldb {
                 }
             }
             void FinishedSingleOp(unsigned char type){
-                static long long typeDone[2];
-                assert(type < 2);
-                typeDone[type] ++;
-                //fprintf(stderr,"Read:%lld,Write:%lld\r",typeDone[1],typeDone[0]);
-                //fflush(stderr);
+                typedDone_[type]++;
             }
             void AddBytes(int64_t n) {
                 bytes_ += n;
