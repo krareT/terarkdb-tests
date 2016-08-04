@@ -95,7 +95,7 @@ void tcpServer(Setting *setting){
     try
     {
         boost::asio::io_service io_service;
-        tcp_server server(io_service,*setting);
+        Server server(io_service,6666);
         io_service.run();
     }
     catch (std::exception& e)

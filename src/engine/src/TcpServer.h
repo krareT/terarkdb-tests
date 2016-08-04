@@ -20,40 +20,54 @@ using boost::asio::ip::tcp;
 class tcp_connection : public boost::enable_shared_from_this<tcp_connection>{
 public:
     typedef boost::shared_ptr<tcp_connection> pointer;
-    static pointer create(boost::asio::io_service &io_service){
-        return pointer(new tcp_connection(io_service));
+    static pointer create(boost::asio::io_service &io_service,Setting &setting){
+        return pointer(new tcp_connection(io_service,setting));
     }
     tcp::socket& socket(){
         return socket_;
     }
     void start(Setting &setting){
-        message_ = std::string("Hi!I am Terark_Engine_Test!\n");
+        printf("Handle Accept!\n");
         boost::system::error_code error;
-        boost::array<char,128> buf;
-        size_t len = socket_.read_some(boost::asio::buffer(buf),error);
 
-        if (setting.baseSetting.getReadPercent() == 100)
-            setting.baseSetting.setReadPercent(0);
-        else
-            setting.baseSetting.setReadPercent(100);
-        std::cout << "\nREAD_PERCENT:" << (int) (setting.baseSetting.getReadPercent()) << std::endl;
+        boost::asio::async_read_until(socket_,data_,"\n",
+            boost::bind(&tcp_connection::handle_read, this, _1));
+        message_.clear();
+
         boost::asio::async_write(socket_, boost::asio::buffer(message_),
                                  boost::bind(&tcp_connection::handle_write, shared_from_this(),
                                              boost::asio::placeholders::error,
                                              boost::asio::placeholders::bytes_transferred));
+
     };
-private:
-    tcp_connection(boost::asio::io_service& io_service)
-            : socket_(io_service)
+    tcp_connection(boost::asio::io_service& io_service,Setting &setting1)
+            : socket_(io_service),setting(setting1)
     {
     }
+private:
+    boost::asio::streambuf data_;
+    Setting &setting;
+
 
     void handle_write(const boost::system::error_code& /*error*/,
                       size_t /*bytes_transferred*/)
     {
 
     }
+    void handle_read(const boost::system::error_code& ec){
 
+        if (!ec){
+            std::string word;
+            char sp1, sp2, cr, lf;
+            std::istream is(&data_);
+            is.unsetf(std::ios_base::skipws);
+            is >> word;
+            std::cout << word << std::endl;
+        }else{
+
+        }
+
+    }
     tcp::socket socket_;
     std::string message_;
 };
@@ -70,7 +84,7 @@ public:
     }
 private:
     void start_accept(){
-        tcp_connection::pointer newConnection = tcp_connection::create(acceptor_.get_io_service());
+        tcp_connection::pointer newConnection = tcp_connection::create(acceptor_.get_io_service(),setting);
         acceptor_.async_accept(newConnection->socket(),
                                boost::bind(&tcp_server::handle_accept, this, newConnection,
                                            boost::asio::placeholders::error));
@@ -81,6 +95,87 @@ private:
         }
         start_accept();
     }
+};
+
+class session
+        : public std::enable_shared_from_this<session>
+{
+public:
+    session(tcp::socket socket)
+            : socket_(std::move(socket))
+    {
+    }
+
+    void start()
+    {
+        do_read();
+    }
+
+private:
+    void do_read()
+    {
+
+        auto self(shared_from_this());
+        boost::asio::async_read_until(socket_, buf_, "\n",
+                                      [this,self](boost::system::error_code ec, std::size_t lenth)
+                                      {
+                                          read_line_handler(ec,lenth);
+                                      });
+    }
+    void read_line_handler(const boost::system::error_code& ec,std::size_t size){
+
+        if (ec)
+            return;
+        std::istream is(&buf_);
+        std::string line;
+        std::getline(is, line);
+        std::cout <<"Get:" << line << std::endl;
+        do_read();
+    }
+    void do_write(std::string &message)
+    {
+        auto self(shared_from_this());
+        boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
+                                 [this, self](boost::system::error_code ec, std::size_t)
+                                 {
+                                     if (!ec)
+                                     {
+                                         do_read();
+                                     }
+                                 });
+        std::cout << "Send:" << message << std::endl;
+    }
+
+    tcp::socket socket_;
+    boost::asio::streambuf buf_;
+};
+class Server
+{
+public:
+    Server(boost::asio::io_service& io_service, short port)
+            : acceptor_(io_service, tcp::endpoint(tcp::v4(), port)),
+              socket_(io_service)
+    {
+        do_accept();
+    }
+
+private:
+    void do_accept()
+    {
+        acceptor_.async_accept(socket_,
+                               [this](boost::system::error_code ec)
+                               {
+                                   if (!ec)
+                                   {
+                                       std::make_shared<session>(std::move(socket_))->start();
+                                   }
+
+                                   do_accept();
+                               });
+    }
+
+    tcp::acceptor acceptor_;
+    tcp::socket socket_;
 };
 
 #endif //TERARKDB_TEST_FRAMEWORK_TCPSERVER_H
