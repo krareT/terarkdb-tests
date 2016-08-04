@@ -232,6 +232,22 @@ namespace leveldb {
                 threads.pop_back();
             }
         }
+        void gatherThreadInfo(std::vector<std::pair<std::thread,ThreadArg*>> &threads){
+
+            std::vector<uint64_t > readVec;
+            std::vector<uint64_t > writeVec;
+
+            std::cout << "------------------" << std::endl;
+            for(auto& eachThreadInfo : threads){
+                readVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[1].fetch_and(0));
+                writeVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[0].fetch_and(0));
+            }
+            for(int i = 0; i < readVec.size();i++){
+                std::cout << "Thread " << i << " read " << readVec[i] << " write " << writeVec[i] << std::endl;
+            }
+
+
+        }
         void RunTerarkBenchmark(int n, Slice name,
                           void (TerarkBenchmark::*method)(ThreadState *)) {
             SharedState shared;
@@ -249,6 +265,7 @@ namespace leveldb {
                 adjustThreadNum(threads,threadNum,&shared,method);
 
                 sleep(5);
+                gatherThreadInfo(threads);
             }
             adjustThreadNum(threads,0,NULL,NULL);
         }

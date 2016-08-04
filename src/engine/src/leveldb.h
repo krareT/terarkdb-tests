@@ -79,8 +79,9 @@ namespace leveldb {
             std::string message_;
             Setting &setting;
 
-            std::atomic<uint_fast64_t > typedDone_[2];//0:write 1:read
+
         public:
+            std::atomic<uint64_t > typedDone_[2];//0:write 1:read
             Stats(Setting &setting1) :setting(setting1) {
 
                 typedDone_[0].store(0);
