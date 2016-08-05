@@ -223,9 +223,9 @@ namespace leveldb {
             assert(allkeys_.size() == setting.FLAGS_num);
 
             Open();
-
+            DoWrite(true);
             void (WiredTigerBenchmark::*method)(ThreadState *);
-            const char* benchmarks = setting.FLAGS_benchmarks;
+
 
             struct timespec start, end;
             clock_gettime(CLOCK_MONOTONIC, &start);
@@ -251,6 +251,7 @@ namespace leveldb {
             WiredTigerBenchmark* bm;
             ThreadState* thread;
             void (WiredTigerBenchmark::*method)(ThreadState*);
+
             ThreadArg(WiredTigerBenchmark* bm0,ThreadState* ts,
                       void (WiredTigerBenchmark::*m)(ThreadState*))
                     :   bm(bm0),
@@ -268,13 +269,12 @@ namespace leveldb {
         }
         void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadArg*>> &threads,
                                 uint32_t target,
-                                leveldb::SharedState *shared,
                                 void (WiredTigerBenchmark::*method)(leveldb::ThreadState *),
                                 std::atomic<std::vector<uint8_t >*>* which){
 
             while (target > threads.size()){
                 //Add new thread.
-                ThreadArg *threadArg = new ThreadArg(this,new leveldb::ThreadState(threads.size(),setting,which),method);
+                ThreadArg *threadArg = new ThreadArg(this,new leveldb::ThreadState(threads.size(),setting,conn_,which),method);
                 threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
             }
             while (target < threads.size()){
@@ -322,6 +322,7 @@ namespace leveldb {
             std::atomic<std::vector<uint8_t > *> planAddr;
             std::vector<uint8_t > plan[2];
             bool backupPlan = false;//不作真假，只用来切换plan
+
             while( !setting.baseSetting.ifStop()){
 
                 int readPercent = setting.baseSetting.getReadPercent();
@@ -333,28 +334,53 @@ namespace leveldb {
                 }
 
                 int threadNum = setting.baseSetting.getThreadNums();
-                adjustThreadNum(threads,threadNum,&shared,method,&planAddr);
+                adjustThreadNum(threads,threadNum,method,&planAddr);
                 gatherThreadInfo(threads);
                 sleep(5);
             }
-            adjustThreadNum(threads,0, nullptr, nullptr, nullptr);
+            adjustThreadNum(threads,0,nullptr, nullptr);
+        }
+        bool ReadOneKey(ThreadState *thread) {
+            const char *ckey;
+            WT_CURSOR *cursor;
+
+            const char*  wprofileName;
+            uint32_t whelpfulness1;
+            uint32_t whelpfulness2;
+            uint32_t wscore;
+            uint32_t wtime;
+            const char* wsummary;
+            const char* wtext;
+
+
+            int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
+
+
+            if (ret != 0) {
+                fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+                exit(1);
+            }
+            int found = 0;
+            std::string key(allkeys_.str(rand()%allkeys_.size()));
+            cursor->set_key(cursor, key.c_str());
+            if (cursor->search(cursor) == 0) {
+                found++;
+                ret = cursor->get_value(cursor, &wprofileName, &whelpfulness1, &whelpfulness2, &wscore, &wtime, &wsummary, &wtext);
+            }
+
+            cursor->close(cursor);
+            return found != 0;
         }
 
-        void updatePlan(std::vector<uint8_t> &plan, int readPercent,ThreadState *thread) {
-            plan.clear();
-            for (int i = 0; i < readPercent; i++) {
-                plan.push_back(1);
-            }
-            while(plan.size() < 100){
-                plan.push_back(0);
-            }
-            thread->rand.Shuffle(plan);
+        bool WriteOneKey(ThreadState *thread) {
+
+            return true;
         }
 
         void ReadWhileWriting(leveldb::ThreadState *thread) {
 
             std::cout << "Thread " << thread->tid << " start!" << std::endl;
-            static std::unordered_map<uint8_t, void (WiredTigerBenchmark::*)(leveldb::ThreadState *thread)> func_map;
+            std::unordered_map<uint8_t, bool (WiredTigerBenchmark::*)(ThreadState *thread)> func_map;
             func_map[1] = &WiredTigerBenchmark::ReadOneKey;
             func_map[0] = &WiredTigerBenchmark::WriteOneKey;
 
@@ -363,6 +389,7 @@ namespace leveldb {
 
                 std::vector<uint8_t > *plan = (*(thread->which)).load();
                 for (auto each : *plan) {
+
                     (this->*func_map[each])(thread);
                     thread->stats->FinishedSingleOp(each);
                 }
@@ -648,6 +675,104 @@ namespace leveldb {
             time(&now);
             timenow = localtime(&now);
             printf("writenum %lld, avg %lld, offset %d, time %s\n",writen, copyavg, offset, asctime(timenow));
+        }
+        void DoWrite(bool seq) {
+            std::cout << "Do write now:" << allkeys_.size() << std::endl;
+            if (num_ != setting.FLAGS_num) {
+                char msg[100];
+                snprintf(msg, sizeof(msg), "(%d ops)", num_);
+            }
+
+            std::stringstream txn_config;
+            txn_config.str("");
+            txn_config << "isolation=snapshot";
+            if (sync_)
+                txn_config << ",sync=full";
+            else
+                txn_config << ",sync=none";
+
+            WT_CURSOR *cursor;
+            std::stringstream cur_config;
+            cur_config.str("");
+            cur_config << "overwrite";
+            //if (seq)
+              //  cur_config << ",bulk=true";
+
+
+            WT_SESSION * session ;
+            conn_->open_session(conn_, NULL, NULL, &session);
+            assert(session != NULL);
+            int ret = session->open_cursor(session, uri_.c_str(), NULL, cur_config.str().c_str(), &cursor);
+            if (ret != 0) {
+                fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+                exit(1);
+            }
+
+            std::ifstream ifs(setting.FLAGS_resource_data);
+            std::string str;
+
+            int64_t avg = setting.FLAGS_num;
+            int64_t copyavg = avg;
+
+
+            std::string key1;
+            std::string key2;
+            TestRow recRow;
+            int64_t writen = 0;
+
+            while(getline(ifs, str) && avg != 0) {
+                if (str.find("product/productId:") == 0) {
+                    key1 = str.substr(19);
+                    continue;
+                }
+                if (str.find("review/userId:") == 0) {
+                    key2 = str.substr(15);
+                    continue;
+                }
+                if (str.find("review/profileName:") == 0) {
+                    recRow.profileName = str.substr(20);
+                    continue;
+                }
+                if (str.find("review/helpfulness:") == 0) {
+                    char* pos2 = NULL;
+                    recRow.helpfulness1 = strtol(str.data()+20, &pos2, 10);
+                    recRow.helpfulness2 = strtol(pos2+1, NULL, 10);
+                    continue;
+                }
+                if (str.find("review/score:") == 0) {
+                    recRow.score = atol(str.substr(14).c_str());
+                    continue;
+                }
+                if (str.find("review/time:") == 0) {
+                    recRow.time = atol(str.substr(13).c_str());
+                    continue;
+                }
+                if (str.find("review/summary:") == 0) {
+                    recRow.summary = str.substr(16);
+                    continue;
+                }
+                if (str.find("review/text:") == 0) {
+                    recRow.text = str.substr(13);
+                    recRow.product_userId = key1 + " " + key2;
+
+                    cursor->set_key(cursor, recRow.product_userId.c_str());
+                    cursor->set_value(cursor, recRow.profileName.c_str(), recRow.helpfulness1, recRow.helpfulness2, recRow.score, recRow.time, recRow.summary.c_str(), recRow.text.c_str());
+                    int ret = cursor->insert(cursor);
+                    if (ret != 0) {
+                        fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
+                        exit(1);
+                    }
+                    writen ++;
+                    avg --;
+                    continue;
+                }
+            }
+            cursor->close(cursor);
+            time_t now;
+            struct tm *timenow;
+            time(&now);
+            timenow = localtime(&now);
+            std::cout << "writenum " << writen << " time " << asctime(timenow) << std::endl;
         }
 
 
@@ -1332,13 +1457,6 @@ namespace leveldb {
               Env::Default()->DeleteFile(fname);
             }
             */
-        }
-        void ReadOneKey(ThreadState *thread) {
-
-        }
-
-        void WriteOneKey(ThreadState *thread) {
-            //DoWrite(thread,false,1);
         }
 
         void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent) {

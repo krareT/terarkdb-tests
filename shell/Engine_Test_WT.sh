@@ -14,10 +14,10 @@ cd ../
 cmake ./CMakeLists.txt
 make
 cd shell
-        rm -rf $dirname/*
-        echo "####Now, running wiredtiger benchmark"
-        ../build/Terark_Engine_Test WiredTiger --benchmarks=fillrandom --num=$record_num --db=$dirname --use_lsm=0 --resource_data=$file
-        echo "####wiredtiger benchmark finish"
+rm -rf $dirname/*
+echo "####Now, running wiredtiger benchmark"
+../build/Terark_Engine_Test WiredTiger --benchmarks=fillrandom --num=$record_num --db=$dirname --use_lsm=0 --resource_data=$file --threads=8
+echo "####wiredtiger benchmark finish"
 
 echo "####Now, running wiredtiger benchmark"
 echo 3 > /proc/sys/vm/drop_caches

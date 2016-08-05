@@ -99,11 +99,11 @@ private:
     }
 };
 
-class session
-        : public std::enable_shared_from_this<session>
+class Session
+        : public std::enable_shared_from_this<Session>
 {
 public:
-    session(tcp::socket socket)
+    Session(tcp::socket socket)
             : socket_(std::move(socket))
     {
     }
@@ -174,7 +174,7 @@ private:
                                {
                                    if (!ec)
                                    {
-                                       std::make_shared<session>(std::move(socket_))->start(&setting);
+                                       std::make_shared<Session>(std::move(socket_))->start(&setting);
                                    }
 
                                    do_accept();

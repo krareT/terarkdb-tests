@@ -85,7 +85,7 @@ namespace leveldb {
             Stats(Setting &setting1) :setting(setting1) {
 
                 typedDone_[0].store(0);
-                typedDone_[0].store(1);
+                typedDone_[1].store(0);
                 Start();
             }
 
@@ -218,11 +218,12 @@ namespace leveldb {
                 stats = new Stats(setting1);
                 STOP.store(false);
             }
-            ThreadState(int index,Setting &setting1,WT_CONNECTION *conn)
-            :tid(index),rand(index + 1000),which(nullptr){
+            ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,std::atomic<std::vector<uint8_t >*>* w)
+            :tid(index),rand(index + 1000),which(w){
 
                 stats = new Stats(setting1);
                 conn->open_session(conn, NULL, NULL, &session);
+                STOP.store(false);
                 assert(session != NULL);
             }
             ~ThreadState(){

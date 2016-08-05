@@ -112,8 +112,9 @@ public:
         assert(allkeys_.size() == setting.FLAGS_num);
 
         Open();
+        DoWrite(true);
         void (TerarkBenchmark::*method)(leveldb::ThreadState *) = NULL;
-        const char *benchmarks = setting.FLAGS_benchmarks;
+
         int num_threads = setting.FLAGS_threads;
         struct timespec start, end;
         clock_gettime(CLOCK_MONOTONIC, &start);
@@ -344,6 +345,86 @@ private:
         std::cout << "writenum " << writen << ", avg " << copyavg
                   <<", offset" << offset << ", time " << asctime(timenow) << std::endl;
     }
+    void DoWrite( bool seq) {
+        std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
+
+        DbContextPtr ctxw;
+        ctxw = tab->createDbContext();
+        ctxw->syncIndex = setting.FLAGS_sync_index;
+
+        if (num_ != setting.FLAGS_num) {
+            char msg[100];
+            snprintf(msg, sizeof(msg), "(%d ops)", num_);
+        }
+
+        terark::NativeDataOutput <terark::AutoGrownMemIO> rowBuilder;
+        std::ifstream ifs(setting.FLAGS_resource_data);
+        std::string str;
+
+        int64_t avg = setting.FLAGS_num / setting.FLAGS_threads;
+        int64_t copyavg = avg;
+
+        std::string key1;
+        std::string key2;
+        leveldb::TestRow recRow;
+        int64_t writen = 0;
+
+        while (getline(ifs, str) && avg != 0) {
+            fstring fstr(str);
+            if (fstr.startsWith("product/productId:")) {
+                key1 = str.substr(19);
+                continue;
+            }
+            if (fstr.startsWith("review/userId:")) {
+                key2 = str.substr(15);
+                continue;
+            }
+            if (fstr.startsWith("review/profileName:")) {
+                recRow.profileName = str.substr(20);
+                continue;
+            }
+            if (fstr.startsWith("review/helpfulness:")) {
+                char *pos2 = NULL;
+                recRow.helpfulness1 = strtol(fstr.data() + 20, &pos2, 10);
+                recRow.helpfulness2 = strtol(pos2 + 1, NULL, 10);
+                continue;
+            }
+            if (fstr.startsWith("review/score:")) {
+                recRow.score = lcast(fstr.substr(14));
+                continue;
+            }
+            if (fstr.startsWith("review/time:")) {
+                recRow.time = lcast(fstr.substr(13));
+                continue;
+            }
+            if (fstr.startsWith("review/summary:")) {
+                recRow.summary = str.substr(16);
+                continue;
+            }
+            if (fstr.startsWith("review/text:")) {
+                recRow.text = str.substr(13);
+                recRow.product_userId = key1 + " " + key2;
+
+                rowBuilder.rewind();
+                rowBuilder << recRow;
+                fstring binRow(rowBuilder.begin(), rowBuilder.tell());
+
+                // if (ctxw->insertRow(binRow) < 0) { // non unique index
+                if (ctxw->upsertRow(binRow) < 0) { // unique index
+                    printf("Insert failed: %s\n", ctxw->errMsg.c_str());
+                    exit(-1);
+                }
+                writen++;
+                avg--;
+                continue;
+            }
+        }
+        time_t now;
+        struct tm *timenow;
+        time(&now);
+        timenow = localtime(&now);
+        std::cout << "writenum " << writen << " time " << asctime(timenow) << std::endl;
+    }
     void DoWrite(leveldb::ThreadState *thread, bool seq,int times) {
  //       std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
 
@@ -482,7 +563,7 @@ private:
         void ReadWhileWriting(leveldb::ThreadState *thread) {
 
             std::cout << "Thread " << thread->tid << " start!" << std::endl;
-            static std::unordered_map<uint8_t, void (TerarkBenchmark::*)(leveldb::ThreadState *thread)> func_map;
+            std::unordered_map<uint8_t, void (TerarkBenchmark::*)(leveldb::ThreadState *thread)> func_map;
             func_map[1] = &TerarkBenchmark::ReadOneKey;
             func_map[0] = &TerarkBenchmark::WriteOneKey;
 
