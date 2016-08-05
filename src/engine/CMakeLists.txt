@@ -11,6 +11,8 @@ include_directories(./include)
 
 include_directories(${TERARKDB_PATH}/include)
 link_directories(${TERARKDB_PATH}/lib)
+include_directories(../../snappy)
+link_directories(../../snappy)
 set(EXECUTABLE_OUTPUT_PATH ../../build)
 add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
         db/db_iter.cc db/filename.cc db/log_reader.cc db/log_writer.cc db/memtable.cc db/repair.cc
