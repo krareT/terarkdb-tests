@@ -209,14 +209,17 @@ namespace leveldb {
             SharedState* shared;
             std::atomic<uint8_t> STOP;
             WT_SESSION *session;
-            ThreadState(int index,Setting &setting1)
-                    : tid(index),
-                      rand(1000 + index) {
+            std::atomic<std::vector<uint8_t >*> *which;
+            ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* w)
+                    :   tid(index),
+                        rand(1000 + index),
+                        which(w)
+                        {
                 stats = new Stats(setting1);
                 STOP.store(false);
             }
             ThreadState(int index,Setting &setting1,WT_CONNECTION *conn)
-            :tid(index),rand(index + 1000){
+            :tid(index),rand(index + 1000),which(nullptr){
 
                 stats = new Stats(setting1);
                 conn->open_session(conn, NULL, NULL, &session);

@@ -216,11 +216,12 @@ namespace leveldb {
         void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadArg*>> &threads,
                                 uint32_t target,
                                 SharedState *shared,
-                                void (TerarkBenchmark::*method)(ThreadState *)){
+                                void (TerarkBenchmark::*method)(ThreadState *),
+                                std::atomic<std::vector<uint8_t >*>* which){
 
             while (target > threads.size()){
                 //Add new thread.
-                ThreadArg *threadArg = new ThreadArg(this,shared,new ThreadState(threads.size(),setting),method);
+                ThreadArg *threadArg = new ThreadArg(this,shared,new ThreadState(threads.size(),setting,which),method);
                 threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
             }
             while (target < threads.size()){
@@ -236,15 +237,20 @@ namespace leveldb {
 
             std::vector<uint64_t > readVec;
             std::vector<uint64_t > writeVec;
-
+            uint64_t total_read = 0;
+            uint64_t total_write = 0;
             std::cout << "------------------" << std::endl;
+
             for(auto& eachThreadInfo : threads){
                 readVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[1].fetch_and(0));
                 writeVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[0].fetch_and(0));
+                total_read += readVec.back();
+                total_write += writeVec.back();
             }
             for(int i = 0; i < readVec.size();i++){
                 std::cout << "Thread " << i << " read " << readVec[i] << " write " << writeVec[i] << std::endl;
             }
+            std::cout << "Total read " << total_read << " write " << total_write << std::endl;
 
 
         }
@@ -258,16 +264,31 @@ namespace leveldb {
             shared.setting = & (this->setting);
 
             std::vector<std::pair<std::thread,ThreadArg*>> threads;
+            int old_readPercent = -1;
 
+            std::atomic<std::vector<uint8_t > *> planAddr;
+            std::vector<uint8_t > plan[2];
+            bool backupPlan = false;//不作真假，只用来切换plan
             while( !setting.baseSetting.ifStop()){
 
-                int threadNum = setting.baseSetting.getThreadNums();
-                adjustThreadNum(threads,threadNum,&shared,method);
 
-                sleep(5);
+
+                int readPercent = setting.baseSetting.getReadPercent();
+                if (readPercent != old_readPercent){
+                    //std::cout << "update Plan" << std::endl;
+                    old_readPercent = readPercent;
+                    updatePlan(plan[backupPlan],readPercent);
+                    planAddr.store( &(plan[backupPlan]));
+                    //std::cout <<" Main:" << planAddr.load() << std::endl;
+                    backupPlan = !backupPlan;
+                }
+
+                int threadNum = setting.baseSetting.getThreadNums();
+                adjustThreadNum(threads,threadNum,&shared,method,&planAddr);
                 gatherThreadInfo(threads);
+                sleep(5);
             }
-            adjustThreadNum(threads,0,NULL,NULL);
+            adjustThreadNum(threads,0, nullptr, nullptr, nullptr);
         }
 
         void Crc32c(ThreadState *thread) {
@@ -594,18 +615,17 @@ namespace leveldb {
             }
 
             void WriteOneKey(ThreadState *thread) {
-                DoWrite(thread,false,1);
+                //DoWrite(thread,false,1);
             }
 
-            void updatePlan(std::vector<uint8_t> &plan, int readPercent,ThreadState *thread) {
-                plan.clear();
-                for (int i = 0; i < readPercent; i++) {
-                    plan.push_back(1);
+            void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent) {
+                assert(readPercent <= 100);
+                if (plan.size() != 100){
+                    plan.resize(100);
                 }
-                while(plan.size() < 100){
-                    plan.push_back(0);
-                }
-                thread->rand.Shuffle(plan);
+                std::fill_n(plan.begin(),readPercent,1);
+                std::fill(plan.begin()+readPercent,plan.end(),0);
+                std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
             }
 
             void ReadWhileWriting(ThreadState *thread) {
@@ -614,22 +634,12 @@ namespace leveldb {
                 static std::unordered_map<uint8_t, void (TerarkBenchmark::*)(ThreadState *thread)> func_map;
                 func_map[1] = &TerarkBenchmark::ReadOneKey;
                 func_map[0] = &TerarkBenchmark::WriteOneKey;
-                int readPercent;
-                int old_readPercent = -1;
-                std::vector<uint8_t> plan;
-                bool STOP = false;
+
+
                 while (thread->STOP.load() == false) {
 
-                    //readPercent = setting.baseSetting.getReadPercent();
-                    readPercent = thread->shared->setting->baseSetting.getReadPercent();
-                    if (readPercent > 100) {
-                        readPercent = 100;
-                    }
-                    if (old_readPercent != readPercent) {
-                        old_readPercent = readPercent;
-                        updatePlan(plan,readPercent,thread);
-                    }
-                    for (auto each : plan) {
+                    std::vector<uint8_t > *plan = (*(thread->which)).load();
+                    for (auto each : *plan) {
                         (this->*func_map[each])(thread);
                         thread->stats->FinishedSingleOp(each);
                     }
