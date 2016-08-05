@@ -105,8 +105,6 @@ void tcpServer(Setting *setting){
 }
 int main(int argc, char** argv) {
 
-
-    std::string default_db_path;
     if (argc < 2){
 
         fprintf(stderr,"WiredTiger or Terark?");
@@ -115,8 +113,7 @@ int main(int argc, char** argv) {
     std::thread tcpServerThread(tcpServer,&setting);
 
     if (strcmp(argv[1],"Terark") == 0) {
-
-        leveldb::TerarkBenchmark terarkBenchmark(setting);
+        TerarkBenchmark terarkBenchmark(setting);
         terarkBenchmark.Run();
     }
     else {
