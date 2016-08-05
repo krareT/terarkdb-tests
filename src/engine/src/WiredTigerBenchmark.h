@@ -224,188 +224,20 @@ namespace leveldb {
 
             Open();
 
+            void (WiredTigerBenchmark::*method)(ThreadState *);
             const char* benchmarks = setting.FLAGS_benchmarks;
-            while (benchmarks != NULL) {
-                const char* sep = strchr(benchmarks, ',');
-                Slice name;
-                if (sep == NULL) {
-                    name = benchmarks;
-                    benchmarks = NULL;
-                } else {
-                    name = Slice(benchmarks, sep - benchmarks);
-                    benchmarks = sep + 1;
-                }
 
-                // Reset parameters that may be overriddden below
-                num_ = setting.FLAGS_num;
-                reads_ = (setting.FLAGS_reads < 0 ? setting.FLAGS_num : setting.FLAGS_reads);
-                value_size_ = setting.FLAGS_value_size;
-                entries_per_batch_ = 1;
-                sync_ = false;
+            struct timespec start, end;
+            clock_gettime(CLOCK_MONOTONIC, &start);
 
-                void (WiredTigerBenchmark::*method)(ThreadState*) = NULL;
-                bool fresh_db = false;
-                int num_threads = setting.FLAGS_threads;
+            method = &WiredTigerBenchmark::ReadWhileWriting;
 
-                if (name == Slice("fillseq")) {
-                    fresh_db = true;
-                    method = &WiredTigerBenchmark::WriteSeq;
-#ifdef SYMAS_CONFIG
-                    } else if (name == Slice("fillrandbatch")) {
-        fresh_db = true;
-        entries_per_batch_ = 1000;
-        method = &WiredTigerBenchmark::WriteRandom;
-      } else if (name == Slice("fillseqbatch")) {
-#else
-                } else if (name == Slice("fillbatch")) {
-#endif
-                    fresh_db = true;
-                    entries_per_batch_ = 1000;
-                    method = &WiredTigerBenchmark::WriteSeq;
-                } else if (name == Slice("fillrandom")) {
-                    fresh_db = true;
-                    method = &WiredTigerBenchmark::WriteRandom;
+            RunWiredTigerBenchmark(setting.baseSetting.getThreadNums(), "RWThread", method);
 
-                    Random rand(1000);
-                    rand.Shuffle(setting.shuff, setting.FLAGS_threads);
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            long long timeuse = 1000000000 * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
+            printf("RunWiredTigerBenchmark total time is : %lld \n", timeuse/1000000000);
 
-                } else if (name == Slice("overwrite")) {
-                    fresh_db = false;
-                    method = &WiredTigerBenchmark::WriteRandom;
-#ifdef SYMAS_CONFIG
-                    } else if (name == Slice("fillseqsync")) {
-        num_ /= 1000;
-        if (num_ < 10)
-            num_ = 10;
-        fresh_db = true;
-        sync_ = true;
-        method = &WiredTigerBenchmark::WriteSeq;
-      } else if (name == Slice("fillrandsync")) {
-#else
-                } else if (name == Slice("fillsync")) {
-#endif
-                    num_ /= 1000;
-                    if (num_ < 10)
-                        num_ = 10;
-                    fresh_db = true;
-                    sync_ = true;
-                    method = &WiredTigerBenchmark::WriteRandom;
-                } else if (name == Slice("fill100K")) {
-                    fresh_db = true;
-                    num_ /= 1000;
-                    value_size_ = 100 * 1000;
-                    method = &WiredTigerBenchmark::WriteRandom;
-                } else if (name == Slice("readseq")) {
-                    method = &WiredTigerBenchmark::ReadSequential;
-                } else if (name == Slice("readreverse")) {
-                    method = &WiredTigerBenchmark::ReadReverse;
-                } else if (name == Slice("readrandom")) {
-                    method = &WiredTigerBenchmark::ReadRandom;
-                } else if (name == Slice("readmissing")) {
-                    method = &WiredTigerBenchmark::ReadMissing;
-                } else if (name == Slice("seekrandom")) {
-                    method = &WiredTigerBenchmark::SeekRandom;
-                } else if (name == Slice("readhot")) {
-                    method = &WiredTigerBenchmark::ReadHot;
-                } else if (name == Slice("readrandomsmall")) {
-                    reads_ /= 1000;
-                    method = &WiredTigerBenchmark::ReadRandom;
-                } else if (name == Slice("deleteseq")) {
-                    method = &WiredTigerBenchmark::DeleteSeq;
-                } else if (name == Slice("deleterandom")) {
-                    method = &WiredTigerBenchmark::DeleteRandom;
-                } else if (name == Slice("readwhilewriting")) {
-                    //num_threads++;  // Add extra thread for writing
-                    //method = &WiredTigerBenchmark::ReadWhileWriting;
-                    //method = &WiredTigerBenchmark::ReadWhileWritingNew;
-                    method = &WiredTigerBenchmark::ReadWhileWritingNew2;
-
-                    Random rand(1000);
-                    rand.Shuffle(setting.shuff, setting.FLAGS_threads);
-                } else if (name == Slice("readwritedel")) {
-                    method = &WiredTigerBenchmark::ReadWriteDel;
-                } else if (name == Slice("compact")) {
-                    method = &WiredTigerBenchmark::Compact;
-                } else if (name == Slice("crc32c")) {
-                    method = &WiredTigerBenchmark::Crc32c;
-                } else if (name == Slice("acquireload")) {
-                    method = &WiredTigerBenchmark::AcquireLoad;
-                } else if (name == Slice("snappycomp")) {
-                    method = &WiredTigerBenchmark::SnappyCompress;
-                } else if (name == Slice("snappyuncomp")) {
-                    method = &WiredTigerBenchmark::SnappyUncompress;
-                } else if (name == Slice("heapprofile")) {
-                    HeapProfile();
-                } else if (name == Slice("stats")) {
-                    PrintStats("leveldb.stats");
-                } else if (name == Slice("sstables")) {
-                    PrintStats("leveldb.sstables");
-                } else {
-                    if (name != Slice()) {  // No error message for empty name
-                        fprintf(stderr, "unknown benchmark '%s'\n", name.ToString().c_str());
-                    }
-                }
-
-                if (fresh_db) {
-                    if (setting.FLAGS_use_existing_db) {
-/*
-          fprintf(stdout, "%-12s : skipped (--use_existing_db is true)\n",
-                  name.ToString().c_str());
-          method = NULL;
-*/
-                    } else {
-                        if (conn_ != NULL) {
-                            conn_->close(conn_, NULL);
-                            conn_ = NULL;
-                        }
-                        std::vector<std::string> files;
-                        Env::Default()->GetChildren(setting.FLAGS_db, &files);
-                        if (!setting.FLAGS_use_existing_db) {
-                            for (int i = 0; i < files.size(); i++) {
-                                std::string file_name(setting.FLAGS_db);
-                                file_name += "/";
-                                file_name += files[i];
-                                Env::Default()->DeleteFile(file_name.c_str());
-                            }
-                        }
-                        Open();
-                    }
-                } else if (setting.FLAGS_use_existing_db) {
-                    /*
-               * We get here if we don't want to use a fresh db and
-               * don't want to skip this benchmark.  We just want to
-               * resue the DB that already exists for the current benchmark.
-               */
-                    if (conn_ != NULL) {
-                        conn_->close(conn_, NULL);
-                        conn_ = NULL;
-                    }
-                    Open();
-                    fprintf(stderr, "Reusing existing DB %s\n",uri_.c_str());
-                }
-
-                struct timespec start, end;
-                clock_gettime(CLOCK_MONOTONIC, &start);
-
-                method = &WiredTigerBenchmark::ReadWhileWriting;
-                if (method != NULL) {
-                    RunWiredTigerBenchmark(num_threads, name, method);
-#ifdef SYMAS_CONFIG
-                    if (method == &WiredTigerBenchmark::WriteSeq ||
-      method == &WiredTigerBenchmark::WriteRandom) {
-      char cmd[200];
-      std::string test_dir;
-      Env::Default()->GetTestDirectory(&test_dir);
-      sprintf(cmd, "du %s", test_dir.c_str());
-      system(cmd);
-  }
-#endif
-                }
-
-                clock_gettime(CLOCK_MONOTONIC, &end);
-                long long timeuse = 1000000000 * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
-                printf("RunWiredTigerBenchmark total time is : %lld \n", timeuse/1000000000);
-            }
             allkeys_.erase_all();
             std::cout << "---------" << std::endl;
             if (conn_ != NULL) {
@@ -415,35 +247,97 @@ namespace leveldb {
         }
 
     private:
-        void ReadOneKey(ThreadState *thread) {
+        struct ThreadArg {
+            WiredTigerBenchmark* bm;
+            ThreadState* thread;
+            void (WiredTigerBenchmark::*method)(ThreadState*);
+            ThreadArg(WiredTigerBenchmark* bm0,ThreadState* ts,
+                      void (WiredTigerBenchmark::*m)(ThreadState*))
+                    :   bm(bm0),
+                        thread(ts),
+                        method(m)
+            {}
+        };
+        static void ThreadBody(void *v) {
+            ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
+            leveldb::ThreadState *thread = arg->thread;
 
-            const char *ckey;
-            WT_CURSOR *cursor;
+            thread->stats->Start();
+            (arg->bm->*(arg->method))(thread);
+            thread->stats->Stop();
+        }
+        void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadArg*>> &threads,
+                                uint32_t target,
+                                leveldb::SharedState *shared,
+                                void (WiredTigerBenchmark::*method)(leveldb::ThreadState *),
+                                std::atomic<std::vector<uint8_t >*>* which){
 
-            const char*  wprofileName;
-            uint32_t whelpfulness1;
-            uint32_t whelpfulness2;
-            uint32_t wscore;
-            uint32_t wtime;
-            const char* wsummary;
-            const char* wtext;
-            int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
-            if (ret != 0) {
-                fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-                exit(1);
+            while (target > threads.size()){
+                //Add new thread.
+                ThreadArg *threadArg = new ThreadArg(this,new leveldb::ThreadState(threads.size(),setting,which),method);
+                threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
             }
-            int found = 0;
-            std::string key = allkeys_.str(rand()%allkeys_.size());
-            cursor->set_key(cursor, key.c_str());
-            if (cursor->search(cursor) == 0) {
-                found++;
-                ret = cursor->get_value(cursor, &wprofileName, &whelpfulness1, &whelpfulness2, &wscore, &wtime, &wsummary, &wtext);
+            while (target < threads.size()){
+                //delete thread
+                threads.back().second->thread->STOP.store(true);
+                threads.back().first.join();
+                delete threads.back().second->thread;
+                delete threads.back().second;
+                threads.pop_back();
             }
+        }
+        void gatherThreadInfo(std::vector<std::pair<std::thread,ThreadArg*>> &threads){
+
+            std::vector<uint64_t > readVec;
+            std::vector<uint64_t > writeVec;
+            uint64_t total_read = 0;
+            uint64_t total_write = 0;
+            std::cout << "------------------" << std::endl;
+
+            for(auto& eachThreadInfo : threads){
+                readVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[1].fetch_and(0));
+                writeVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[0].fetch_and(0));
+                total_read += readVec.back();
+                total_write += writeVec.back();
+            }
+            for(int i = 0; i < readVec.size();i++){
+                std::cout << "Thread " << i << " read " << readVec[i] << " write " << writeVec[i] << std::endl;
+            }
+            std::cout << "Total read " << total_read << " write " << total_write << std::endl;
+
 
         }
+        void RunWiredTigerBenchmark(int n, leveldb::Slice name,
+                                void (WiredTigerBenchmark::*method)(leveldb::ThreadState *)) {
+            leveldb::SharedState shared;
+            shared.total = n;
+            shared.num_initialized = 0;
+            shared.num_done = 0;
+            shared.start = false;
+            shared.setting = & (this->setting);
 
-        void WriteOneKey(ThreadState *thread) {
-            DoWrite(thread,false,1);
+            std::vector<std::pair<std::thread,ThreadArg*>> threads;
+            int old_readPercent = -1;
+
+            std::atomic<std::vector<uint8_t > *> planAddr;
+            std::vector<uint8_t > plan[2];
+            bool backupPlan = false;//不作真假，只用来切换plan
+            while( !setting.baseSetting.ifStop()){
+
+                int readPercent = setting.baseSetting.getReadPercent();
+                if (readPercent != old_readPercent){
+                    old_readPercent = readPercent;
+                    updatePlan(plan[backupPlan],readPercent);
+                    planAddr.store( &(plan[backupPlan]));
+                    backupPlan = !backupPlan;
+                }
+
+                int threadNum = setting.baseSetting.getThreadNums();
+                adjustThreadNum(threads,threadNum,&shared,method,&planAddr);
+                gatherThreadInfo(threads);
+                sleep(5);
+            }
+            adjustThreadNum(threads,0, nullptr, nullptr, nullptr);
         }
 
         void updatePlan(std::vector<uint8_t> &plan, int readPercent,ThreadState *thread) {
@@ -457,108 +351,25 @@ namespace leveldb {
             thread->rand.Shuffle(plan);
         }
 
-        void ReadWhileWriting(ThreadState *thread) {
+        void ReadWhileWriting(leveldb::ThreadState *thread) {
 
-            printf("ReadWhileWriting\n");
-            static std::unordered_map<uint8_t, void (WiredTigerBenchmark::*)(ThreadState *thread)> func_map;
+            std::cout << "Thread " << thread->tid << " start!" << std::endl;
+            static std::unordered_map<uint8_t, void (WiredTigerBenchmark::*)(leveldb::ThreadState *thread)> func_map;
             func_map[1] = &WiredTigerBenchmark::ReadOneKey;
             func_map[0] = &WiredTigerBenchmark::WriteOneKey;
-            int readPercent;
-            int old_readPercent = -1;
-            std::vector<uint8_t> plan;
-            bool STOP = false;
-            while (!STOP) {
 
-                readPercent = setting.baseSetting.getReadPercent();
-                if (readPercent > 100) {
-                    readPercent = 100;
-                }
-                if (old_readPercent != readPercent) {
-                    old_readPercent = readPercent;
-                    updatePlan(plan,readPercent,thread);
-                }
-                for (auto each : plan) {
+
+            while (thread->STOP.load() == false) {
+
+                std::vector<uint8_t > *plan = (*(thread->which)).load();
+                for (auto each : *plan) {
                     (this->*func_map[each])(thread);
                     thread->stats->FinishedSingleOp(each);
                 }
             }
+            std::cout << "Thread " << thread->tid << " stop!" << std::endl;
         }
 
-        struct ThreadArg {
-            WiredTigerBenchmark* bm;
-            SharedState* shared;
-            ThreadState* thread;
-            void (WiredTigerBenchmark::*method)(ThreadState*);
-        };
-
-        static void ThreadBody(void* v) {
-            ThreadArg* arg = reinterpret_cast<ThreadArg*>(v);
-            SharedState* shared = arg->shared;
-            ThreadState* thread = arg->thread;
-            {
-                MutexLock l(&shared->mu);
-                shared->num_initialized++;
-                if (shared->num_initialized >= shared->total) {
-                    shared->cv.SignalAll();
-                }
-                while (!shared->start) {
-                    shared->cv.Wait();
-                }
-            }
-
-            thread->stats->Start();
-            (arg->bm->*(arg->method))(thread);
-            thread->stats->Stop();
-
-            {
-                MutexLock l(&shared->mu);
-                shared->num_done++;
-                if (shared->num_done >= shared->total) {
-                    shared->cv.SignalAll();
-                }
-            }
-        }
-
-
-        void RunWiredTigerBenchmark(int n, Slice name,
-                          void (WiredTigerBenchmark::*method)(ThreadState*)) {
-            SharedState shared;
-            shared.total = n;
-            shared.num_initialized = 0;
-            shared.num_done = 0;
-            shared.start = false;
-
-            ThreadArg* arg = new ThreadArg[n];
-            for (int i = 0; i < n; i++) {
-                arg[i].bm = this;
-                arg[i].method = method;
-                arg[i].shared = &shared;
-                arg[i].thread = new ThreadState(i, setting,conn_);
-                arg[i].thread->shared = &shared;
-                Env::Default()->StartThread(ThreadBody, &arg[i]);
-            }
-
-            shared.mu.Lock();
-
-            shared.start = true;
-
-            shared.cv.SignalAll();
-
-            while (shared.num_done < n) {
-                shared.cv.Wait();
-            }
-            shared.mu.Unlock();
-
-            for (int i = 1; i < n; i++) {
-                arg[0].thread->stats->Merge( *(arg[i].thread->stats));
-            }
-            arg[0].thread->stats->Report(name);
-
-            for (int i = 0; i < n; i++) {
-                delete arg[i].thread;
-            }
-            delete[] arg;
-        }
 
         void Crc32c(ThreadState* thread) {
             // Checksum about 500MB of data total
@@ -1428,142 +1239,6 @@ namespace leveldb {
             printf("readnum %lld, writenum %lld, avg %lld, offset %d\n", readn, writen, copyavg, offset);
         }
 
-        void ReadWhileWritingNew2(ThreadState* thread) {
-            int64_t readn = 0;
-            int64_t writen = 0;
-            int found = 0;
-            terark::AutoFree<char> szPath;
-            asprintf(&szPath.p, "%s.%d", setting.FLAGS_resource_data, thread->tid);
-            std::ifstream ifs(szPath.p);
-            std::string str;
-            std::string key1;
-            std::string key2;
-
-            TestRow recRow;
-            // struct timeval one, two, three, four;
-            struct timespec start, end;
-            long long readtime = 0;
-            long long writetime = 0;
-            const double percent = setting.FLAGS_read_write_percent / 100.0;
-
-            const char*  wprofileName;
-            uint32_t whelpfulness1;
-            uint32_t whelpfulness2;
-            uint32_t wscore;
-            uint32_t wtime;
-            const char* wsummary;
-            const char* wtext;
-
-            WT_CURSOR *cursor;
-            std::stringstream cur_config;
-            cur_config.str("");
-            cur_config << "overwrite";
-            int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, cur_config.str().c_str(), &cursor);
-            if (ret != 0) {
-                fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-                exit(1);
-            }
-
-
-            clock_gettime(CLOCK_MONOTONIC, &start);
-
-            for (int i=0; i<setting.FLAGS_reads; i++) {
-                size_t rdi = thread->rand.Next();
-                double rdd = rdi / double(INT32_MAX);
-                if (rdd < percent) {
-                    // read
-                    // gettimeofday(&one, NULL);
-                    size_t k = thread->rand.Next() % allkeys_.size();
-                    std::string key = allkeys_.str(k);
-                    cursor->set_key(cursor, key.c_str());
-                    if (cursor->search(cursor) == 0) {
-                        found++;
-                        ret = cursor->get_value(cursor, &wprofileName, &whelpfulness1, &whelpfulness2, &wscore, &wtime, &wsummary, &wtext);
-                    }
-
-                    readn++;
-                    thread->stats->FinishedSingleOp();
-                    // gettimeofday(&two, NULL);
-                    // readtime += 1000000 * ( two.tv_sec - one.tv_sec ) + two.tv_usec - one.tv_usec;
-                } else {
-                    // write
-                    // gettimeofday(&three, NULL);
-                    while(getline(ifs, str)) {
-                        terark::fstring fstr(str);
-                        if (fstr.startsWith("product/productId:")) {
-                            key1 = str.substr(19);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/userId:")) {
-                            key2 = str.substr(15);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/profileName:")) {
-                            recRow.profileName = str.substr(20);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/helpfulness:")) {
-                            char* pos2 = NULL;
-                            recRow.helpfulness1 = strtol(fstr.data()+20, &pos2, 10);
-                            recRow.helpfulness2 = strtol(pos2+1, NULL, 10);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/score:")) {
-                            recRow.score = atol(str.substr(14).c_str());
-                            continue;
-                        }
-                        if (fstr.startsWith("review/time:")) {
-                            recRow.time = atol(str.substr(13).c_str());
-                            continue;
-                        }
-                        if (fstr.startsWith("review/summary:")) {
-                            recRow.summary = str.substr(16);
-                            continue;
-                        }
-                        if (fstr.startsWith("review/text:")) {
-                            recRow.text = str.substr(13);
-                            recRow.product_userId = key1 + " " + key2;
-
-                            cursor->set_key(cursor, recRow.product_userId.c_str());
-                            cursor->set_value(cursor, recRow.profileName.c_str(), recRow.helpfulness1, recRow.helpfulness2, recRow.score, recRow.time, recRow.summary.c_str(), recRow.text.c_str());
-                            ret = cursor->insert(cursor);
-                            if (ret != 0) {
-                                fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
-                                exit(1);
-                            }
-
-                            writen++;
-                            thread->stats->FinishedSingleOp();
-                            break;
-                        }
-                    }
-                    if(ifs.eof()) {
-                        ifs.clear();
-                        ifs.seekg(0, std::ios::beg);
-                    }
-                    // gettimeofday(&four, NULL);
-                    // writetime += 1000000 * ( four.tv_sec - three.tv_sec ) + four.tv_usec - three.tv_usec;
-                }
-                if((i+1)%80000 == 0) {
-                    clock_gettime(CLOCK_MONOTONIC, &end);
-                    long long timeuse = 1000000000LL * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
-                    printf("i %d thread %d current qps %0.2f, timeuse %f\n", i, thread->tid, 80000.0/(timeuse/1000000000.0), timeuse/1000000000.0);
-                    clock_gettime(CLOCK_MONOTONIC, &start);
-                }
-            }
-            cursor->close(cursor);
-            time_t now;
-            struct tm *timenow;
-            time(&now);
-            timenow = localtime(&now);
-            printf("readnum %lld, writenum %lld, time %s, readtime %lld, writetime %lld\n", readn, writen, asctime(timenow), readtime/1000, writetime/1000);
-        }
-
-
-
-
-
-
         void Compact(ThreadState* thread) {
             /*
              * TODO: It probably makes sense to run multiple compacts in parallel
@@ -1657,6 +1332,23 @@ namespace leveldb {
               Env::Default()->DeleteFile(fname);
             }
             */
+        }
+        void ReadOneKey(ThreadState *thread) {
+
+        }
+
+        void WriteOneKey(ThreadState *thread) {
+            //DoWrite(thread,false,1);
+        }
+
+        void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent) {
+            assert(readPercent <= 100);
+            if (plan.size() != 100){
+                plan.resize(100);
+            }
+            std::fill_n(plan.begin(),readPercent,1);
+            std::fill(plan.begin()+readPercent,plan.end(),0);
+            std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
         }
     };
 
