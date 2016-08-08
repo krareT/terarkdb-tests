@@ -350,135 +350,28 @@ private:
         std::ifstream ifs(setting.FLAGS_resource_data);
         std::string str;
 
-        //int64_t avg = FLAGS_num/FLAGS_threads;
-        //int64_t copyavg = avg;
-        /*int offset = shuff[thread->tid];
-        int loop = 0;
 
-        if (avg != FLAGS_num) {
-            if (offset != 0) {
-                int64_t skip = offset * avg;
-                if (skip != 0) {
-                    while(getline(ifs, str)) {
-                        loop++;
-                        if (loop == 15) {
-                            loop = 0;
-                            skip --;
-                            if (skip == 0)
-                                break;
-                        }
-                    }
-                }
-            }
-        }
-*/
         WikipediaRow recRow;
         int64_t writen = 0;
         long long linenumber = 0;
         long long recordnumber = 0;
 
         int total_line = setting.FLAGS_num;
+        const Schema& rowSchema = tab->rowSchema();
+        valvec<byte_t> row;
         while(getline(ifs, str) && total_line != 0) {
             linenumber++;
             total_line--;
-            if (writen == 0) {
-                recRow.cur_id = lcast(str);
-                // std::cout << "str " << recRow.cur_id << std::endl;
-                writen++;
-                continue;
+            rowSchema.parseDelimText('\t', str, &row);
+            
+            rowBuilder.rewind();
+            rowBuilder << recRow;
+            fstring binRow(rowBuilder.begin(), rowBuilder.tell());
+            if (ctxw->upsertRow(binRow) < 0) { // unique index
+                printf("Insert failed: %s\n", ctxw->errMsg.c_str());
+                exit(-1);
             }
-            if (writen == 1) {
-                recRow.cur_namespace = lcast(str);
-                // std::cout << "str " << recRow.cur_namespace << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 2) {
-                recRow.cur_title = str;
-                // std::cout << "str " << recRow.cur_title << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 3) {
-                recRow.cur_text = str;
-                // std::cout << "str " << recRow.cur_text << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 4) {
-                recRow.cur_comment = str;
-                // std::cout << "str " << recRow.cur_comment << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 5) {
-                recRow.cur_user = lcast(str);
-                // std::cout << "str " << recRow.cur_user << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 6) {
-                recRow.cur_user_text = str;
-                // std::cout << "str " << recRow.cur_user_text << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 7) {
-                recRow.cur_timestamp = str;
-                // std::cout << "str " << recRow.cur_timestamp << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 8) {
-                recRow.cur_restrictions = str;
-                // std::cout << "str " << recRow.cur_restrictions << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 9) {
-                recRow.cur_counter = lcast(str);
-                // std::cout << "str " << recRow.cur_counter << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 10) {
-                recRow.cur_is_redirect = lcast(str);
-                // std::cout << "str " << recRow.cur_is_redirect << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 11) {
-                recRow.cur_minor_edit = lcast(str);
-                // std::cout << "str " << recRow.cur_minor_edit << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 12) {
-                recRow.cur_random = str;
-                // std::cout << "str " << recRow.cur_random << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 13) {
-                recRow.cur_touched = str;
-                // std::cout << "str " << recRow.cur_touched << std::endl;
-                writen++;
-                continue;
-            }
-            if (writen == 14) {
-                recRow.inverse_timestamp = str;
-                // std::cout << "str " << recRow.inverse_timestamp << std::endl;
-                rowBuilder.rewind();
-                rowBuilder << recRow;
-                fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-                if (ctxw->upsertRow(binRow) < 0) { // unique index
-                    printf("Insert failed: %s\n", ctxw->errMsg.c_str());
-                    exit(-1);
-                }
-                writen = 0;
-                recordnumber++;
-                continue;
-            }
+            recordnumber++;
         }
         time_t now;
         struct tm *timenow;
@@ -661,8 +554,8 @@ private:
 
                 std::vector<uint8_t > *plan = (*(thread->which)).load();
                 for (auto each : *plan) {
-                    (this->*func_map[each])(thread);
-                    thread->stats->FinishedSingleOp(each);
+                    if (true == (this->*func_map[each])(thread))
+                        thread->stats->FinishedSingleOp(each);
                 }
             }
             std::cout << "Thread " << thread->tid << " stop!" << std::endl;
