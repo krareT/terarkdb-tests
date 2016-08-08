@@ -116,7 +116,7 @@ public:
      const char* FLAGS_db = nullptr;
      std::string FLAGS_db_table;
      const char* FLAGS_resource_data = nullptr;
-
+    const char* FLAGS_keys_data = nullptr;
      int *shuff = nullptr;
 
     bool FLAGS_use_lsm = true;

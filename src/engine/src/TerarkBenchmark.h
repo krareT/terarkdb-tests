@@ -91,25 +91,19 @@ public:
         PrintHeader();
         std::cout << " Run() " << std::endl;
 
-        std::ifstream ifs(setting.FLAGS_resource_data);
+        std::ifstream ifs(setting.FLAGS_keys_data);
         std::string str;
         std::string key1;
         std::string key2;
 
         while (getline(ifs, str)) {
-            if (str.find("product/productId:") == 0) {
-                key1 = str.substr(19);
-                continue;
-            }
-            if (str.find("review/userId:") == 0) {
-                key2 = str.substr(15);
-                allkeys_.push_back(key1 + " " + key2);
-                continue;
-            }
+            allkeys_.push_back(str);
         }
         allkeys_.shrink_to_fit();
         printf("allkeys_.mem_size=%zd\n", allkeys_.full_mem_size());
-        assert(allkeys_.size() == setting.FLAGS_num);
+        std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
+        assert(allkeys_.size() != 0);
+        setting.FLAGS_num = allkeys_.size();
 
         Open();
         DoWrite(true);
@@ -347,76 +341,142 @@ private:
                   <<", offset" << offset << ", time " << asctime(timenow) << std::endl;
     }
     void DoWrite( bool seq) {
-        std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
-
         DbContextPtr ctxw;
         ctxw = tab->createDbContext();
         ctxw->syncIndex = setting.FLAGS_sync_index;
 
-        if (num_ != setting.FLAGS_num) {
-            char msg[100];
-            snprintf(msg, sizeof(msg), "(%d ops)", num_);
-        }
 
-        terark::NativeDataOutput <terark::AutoGrownMemIO> rowBuilder;
+        terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
         std::ifstream ifs(setting.FLAGS_resource_data);
         std::string str;
 
-        int64_t avg = setting.FLAGS_num / setting.FLAGS_threads;
-        int64_t copyavg = avg;
+        //int64_t avg = FLAGS_num/FLAGS_threads;
+        //int64_t copyavg = avg;
+        /*int offset = shuff[thread->tid];
+        int loop = 0;
 
-        std::string key1;
-        std::string key2;
-        leveldb::TestRow recRow;
+        if (avg != FLAGS_num) {
+            if (offset != 0) {
+                int64_t skip = offset * avg;
+                if (skip != 0) {
+                    while(getline(ifs, str)) {
+                        loop++;
+                        if (loop == 15) {
+                            loop = 0;
+                            skip --;
+                            if (skip == 0)
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+*/
+        WikipediaRow recRow;
         int64_t writen = 0;
+        long long linenumber = 0;
+        long long recordnumber = 0;
 
-        while (getline(ifs, str) && avg != 0) {
-            fstring fstr(str);
-            if (fstr.startsWith("product/productId:")) {
-                key1 = str.substr(19);
+        int total_line = setting.FLAGS_num;
+        while(getline(ifs, str) && total_line != 0) {
+            linenumber++;
+            total_line--;
+            if (writen == 0) {
+                recRow.cur_id = lcast(str);
+                // std::cout << "str " << recRow.cur_id << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/userId:")) {
-                key2 = str.substr(15);
+            if (writen == 1) {
+                recRow.cur_namespace = lcast(str);
+                // std::cout << "str " << recRow.cur_namespace << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/profileName:")) {
-                recRow.profileName = str.substr(20);
+            if (writen == 2) {
+                recRow.cur_title = str;
+                // std::cout << "str " << recRow.cur_title << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/helpfulness:")) {
-                char *pos2 = NULL;
-                recRow.helpfulness1 = strtol(fstr.data() + 20, &pos2, 10);
-                recRow.helpfulness2 = strtol(pos2 + 1, NULL, 10);
+            if (writen == 3) {
+                recRow.cur_text = str;
+                // std::cout << "str " << recRow.cur_text << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/score:")) {
-                recRow.score = lcast(fstr.substr(14));
+            if (writen == 4) {
+                recRow.cur_comment = str;
+                // std::cout << "str " << recRow.cur_comment << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/time:")) {
-                recRow.time = lcast(fstr.substr(13));
+            if (writen == 5) {
+                recRow.cur_user = lcast(str);
+                // std::cout << "str " << recRow.cur_user << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/summary:")) {
-                recRow.summary = str.substr(16);
+            if (writen == 6) {
+                recRow.cur_user_text = str;
+                // std::cout << "str " << recRow.cur_user_text << std::endl;
+                writen++;
                 continue;
             }
-            if (fstr.startsWith("review/text:")) {
-                recRow.text = str.substr(13);
-                recRow.product_userId = key1 + " " + key2;
-
+            if (writen == 7) {
+                recRow.cur_timestamp = str;
+                // std::cout << "str " << recRow.cur_timestamp << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 8) {
+                recRow.cur_restrictions = str;
+                // std::cout << "str " << recRow.cur_restrictions << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 9) {
+                recRow.cur_counter = lcast(str);
+                // std::cout << "str " << recRow.cur_counter << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 10) {
+                recRow.cur_is_redirect = lcast(str);
+                // std::cout << "str " << recRow.cur_is_redirect << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 11) {
+                recRow.cur_minor_edit = lcast(str);
+                // std::cout << "str " << recRow.cur_minor_edit << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 12) {
+                recRow.cur_random = str;
+                // std::cout << "str " << recRow.cur_random << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 13) {
+                recRow.cur_touched = str;
+                // std::cout << "str " << recRow.cur_touched << std::endl;
+                writen++;
+                continue;
+            }
+            if (writen == 14) {
+                recRow.inverse_timestamp = str;
+                // std::cout << "str " << recRow.inverse_timestamp << std::endl;
                 rowBuilder.rewind();
                 rowBuilder << recRow;
                 fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-
-                // if (ctxw->insertRow(binRow) < 0) { // non unique index
                 if (ctxw->upsertRow(binRow) < 0) { // unique index
                     printf("Insert failed: %s\n", ctxw->errMsg.c_str());
                     exit(-1);
                 }
-                writen++;
-                avg--;
+                writen = 0;
+                recordnumber++;
                 continue;
             }
         }
@@ -424,7 +484,8 @@ private:
         struct tm *timenow;
         time(&now);
         timenow = localtime(&now);
-        std::cout << "writenum " << writen << " time " << asctime(timenow) << std::endl;
+        printf("linenumber %lld, recordnumber %lld, time %s\n",linenumber, recordnumber, asctime(timenow));
+
     }
     void DoWrite(leveldb::ThreadState *thread, bool seq,int times) {
  //       std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
@@ -528,10 +589,10 @@ private:
 
 
 
-        void ReadOneKey(leveldb::ThreadState *thread) {
+        bool ReadOneKey(leveldb::ThreadState *thread) {
 
 
-            valvec <byte> keyHit, val;
+            /*valvec <byte> keyHit, val;
             valvec <valvec<byte>> cgDataVec;
             valvec <llong> idvec;
             valvec <size_t> colgroups;
@@ -544,11 +605,38 @@ private:
             tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
             for (auto recId : idvec) {
                 tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
+            }*/
+
+            valvec<byte> keyHit, val;
+            valvec<valvec<byte> > cgDataVec;
+            valvec<llong> idvec;
+            valvec<size_t> colgroups;
+            DbContextPtr ctxr;
+            ctxr = tab->createDbContext();
+            ctxr->syncIndex = setting.FLAGS_sync_index;
+            // std::cout << " tab->getIndexNum() " << tab->getIndexNum() << " tab->getColgroupNum() " << tab->getColgroupNum() << std::endl;
+            for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
+                colgroups.push_back(i);
             }
+
+
+
+            int found = 0;
+            size_t indexId = 0;
+
+            fstring key(allkeys_.at(rand() % allkeys_.size()));
+            tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
+            for (auto recId : idvec) {
+                tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
+            }
+            if(idvec.size() > 0)
+                found++;
+            return found > 0;
         }
 
-        void WriteOneKey(leveldb::ThreadState *thread) {
+        bool WriteOneKey(leveldb::ThreadState *thread) {
             //DoWrite(thread,false,1);
+            return true;
         }
 
         void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent) {
@@ -564,7 +652,7 @@ private:
         void ReadWhileWriting(leveldb::ThreadState *thread) {
 
             std::cout << "Thread " << thread->tid << " start!" << std::endl;
-            std::unordered_map<uint8_t, void (TerarkBenchmark::*)(leveldb::ThreadState *thread)> func_map;
+            std::unordered_map<uint8_t, bool (TerarkBenchmark::*)(leveldb::ThreadState *thread)> func_map;
             func_map[1] = &TerarkBenchmark::ReadOneKey;
             func_map[0] = &TerarkBenchmark::WriteOneKey;
 

@@ -301,6 +301,7 @@ namespace leveldb {
             )
         };
 
+
     }  // namespace
 
     std::atomic<uint64_t >leveldb::Stats::totalRead(0);
@@ -309,4 +310,39 @@ namespace leveldb {
     std::time_t leveldb::Stats::endTime = time(NULL);
 
 }  // namespace leveldb
+struct WikipediaRow {
+    int32_t cur_id;
+    int32_t cur_namespace;
+    std::string cur_title;
+    std::string cur_text;
+    std::string cur_comment;
+    uint64_t cur_user;
+    std::string cur_user_text;
+    std::string cur_timestamp;
+    std::string cur_restrictions;
+    int32_t	cur_counter;
+    int32_t cur_is_redirect;
+    int32_t cur_minor_edit;
+    std::string cur_random;
+    std::string cur_touched;
+    std::string inverse_timestamp;
+
+    DATA_IO_LOAD_SAVE(WikipediaRow,
+                      &cur_id
+                      &cur_namespace
+                      &Schema::StrZero(cur_title)
+                      &Schema::StrZero(cur_text)
+                      &Schema::StrZero(cur_comment)
+                      &cur_user
+                      &Schema::StrZero(cur_user_text)
+                      &Schema::StrZero(cur_timestamp)
+                      &Schema::StrZero(cur_restrictions)
+                      &cur_counter
+                      &cur_is_redirect
+                      &cur_minor_edit
+                      &Schema::StrZero(cur_random)
+                      &Schema::StrZero(cur_touched)
+                      &Schema::StrZero(inverse_timestamp)
+    )
+};
 #endif //TERARKDB_TEST_FRAMEWORK_LEVELDB_H
