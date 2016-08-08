@@ -246,13 +246,13 @@ std::string BaseSetting::setBaseSetting(std::string &line){
         if (setFunc_map.count(key) > 0){
 
             if ((this->*setFunc_map[key])(value)){
-                message += "set\t" + key + "\tsuccess\n";
+                message += "set\t" + key + "\tsuccess\t";
             }
             else{
-                message += "set\t" + key + "\tfailure\n";
+                message += "set\t" + key + "\tfailure\t";
             }
         }else{
-            message += "invalid command:" + key + "\n";
+            message += "invalid command:" + key + "\t";
         }
     }
     return message + toString();

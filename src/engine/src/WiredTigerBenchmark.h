@@ -295,8 +295,8 @@ namespace leveldb {
             std::cout << "------------------" << std::endl;
 
             for(auto& eachThreadInfo : threads){
-                readVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[1].fetch_and(0));
-                writeVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[0].fetch_and(0));
+                readVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[1].exchange(0));
+                writeVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[0].exchange(0));
                 total_read += readVec.back();
                 total_write += writeVec.back();
             }
@@ -309,6 +309,7 @@ namespace leveldb {
         }
         void RunWiredTigerBenchmark(int n, leveldb::Slice name,
                                 void (WiredTigerBenchmark::*method)(leveldb::ThreadState *)) {
+            std::cout << "Run WiredTiger Benchmark!" << std::endl;
             leveldb::SharedState shared;
             shared.total = n;
             shared.num_initialized = 0;
@@ -322,7 +323,7 @@ namespace leveldb {
             std::atomic<std::vector<uint8_t > *> planAddr;
             std::vector<uint8_t > plan[2];
             bool backupPlan = false;//不作真假，只用来切换plan
-
+            leveldb::Stats::timeInit();
             while( !setting.baseSetting.ifStop()){
 
                 int readPercent = setting.baseSetting.getReadPercent();

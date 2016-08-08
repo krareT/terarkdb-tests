@@ -39,9 +39,13 @@
 #include <port/port_posix.h>
 #include <src/Setting.h>
 #include <wiredtiger.h>
+#include <chrono>
+#include <thread>
+#include <mutex>
 
 using namespace terark;
 using namespace db;
+
 namespace leveldb {
 
     namespace {
@@ -67,6 +71,7 @@ namespace leveldb {
         }
 
         class Stats {
+
         private:
             double start_;
             double finish_;
@@ -79,13 +84,21 @@ namespace leveldb {
             std::string message_;
             Setting &setting;
 
+            static std::time_t startTime;
+            static std::time_t endTime;
 
+            static std::atomic<uint64_t > totalRead;
+            static std::atomic<uint64_t > totalWrite;
+            std::atomic<uint64_t >* totalDone_[0];
         public:
             std::atomic<uint64_t > typedDone_[2];//0:write 1:read
             Stats(Setting &setting1) :setting(setting1) {
 
                 typedDone_[0].store(0);
                 typedDone_[1].store(0);
+
+                totalDone_[0] = &totalWrite;
+                totalDone_[1] = &totalRead;
                 Start();
             }
 
@@ -149,6 +162,41 @@ namespace leveldb {
             }
             void FinishedSingleOp(unsigned char type){
                 typedDone_[type]++;
+                if ( type == 0)
+                    totalWrite++;
+                else
+                    totalRead++;
+            }
+            static bool timeInit( void){
+                //此函数由于会修改本类中的静态变量，所以同一时间只能允许一个线程访问。
+                static std::timed_mutex time_mtx;
+
+                if ( false == time_mtx.try_lock_for(std::chrono::milliseconds(100)))
+                    return false;
+
+                startTime = time(NULL);
+                time_mtx.unlock();
+                return true;
+            }
+            static std::string GetOps( void){
+                //此函数由于会修改本类中的静态变量，所以同一时间只能允许一个线程访问。
+                static std::timed_mutex time_mtx;
+
+                if ( false == time_mtx.try_lock_for(std::chrono::milliseconds(100)))
+                    return std::string("Can't access now!");
+
+                uint64_t writeOps = Stats::totalWrite.exchange(0);
+                uint64_t readOps = Stats::totalRead.exchange(0);
+                endTime = time(NULL);
+                std::stringstream opsInfo;
+                opsInfo <<"Start:" << ctime(&startTime);
+                startTime = endTime;
+                opsInfo <<"\tEnd:" << ctime(&endTime);
+                opsInfo <<"\tread OPS:" << readOps;
+                opsInfo <<"\twrite OPS:" << writeOps << std::endl;
+                time_mtx.unlock();
+
+                return opsInfo.str();
             }
             void AddBytes(int64_t n) {
                 bytes_ += n;
@@ -255,7 +303,10 @@ namespace leveldb {
 
     }  // namespace
 
-
+    std::atomic<uint64_t >leveldb::Stats::totalRead(0);
+    std::atomic<uint64_t >leveldb::Stats::totalWrite(0);
+    std::time_t leveldb::Stats::startTime = time(NULL);
+    std::time_t leveldb::Stats::endTime = time(NULL);
 
 }  // namespace leveldb
 #endif //TERARKDB_TEST_FRAMEWORK_LEVELDB_H
