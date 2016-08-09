@@ -365,10 +365,7 @@ private:
             linenumber++;
             total_line--;
             rowSchema.parseDelimText('\t', str, &row);
-
-            rowBuilder.rewind();
-            rowBuilder << recRow;
-            fstring binRow(rowBuilder.begin(), rowBuilder.tell());
+            
             if (ctxw->upsertRow(row) < 0) { // unique index
                 printf("Insert failed: %s\n", ctxw->errMsg.c_str());
                 exit(-1);
