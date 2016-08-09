@@ -121,11 +121,11 @@ int main(int argc, char** argv) {
         TerarkBenchmark terarkBenchmark(setting);
         terarkBenchmark.Run();
     }
-    else if (strcmp(argv[1],"WiredTiger")){
+    else if (strcmp(argv[1],"WiredTiger") == 0){
 
         leveldb::WiredTigerBenchmark wiredTigerBenchmark(setting);
         wiredTigerBenchmark.Run();
-    }else if (strcmp(argv[1],"compact")){
+    }else if (strcmp(argv[1],"compact") == 0){
         compact(setting);
     }
 

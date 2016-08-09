@@ -56,7 +56,10 @@ void Setting::wiredTigerSetting(int argc, char **argv){
             FLAGS_read_write_percent = d;
         } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
             FLAGS_resource_data = argv[i] + 16;
-        } else {
+        } else if (strncmp(argv[i], "--keys_data=", 12) == 0){
+            FLAGS_keys_data = argv[i] + 12;
+            std::cout << "FLAGS_keys_data:" << FLAGS_keys_data << std::endl;
+        }   else {
             fprintf(stderr, "Invalid flag '%s'\n", argv[i]);
             exit(1);
         }

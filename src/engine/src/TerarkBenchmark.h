@@ -204,8 +204,6 @@ private:
         leveldb::Stats::timeInit();
         while( !setting.baseSetting.ifStop()){
 
-
-
             int readPercent = setting.baseSetting.getReadPercent();
             if (readPercent != old_readPercent){
                 //std::cout << "update Plan" << std::endl;
@@ -215,11 +213,10 @@ private:
                 //std::cout <<" Main:" << planAddr.load() << std::endl;
                 backupPlan = !backupPlan;
             }
-
             int threadNum = setting.baseSetting.getThreadNums();
             adjustThreadNum(threads,threadNum,&shared,method,&planAddr);
-            gatherThreadInfo(threads);
             sleep(5);
+            gatherThreadInfo(threads);
         }
         adjustThreadNum(threads,0, nullptr, nullptr, nullptr);
     }
@@ -365,7 +362,7 @@ private:
             linenumber++;
             total_line--;
             rowSchema.parseDelimText('\t', str, &row);
-            
+
             if (ctxw->upsertRow(row) < 0) { // unique index
                 printf("Insert failed: %s\n", ctxw->errMsg.c_str());
                 exit(-1);
