@@ -103,6 +103,11 @@ void tcpServer(Setting *setting){
         std::cerr << e.what() << std::endl;
     }
 }
+void compact( Setting &setting){
+    auto tab = CompositeTable::open(setting.FLAGS_db);
+    tab->compact();
+    tab->safeStopAndWaitForCompress();
+}
 int main(int argc, char** argv) {
 
     if (argc < 2){
@@ -116,10 +121,12 @@ int main(int argc, char** argv) {
         TerarkBenchmark terarkBenchmark(setting);
         terarkBenchmark.Run();
     }
-    else {
+    else if (strcmp(argv[1],"WiredTiger")){
 
         leveldb::WiredTigerBenchmark wiredTigerBenchmark(setting);
         wiredTigerBenchmark.Run();
+    }else if (strcmp(argv[1],"compact")){
+        compact(setting);
     }
 
     exit(1);

@@ -106,7 +106,8 @@ public:
         setting.FLAGS_num = allkeys_.size();
 
 
-        DoWrite(true);
+        //DoWrite(true);
+
         void (TerarkBenchmark::*method)(leveldb::ThreadState *) = NULL;
 
         int num_threads = setting.FLAGS_threads;
@@ -120,7 +121,6 @@ public:
         long long timeuse = 1000000000LL * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
         printf("RunTerarkBenchmark total time is : %lld \n", timeuse / 1000000000LL);
         tab->syncFinishWriting();
-
         allkeys_.erase_all();
     }
 
@@ -227,10 +227,11 @@ private:
 
     void Open() {
         assert(tab == NULL);
-        std::cout << "Create database " << setting.FLAGS_db_table<< std::endl;
+        std::cout << "Open database " << setting.FLAGS_db<< std::endl;
 
-        tab = CompositeTable::createTable(setting.FLAGS_db_table);
-        tab->load(setting.FLAGS_db);
+        tab = CompositeTable::open(setting.FLAGS_db);
+        //tab->load(setting.FLAGS_db);
+        assert(tab != NULL);
     }
 
     void WriteSeq(leveldb::ThreadState *thread) {
@@ -240,6 +241,7 @@ private:
     void WriteRandom(leveldb::ThreadState *thread) {
         DoWrite(thread, false);
     }
+
 
     void DoWrite(leveldb::ThreadState *thread, bool seq) {
         std::cout << " DoWrite now! num_ " << num_ << " setting.FLAGS_num " << setting.FLAGS_num << std::endl;
@@ -372,6 +374,8 @@ private:
                 exit(-1);
             }
             recordnumber++;
+            if ( recordnumber % 100000 == 0)
+                std::cout << "Insert reocord number: " << recordnumber << std::endl;
             //std::cout << "-";
         }
         time_t now;
@@ -492,7 +496,6 @@ private:
             DbContextPtr ctxr;
             ctxr = tab->createDbContext();
             ctxr->syncIndex = setting.FLAGS_sync_index;
-            std::cout << " tab->getIndexNum() " << tab->getIndexNum() << " tab->getColgroupNum() " << tab->getColgroupNum() << std::endl;
             for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
                 colgroups.push_back(i);
             }
