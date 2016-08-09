@@ -341,6 +341,7 @@ private:
                   <<", offset" << offset << ", time " << asctime(timenow) << std::endl;
     }
     void DoWrite( bool seq) {
+        std::cout << " Write the data to terark : " << setting.FLAGS_resource_data << std::endl;
         DbContextPtr ctxw;
         ctxw = tab->createDbContext();
         ctxw->syncIndex = setting.FLAGS_sync_index;
@@ -371,6 +372,7 @@ private:
                 exit(-1);
             }
             recordnumber++;
+            //std::cout << "-";
         }
         time_t now;
         struct tm *timenow;
@@ -500,9 +502,7 @@ private:
             tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
             for (auto recId : idvec) {
                 tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
-                std::cout << '.';
             }
-            std::cout << std::endl;
             if(idvec.size() > 0)
                 found++;
             return found > 0;
