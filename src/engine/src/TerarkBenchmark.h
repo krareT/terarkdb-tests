@@ -90,7 +90,7 @@ public:
     void Run() {
         PrintHeader();
         std::cout << " Run() " << std::endl;
-
+        Open();
         std::ifstream ifs(setting.FLAGS_keys_data);
         std::string str;
         std::string key1;
@@ -105,7 +105,7 @@ public:
         assert(allkeys_.size() != 0);
         setting.FLAGS_num = allkeys_.size();
 
-        Open();
+
         DoWrite(true);
         void (TerarkBenchmark::*method)(leveldb::ThreadState *) = NULL;
 
@@ -227,9 +227,9 @@ private:
 
     void Open() {
         assert(tab == NULL);
-        std::cout << "Create database " << setting.FLAGS_db << std::endl;
+        std::cout << "Create database " << setting.FLAGS_db_table<< std::endl;
 
-        tab = CompositeTable::createTable(setting.FLAGS_db_table.c_str());
+        tab = CompositeTable::createTable(setting.FLAGS_db_table);
         tab->load(setting.FLAGS_db);
     }
 
@@ -344,7 +344,6 @@ private:
         DbContextPtr ctxw;
         ctxw = tab->createDbContext();
         ctxw->syncIndex = setting.FLAGS_sync_index;
-
 
         terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
         std::ifstream ifs(setting.FLAGS_resource_data);
@@ -484,22 +483,6 @@ private:
 
         bool ReadOneKey(leveldb::ThreadState *thread) {
 
-
-            /*valvec <byte> keyHit, val;
-            valvec <valvec<byte>> cgDataVec;
-            valvec <llong> idvec;
-            valvec <size_t> colgroups;
-            DbContextPtr ctxr;
-            ctxr = tab->createDbContext();
-            ctxr->syncIndex = setting.FLAGS_sync_index;
-            fstring key(allkeys_.at(rand()%allkeys_.size()));
-
-            size_t indexId = 0;
-            tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
-            for (auto recId : idvec) {
-                tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
-            }*/
-
             valvec<byte> keyHit, val;
             valvec<valvec<byte> > cgDataVec;
             valvec<llong> idvec;
@@ -511,17 +494,15 @@ private:
             for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
                 colgroups.push_back(i);
             }
-
-
-
             int found = 0;
             size_t indexId = 0;
-
             fstring key(allkeys_.at(rand() % allkeys_.size()));
             tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
             for (auto recId : idvec) {
                 tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
+                std::cout << '.';
             }
+            std::cout << std::endl;
             if(idvec.size() > 0)
                 found++;
             return found > 0;

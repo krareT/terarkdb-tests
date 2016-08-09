@@ -1,8 +1,8 @@
 
-file=~/Documents/data/wiki.txt.gz
+file=~/Documents/data/wiki.txt
 key=~/Documents/data/wiki_keys
 record_num=45
-dirname=./experiment/wikipedia
+dirname=./experiment/wiki
 
 cd ../
 cmake CMakeLists.txt
@@ -19,7 +19,7 @@ free -m
 date
 export TerarkDB_WrSegCacheSizeMB=500
 
-zcat $file | ../build/Terark_Engine_Test Terark --benchmarks=fillrandom --num=$record_num --sync_index=1 --db=$dirname --resource_data=/dev/stdin --threads=8 --keys_data=$key
+../build/Terark_Engine_Test Terark --benchmarks=fillrandom --num=$record_num --sync_index=1 --db=$dirname --resource_data=$file --threads=8 --keys_data=$key
 free -m
 date
 du -s -b $dirname
