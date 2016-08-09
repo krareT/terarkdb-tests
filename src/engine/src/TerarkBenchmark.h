@@ -363,11 +363,11 @@ private:
             linenumber++;
             total_line--;
             rowSchema.parseDelimText('\t', str, &row);
-            
+
             rowBuilder.rewind();
             rowBuilder << recRow;
             fstring binRow(rowBuilder.begin(), rowBuilder.tell());
-            if (ctxw->upsertRow(binRow) < 0) { // unique index
+            if (ctxw->upsertRow(row) < 0) { // unique index
                 printf("Insert failed: %s\n", ctxw->errMsg.c_str());
                 exit(-1);
             }
@@ -492,7 +492,7 @@ private:
             DbContextPtr ctxr;
             ctxr = tab->createDbContext();
             ctxr->syncIndex = setting.FLAGS_sync_index;
-            // std::cout << " tab->getIndexNum() " << tab->getIndexNum() << " tab->getColgroupNum() " << tab->getColgroupNum() << std::endl;
+            std::cout << " tab->getIndexNum() " << tab->getIndexNum() << " tab->getColgroupNum() " << tab->getColgroupNum() << std::endl;
             for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
                 colgroups.push_back(i);
             }
