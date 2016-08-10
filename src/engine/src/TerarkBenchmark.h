@@ -79,7 +79,6 @@ public:
 
         static std::mutex mtx;
         std::stringstream ret;
-        leveldb::Stats::changeWhich();
         for( auto& eachThread : threads){
             ret << "Thread " << eachThread.second->thread->tid << std::endl;
             ret << eachThread.second->thread->stats->getTimeData() << std::endl;
@@ -307,9 +306,9 @@ private:
 
                 std::vector<uint8_t > *plan = (*(thread->which)).load();
                 for (auto each : *plan) {
-                    clock_gettime(CLOCK_REALTIME,&start);
+                    clock_gettime(CLOCK_MONOTONIC,&start);
                     if ((this->*func_map[each])(thread)) {
-                        clock_gettime(CLOCK_REALTIME,&end);
+                        clock_gettime(CLOCK_MONOTONIC,&end);
                         thread->stats->FinishedSingleOp(each,&start,&end);
                     }
                 }
@@ -428,7 +427,6 @@ public:
 
         static std::mutex mtx;
         std::stringstream ret;
-        leveldb::Stats::changeWhich();
         for( auto& eachThread : threads){
             ret << "Thread " << eachThread.second->thread->tid << ":";
             ret << eachThread.second->thread->stats->getTimeData();

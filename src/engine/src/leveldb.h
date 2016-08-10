@@ -73,16 +73,11 @@ namespace leveldb {
             boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
             boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
             std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
-            static bool whichTimeData;//仅用来切换
-            static tbb::spin_rw_mutex timeDataRwLock;
+
+            tbb::spin_rw_mutex timeDataRwLock;
             const uint64_t timeDataMax = 100000;
             std::mutex dataCapMtx;
         public:
-            static bool changeWhich( void){
-                timeDataRwLock.lock();
-                whichTimeData = !whichTimeData;
-                timeDataRwLock.unlock();
-            }
             std::atomic<uint64_t > typedDone_[2];//0:write 1:read
             Stats(Setting &setting1) :setting(setting1){
 
@@ -109,39 +104,43 @@ namespace leveldb {
             }
             std::string getTimeData(void) {
                 std::stringstream ret;
-                timeDataRwLock.lock_read();
+                {
+                    tbb::spin_rw_mutex::scoped_lock lock(timeDataRwLock, true);
+                    updateTimeData[0].swap(updateTimeData[1]);
+                    readTimeData[0].swap(readTimeData[1]);
+                    createTimeData[0].swap(createTimeData[1]);
+                }
                 ret << "Update" << std::endl;
-                for (auto &eachData : updateTimeData[!whichTimeData]) {
+                for (auto &eachData : updateTimeData[1]) {
                     auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
                     ret << time << "\t";
                     time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
                     ret << time << std::endl;
                 }
                 ret << "Read" << std::endl;
-                for (auto &eachData : readTimeData[!whichTimeData]) {
+                for (auto &eachData : readTimeData[1]) {
                     auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
                     ret << time << "\t";
                     time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
                     ret << time << std::endl;
                 }
                 ret << "Create" << std::endl;
-                for (auto &eachData : createTimeData[!whichTimeData]) {
+                for (auto &eachData : createTimeData[1]) {
                     auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
                     ret << time << "\t";
                     time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
                     ret << time << std::endl;
                 }
-                createTimeData[!whichTimeData].clear();
-                updateTimeData[!whichTimeData].clear();
-                readTimeData[!whichTimeData].clear();
+                createTimeData[1].clear();
+                updateTimeData[1].clear();
+                readTimeData[1].clear();
 
-                timeDataRwLock.unlock();
                 return ret.str();
             }
             void FinishedSingleOp(unsigned char type, struct timespec *start, struct timespec *end){
                 //读写锁
                 timeDataRwLock.lock_read();
-                timeData[type][whichTimeData].push_back(std::make_pair(*start,*end));
+                timeData[type][0].push_back(std::make_pair(*start,*end));
                 timeDataRwLock.unlock();
             }
         };
@@ -194,9 +193,6 @@ namespace leveldb {
             }
         };
     }  // namespace
-
-    bool leveldb::Stats::whichTimeData = false;
-    tbb::spin_rw_mutex leveldb::Stats::timeDataRwLock;
 }  // namespace leveldb
 struct WikipediaRow {
     int32_t cur_id;
