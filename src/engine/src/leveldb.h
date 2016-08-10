@@ -42,7 +42,10 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
-
+#include <time.h>
+#include "tbb/spin_rw_mutex.h"
+#include "Setting.h"
+#include <boost/circular_buffer.hpp>
 using namespace terark;
 using namespace db;
 
@@ -62,169 +65,79 @@ namespace leveldb {
             return Slice(s.data() + start, limit - start);
         }
 
-        static void AppendWithSpace(std::string* str, Slice msg) {
-            if (msg.empty()) return;
-            if (!str->empty()) {
-                str->push_back(' ');
-            }
-            str->append(msg.data(), msg.size());
-        }
-
         class Stats {
 
         private:
             double start_;
             double finish_;
-            double seconds_;
-            int done_;
-            int next_report_;
-            int64_t bytes_;
-            double last_op_finish_;
+
             Histogram hist_;
             std::string message_;
-            Setting &setting;
+            const Setting &setting;
 
-            static std::time_t startTime;
-            static std::time_t endTime;
-            static std::atomic<uint64_t > totalRead;
-            static std::atomic<uint64_t > totalWrite;
-            std::atomic<uint64_t >* totalDone_[2];
-            static std::vector<time_t > timeArray;
+            boost::circular_buffer<std::pair<struct timespec,struct timespec>> readTimeData[2];
+            boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
+            boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
+            std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
+            static bool whichTimeData;//仅用来切换
+            static tbb::spin_rw_mutex timeDataRwLock;
+            const uint64_t timeDataMax = 10;
         public:
+            static bool changeWhich( void){
+                timeDataRwLock.lock();
+                whichTimeData = !whichTimeData;
+                timeDataRwLock.unlock();
+            }
             std::atomic<uint64_t > typedDone_[2];//0:write 1:read
-            Stats(Setting &setting1) :setting(setting1) {
+            Stats(Setting &setting1) :setting(setting1){
 
-                typedDone_[0].store(0);
-                typedDone_[1].store(0);
-                totalDone_[0] = &totalWrite;
-                totalDone_[1] = &totalRead;
-                Start();
+                readTimeData[0].set_capacity(timeDataMax);
+                readTimeData[0].set_capacity(timeDataMax);
+                updateTimeData[0].set_capacity(timeDataMax);
+                updateTimeData[0].set_capacity(timeDataMax);
+                createTimeData[0].set_capacity(timeDataMax);
+                createTimeData[0].set_capacity(timeDataMax);
+                timeData[0] = updateTimeData;
+                timeData[1] = readTimeData;
+                timeData[2] = createTimeData;
+
             }
-
-            void Start() {
-                next_report_ = 100;
-                last_op_finish_ = start_;
-                hist_.Clear();
-                done_ = 0;
-                bytes_ = 0;
-                seconds_ = 0;
-                start_ = Env::Default()->NowMicros();
-                finish_ = start_;
-                message_.clear();
-            }
-
-            void Merge(const Stats& other) {
-                hist_.Merge(other.hist_);
-                done_ += other.done_;
-                bytes_ += other.bytes_;
-                seconds_ += other.seconds_;
-                if (other.start_ < start_) start_ = other.start_;
-                if (other.finish_ > finish_) finish_ = other.finish_;
-
-                // Just keep the messages from one thread
-                if (message_.empty()) message_ = other.message_;
-            }
-
-            void Stop() {
-                finish_ = Env::Default()->NowMicros();
-                seconds_ = (finish_ - start_) * 1e-6;
-            }
-
-            void AddMessage(Slice msg) {
-                AppendWithSpace(&message_, msg);
-            }
-
-            void FinishedSingleOp() {
-                if (setting.FLAGS_histogram) {
-                    double now = Env::Default()->NowMicros();
-                    double micros = now - last_op_finish_;
-                    hist_.Add(micros);
-                    if (micros > 20000) {
-                        fprintf(stderr, "long op: %.1f micros%30s\r", micros, "");
-                        fflush(stderr);
-                    }
-                    last_op_finish_ = now;
+            std::string getTimeData(void) {
+                std::stringstream ret;
+                timeDataRwLock.lock_read();
+                ret << "Update" << std::endl;
+                for (auto &eachData : updateTimeData[!whichTimeData]) {
+                    auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
+                    ret << time << "\t";
+                    time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
+                    ret << time << std::endl;
                 }
-
-                done_++;
-                if (done_ >= next_report_) {
-                    if      (next_report_ < 1000)   next_report_ += 100;
-                    else if (next_report_ < 5000)   next_report_ += 500;
-                    else if (next_report_ < 10000)  next_report_ += 1000;
-                    else if (next_report_ < 50000)  next_report_ += 5000;
-                    else if (next_report_ < 100000) next_report_ += 10000;
-                    else if (next_report_ < 500000) next_report_ += 50000;
-                    else                            next_report_ += 100000;
-                    fprintf(stderr, "... finished %d ops%30s\r", done_, "");
-                    fflush(stderr);
+                ret << "Read" << std::endl;
+                for (auto &eachData : readTimeData[!whichTimeData]) {
+                    auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
+                    ret << time << "\t";
+                    time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
+                    ret << time << std::endl;
                 }
-            }
-            void FinishedSingleOp(unsigned char type){
-                typedDone_[type]++;
-                /*if ( type == 0)
-                    totalWrite++;
-                else
-                    totalRead++;
-                */
-                (*totalDone_[type])++;
-            }
-            static bool timeInit( void){
-                //此函数由于会修改本类中的静态变量，所以同一时间只能允许一个线程访问。
-                static std::timed_mutex time_mtx;
-                if ( false == time_mtx.try_lock_for(std::chrono::milliseconds(100)))
-                    return false;
-                startTime = time(NULL);
-                time_mtx.unlock();
-                return true;
-            }
-            static std::string GetOps( void){
-                //此函数由于会修改本类中的静态变量，所以同一时间只能允许一个线程访问。
-                static std::timed_mutex time_mtx;
-                if ( false == time_mtx.try_lock_for(std::chrono::milliseconds(100)))
-                    return std::string("Can't access now!");
-                uint64_t writeOps = Stats::totalWrite.exchange(0);
-                uint64_t readOps = Stats::totalRead.exchange(0);
-                endTime = time(NULL);
-                std::stringstream opsInfo;
-                opsInfo <<"Start:" << ctime(&startTime);
-                startTime = endTime;
-                opsInfo <<"\tEnd:" << ctime(&endTime);
-                opsInfo <<"\tread OPS:" << readOps;
-                opsInfo <<"\twrite OPS:" << writeOps << std::endl;
-                time_mtx.unlock();
-                return opsInfo.str();
-            }
-
-            void AddBytes(int64_t n) {
-                bytes_ += n;
-            }
-
-            void Report(const Slice& name) {
-                // Pretend at least one op was done in case we are running a benchmark
-                // that does not call FinishedSingleOp().
-                if (done_ < 1) done_ = 1;
-
-                std::string extra;
-                if (bytes_ > 0) {
-                    // Rate is computed on actual elapsed time, not the sum of per-thread
-                    // elapsed times.
-                    double elapsed = (finish_ - start_) * 1e-6;
-                    char rate[100];
-                    snprintf(rate, sizeof(rate), "%6.1f MB/s",
-                             (bytes_ / 1048576.0) / elapsed);
-                    extra = rate;
+                ret << "Create" << std::endl;
+                for (auto &eachData : createTimeData[!whichTimeData]) {
+                    auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
+                    ret << time << "\t";
+                    time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
+                    ret << time << std::endl;
                 }
-                AppendWithSpace(&extra, message_);
+                createTimeData[!whichTimeData].clear();
+                updateTimeData[!whichTimeData].clear();
+                readTimeData[!whichTimeData].clear();
 
-                fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n",
-                        name.ToString().c_str(),
-                        seconds_ * 1e6 / done_,
-                        (extra.empty() ? "" : " "),
-                        extra.c_str());
-                if (setting.FLAGS_histogram) {
-                    fprintf(stdout, "Microseconds per op:\n%s\n", hist_.ToString().c_str());
-                }
-                fflush(stdout);
+                timeDataRwLock.unlock();
+                return ret.str();
+            }
+            void FinishedSingleOp(unsigned char type, struct timespec *start, struct timespec *end){
+                //读写锁
+                timeDataRwLock.lock_read();
+                timeData[type][whichTimeData].push_back(std::make_pair(*start,*end));
+                timeDataRwLock.unlock();
             }
         };
 
@@ -275,37 +188,10 @@ namespace leveldb {
                 delete(stats);
             }
         };
-
-        struct TestRow {
-            std::string product_userId;
-            std::string profileName;
-            uint32_t helpfulness1;
-            uint32_t helpfulness2;
-            uint32_t score;
-            uint32_t time;
-            std::string summary;
-            std::string text;
-
-            DATA_IO_LOAD_SAVE(TestRow,
-                    &Schema::StrZero(product_userId)
-                    &Schema::StrZero(profileName)
-            &helpfulness1
-                    &helpfulness2
-            &score
-                    &time
-            &Schema::StrZero(summary)
-            &Schema::StrZero(text)
-            )
-        };
-
-
     }  // namespace
 
-    std::atomic<uint64_t >leveldb::Stats::totalRead(0);
-    std::atomic<uint64_t >leveldb::Stats::totalWrite(0);
-    std::time_t leveldb::Stats::startTime = time(NULL);
-    std::time_t leveldb::Stats::endTime = time(NULL);
-    std::vector<time_t > leveldb::Stats::timeArray(0);
+    bool leveldb::Stats::whichTimeData = false;
+    tbb::spin_rw_mutex leveldb::Stats::timeDataRwLock;
 }  // namespace leveldb
 struct WikipediaRow {
     int32_t cur_id;
@@ -342,4 +228,6 @@ struct WikipediaRow {
                       &Schema::StrZero(inverse_timestamp)
     )
 };
+
+
 #endif //TERARKDB_TEST_FRAMEWORK_LEVELDB_H

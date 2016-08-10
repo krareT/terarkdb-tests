@@ -59,9 +59,6 @@ void Setting::wiredTigerSetting(int argc, char **argv){
         } else if (strncmp(argv[i], "--keys_data=", 12) == 0){
             FLAGS_keys_data = argv[i] + 12;
             std::cout << "FLAGS_keys_data:" << FLAGS_keys_data << std::endl;
-        }   else {
-            fprintf(stderr, "Invalid flag '%s'\n", argv[i]);
-            exit(1);
         }
     }
 
@@ -156,15 +153,16 @@ Setting::Setting(int argc,char **argv,char *name){
         wiredTigerSetting(argc,argv);
     }else if (strcmp(name,"Terark") == 0){
         terarkSetting(argc,argv);
+    }else if (strcmp(name,"compact") == 0){
+        terarkSetting(argc,argv);
     }else{
         fprintf(stderr,"error:argv[1]:%s",argv[1]);
         exit(1);
-
     }
     baseSetting.setThreadNums(FLAGS_threads);
 
 }
-BaseSetting::BaseSetting() {
+BaseSetting::BaseSetting(){
 
     READ_PERCENT.store(100);
     STOP.store(false);

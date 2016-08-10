@@ -12,17 +12,18 @@
 
 class BaseSetting{
 private:
-    //应当使用读写锁。暂时用互斥锁
     std::atomic<uint8_t > READ_PERCENT;
     std::atomic<uint8_t > STOP;
     std::atomic<uint32_t> THREAD_NUMS;
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFunc_map;
+
     enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
 public:
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
     std::string INIT_DATA_SOURCE;
     std::string WRITE_DATA_SOURCE;
+
     enum READ_TYPE{
         READ_SEQ,
         READ_RANDOM
@@ -128,7 +129,6 @@ public:
 // Stagger starting point of reads for sequential (or reverse).
     int FLAGS_max_compact_wait = 1200;
 
-// read write percent
 
 
 // Use the db with the following name.

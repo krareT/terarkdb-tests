@@ -17,6 +17,7 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include "leveldb.h"
+#include "src/TerarkBenchmark.h"
 using boost::asio::ip::tcp;
 
 class Session
@@ -28,9 +29,10 @@ public:
     {
     }
 
-    void start(Setting *setting1)
+    void start(Setting *setting1,Benchmark *bm)
     {
         setting = setting1;
+        benchmark = bm;
         do_read();
     }
 
@@ -56,37 +58,39 @@ private:
         std::cout << "Get:" << line << std::endl;
         std::string message;
         if (line == "query ops"){
-            message = leveldb::Stats::GetOps();
+            message = benchmark->GatherTimeData();
+            //message = "Hi~\n\n\n";
         }else {
-            //thread=[number],read_percent=[number],stop=[true/false]
             message = setting->baseSetting.setBaseSetting(line);
         }
-            do_write(message);
+        do_write(message);
     }
     void do_write(std::string &message)
     {
         auto self(shared_from_this());
-        message += "\r\n";
+        message += "\nEND\r\n";
         boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
                                  [this, self](boost::system::error_code ec, std::size_t)
                                  {
+                                     std::cout << "Reply finish!" << std::endl;
                                  });
-        std::cout << "Send:" << message << std::endl;
     }
 
     tcp::socket socket_;
     boost::asio::streambuf buf_;
     Setting *setting;
-    std::unordered_map<std::string,int > map;
+    Benchmark *benchmark;
 };
 class Server
 {
     Setting &setting;
+    Benchmark *benchmark;
 public:
-    Server(boost::asio::io_service& io_service, short port, Setting &setting1)
+    Server(boost::asio::io_service& io_service, short port, Setting &setting1,Benchmark *bm)
             : acceptor_(io_service, tcp::endpoint(tcp::v4(), port)),
               socket_(io_service),
-              setting(setting1)
+              setting(setting1),
+              benchmark(bm)
     {
         do_accept();
     }
@@ -99,7 +103,7 @@ private:
                                {
                                    if (!ec)
                                    {
-                                       std::make_shared<Session>(std::move(socket_))->start(&setting);
+                                       std::make_shared<Session>(std::move(socket_))->start(&setting,benchmark);
                                    }
 
                                    do_accept();
