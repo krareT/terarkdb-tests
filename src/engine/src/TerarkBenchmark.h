@@ -577,7 +577,6 @@ private:
             int threadNum = setting.baseSetting.getThreadNums();
             adjustThreadNum(threads,threadNum,method,&planAddr);
             sleep(5);
-            gatherThreadInfo(threads);
         }
         adjustThreadNum(threads,0,nullptr, nullptr);
     }
