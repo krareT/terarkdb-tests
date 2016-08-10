@@ -86,17 +86,16 @@ namespace leveldb {
 
             static std::time_t startTime;
             static std::time_t endTime;
-
             static std::atomic<uint64_t > totalRead;
             static std::atomic<uint64_t > totalWrite;
-            std::atomic<uint64_t >* totalDone_[0];
+            std::atomic<uint64_t >* totalDone_[2];
+            static std::vector<time_t > timeArray;
         public:
             std::atomic<uint64_t > typedDone_[2];//0:write 1:read
             Stats(Setting &setting1) :setting(setting1) {
 
                 typedDone_[0].store(0);
                 typedDone_[1].store(0);
-
                 totalDone_[0] = &totalWrite;
                 totalDone_[1] = &totalRead;
                 Start();
@@ -162,18 +161,18 @@ namespace leveldb {
             }
             void FinishedSingleOp(unsigned char type){
                 typedDone_[type]++;
-                if ( type == 0)
+                /*if ( type == 0)
                     totalWrite++;
                 else
                     totalRead++;
+                */
+                (*totalDone_[type])++;
             }
             static bool timeInit( void){
                 //此函数由于会修改本类中的静态变量，所以同一时间只能允许一个线程访问。
                 static std::timed_mutex time_mtx;
-
                 if ( false == time_mtx.try_lock_for(std::chrono::milliseconds(100)))
                     return false;
-
                 startTime = time(NULL);
                 time_mtx.unlock();
                 return true;
@@ -181,10 +180,8 @@ namespace leveldb {
             static std::string GetOps( void){
                 //此函数由于会修改本类中的静态变量，所以同一时间只能允许一个线程访问。
                 static std::timed_mutex time_mtx;
-
                 if ( false == time_mtx.try_lock_for(std::chrono::milliseconds(100)))
                     return std::string("Can't access now!");
-
                 uint64_t writeOps = Stats::totalWrite.exchange(0);
                 uint64_t readOps = Stats::totalRead.exchange(0);
                 endTime = time(NULL);
@@ -195,9 +192,9 @@ namespace leveldb {
                 opsInfo <<"\tread OPS:" << readOps;
                 opsInfo <<"\twrite OPS:" << writeOps << std::endl;
                 time_mtx.unlock();
-
                 return opsInfo.str();
             }
+
             void AddBytes(int64_t n) {
                 bytes_ += n;
             }
@@ -308,7 +305,7 @@ namespace leveldb {
     std::atomic<uint64_t >leveldb::Stats::totalWrite(0);
     std::time_t leveldb::Stats::startTime = time(NULL);
     std::time_t leveldb::Stats::endTime = time(NULL);
-
+    std::vector<time_t > leveldb::Stats::timeArray(0);
 }  // namespace leveldb
 struct WikipediaRow {
     int32_t cur_id;

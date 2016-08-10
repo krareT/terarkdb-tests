@@ -107,11 +107,11 @@ void compact( Setting &setting){
     auto tab = CompositeTable::open(setting.FLAGS_db);
     tab->compact();
     tab->safeStopAndWaitForCompress();
+    tab= nullptr;
 }
 int main(int argc, char** argv) {
 
     if (argc < 2){
-
         fprintf(stderr,"WiredTiger or Terark?");
     }
     Setting setting(argc,argv,argv[1]);
@@ -122,12 +122,10 @@ int main(int argc, char** argv) {
         terarkBenchmark.Run();
     }
     else if (strcmp(argv[1],"WiredTiger") == 0){
-
         leveldb::WiredTigerBenchmark wiredTigerBenchmark(setting);
         wiredTigerBenchmark.Run();
     }else if (strcmp(argv[1],"compact") == 0){
         compact(setting);
     }
-
     exit(1);
 }

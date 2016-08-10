@@ -37,7 +37,6 @@ public:
 private:
     void do_read()
     {
-
         auto self(shared_from_this());
         boost::asio::async_read_until(socket_, buf_, "\n",
                                       [this,self](boost::system::error_code ec, std::size_t lenth)
