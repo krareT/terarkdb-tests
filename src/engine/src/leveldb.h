@@ -68,20 +68,15 @@ namespace leveldb {
         class Stats {
 
         private:
-            double start_;
-            double finish_;
-
-            Histogram hist_;
-            std::string message_;
             const Setting &setting;
-
             boost::circular_buffer<std::pair<struct timespec,struct timespec>> readTimeData[2];
             boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
             boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
             std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
             static bool whichTimeData;//仅用来切换
             static tbb::spin_rw_mutex timeDataRwLock;
-            const uint64_t timeDataMax = 10;
+            const uint64_t timeDataMax = 100000;
+            std::mutex dataCapMtx;
         public:
             static bool changeWhich( void){
                 timeDataRwLock.lock();
@@ -92,15 +87,25 @@ namespace leveldb {
             Stats(Setting &setting1) :setting(setting1){
 
                 readTimeData[0].set_capacity(timeDataMax);
-                readTimeData[0].set_capacity(timeDataMax);
+                readTimeData[1].set_capacity(timeDataMax);
                 updateTimeData[0].set_capacity(timeDataMax);
-                updateTimeData[0].set_capacity(timeDataMax);
+                updateTimeData[1].set_capacity(timeDataMax);
                 createTimeData[0].set_capacity(timeDataMax);
-                createTimeData[0].set_capacity(timeDataMax);
+                createTimeData[1].set_capacity(timeDataMax);
                 timeData[0] = updateTimeData;
                 timeData[1] = readTimeData;
                 timeData[2] = createTimeData;
 
+            }
+            void rsetDataCapcity(uint64_t cap){
+                dataCapMtx.lock();
+                readTimeData[0].rset_capacity(cap);
+                readTimeData[1].rset_capacity(cap);
+                updateTimeData[0].rset_capacity(cap);
+                updateTimeData[1].rset_capacity(cap);
+                createTimeData[0].rset_capacity(cap);
+                createTimeData[1].rset_capacity(cap);
+                dataCapMtx.unlock();
             }
             std::string getTimeData(void) {
                 std::stringstream ret;

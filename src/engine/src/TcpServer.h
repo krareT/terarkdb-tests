@@ -63,16 +63,23 @@ private:
         }else {
             message = setting->baseSetting.setBaseSetting(line);
         }
+        message += "\nEND\r\n";
         do_write(message);
     }
     void do_write(std::string &message)
     {
         auto self(shared_from_this());
-        message += "\nEND\r\n";
+
         boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
-                                 [this, self](boost::system::error_code ec, std::size_t)
+                                 [this, self,message](boost::system::error_code ec, std::size_t transferred_byte)
                                  {
-                                     std::cout << "Reply finish!" << std::endl;
+                                    if (transferred_byte == message.size())
+                                        std::cout << "Reply finish!" << std::endl;
+                                    else{
+                                        std::cout << "Send:" << transferred_byte << std::endl;
+                                        std::string msg = message.substr(transferred_byte);
+                                        do_write(msg);
+                                    }
                                  });
     }
 

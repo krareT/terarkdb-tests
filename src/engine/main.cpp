@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
         fprintf(stderr,"WiredTiger or Terark?");
     }
     Setting setting(argc,argv,argv[1]);
-    Benchmark *bm;
+    Benchmark *bm = nullptr;
     if (strcmp(argv[1],"Terark") == 0) {
         bm = new TerarkBenchmark(setting);
     }
@@ -51,6 +51,6 @@ int main(int argc, char** argv) {
         compact(setting);
     }
     std::thread tcpServerThread(tcpServer,&setting,bm);
-    bm->Run();
+    if (nullptr != bm)  bm->Run();
     exit(1);
 }

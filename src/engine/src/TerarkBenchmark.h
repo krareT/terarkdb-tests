@@ -172,7 +172,11 @@ private:
             threads.pop_back();
         }
     }
+    void adjustDataCapcity(uint64_t cap){
+        for(auto& eachThread : threads){
 
+        }
+    }
     void RunTerarkBenchmark(int n, leveldb::Slice name,
                       void (TerarkBenchmark::*method)(leveldb::ThreadState *)) {
         leveldb::SharedState shared;
@@ -198,6 +202,8 @@ private:
             }
             int threadNum = setting.baseSetting.getThreadNums();
             adjustThreadNum(threads,threadNum,&shared,method,&planAddr);
+            uint64_t data_cap = setting.baseSetting.getDataCapcity();
+            adjustDataCapcity(data_cap);
             sleep(5);
         }
         adjustThreadNum(threads,0, nullptr, nullptr, nullptr);
