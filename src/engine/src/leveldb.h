@@ -48,7 +48,110 @@
 #include <boost/circular_buffer.hpp>
 using namespace terark;
 using namespace db;
+class Stats {
 
+private:
+    const Setting &setting;
+    boost::circular_buffer<std::pair<struct timespec,struct timespec>> readTimeData[2];
+    boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
+    boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
+    std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
+
+    tbb::spin_rw_mutex timeDataRwLock;
+    const uint64_t timeDataMax = 100000;
+    std::mutex dataCapMtx;
+public:
+    std::atomic<uint64_t > typedDone_[2];//0:write 1:read
+    Stats(Setting &setting1) :setting(setting1){
+
+        readTimeData[0].set_capacity(timeDataMax);
+        readTimeData[1].set_capacity(timeDataMax);
+        updateTimeData[0].set_capacity(timeDataMax);
+        updateTimeData[1].set_capacity(timeDataMax);
+        createTimeData[0].set_capacity(timeDataMax);
+        createTimeData[1].set_capacity(timeDataMax);
+        timeData[0] = updateTimeData;
+        timeData[1] = readTimeData;
+        timeData[2] = createTimeData;
+
+    }
+    void rsetDataCapcity(uint64_t cap){
+        dataCapMtx.lock();
+        readTimeData[0].rset_capacity(cap);
+        readTimeData[1].rset_capacity(cap);
+        updateTimeData[0].rset_capacity(cap);
+        updateTimeData[1].rset_capacity(cap);
+        createTimeData[0].rset_capacity(cap);
+        createTimeData[1].rset_capacity(cap);
+        dataCapMtx.unlock();
+    }
+    std::string getTimeData(void) {
+        std::stringstream ret;
+        {
+            tbb::spin_rw_mutex::scoped_lock lock(timeDataRwLock, true);
+            updateTimeData[0].swap(updateTimeData[1]);
+            readTimeData[0].swap(readTimeData[1]);
+            createTimeData[0].swap(createTimeData[1]);
+        }
+        ret << "Update" << std::endl;
+        for (auto &eachData : updateTimeData[1]) {
+            auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
+            ret << time << "\t";
+            time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
+            ret << time << std::endl;
+        }
+        ret << "Read" << std::endl;
+        for (auto &eachData : readTimeData[1]) {
+            auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
+            ret << time << "\t";
+            time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
+            ret << time << std::endl;
+        }
+        ret << "Create" << std::endl;
+        for (auto &eachData : createTimeData[1]) {
+            auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
+            ret << time << "\t";
+            time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
+            ret << time << std::endl;
+        }
+        createTimeData[1].clear();
+        updateTimeData[1].clear();
+        readTimeData[1].clear();
+
+        return ret.str();
+    }
+    void FinishedSingleOp(unsigned char type, struct timespec *start, struct timespec *end){
+        //读写锁
+        timeDataRwLock.lock_read();
+        timeData[type][0].push_back(std::make_pair(*start,*end));
+        timeDataRwLock.unlock();
+    }
+};
+struct ThreadState {
+    int tid;             // 0..n-1 when running in n threads
+    Stats *stats;
+    std::atomic<uint8_t> STOP;
+    WT_SESSION *session;
+    std::atomic<std::vector<uint8_t >*> *which;
+    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* w)
+            :   tid(index),
+                which(w)
+    {
+        stats = new Stats(setting1);
+        STOP.store(false);
+    }
+    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,std::atomic<std::vector<uint8_t >*>* w)
+            :tid(index),which(w){
+
+        stats = new Stats(setting1);
+        conn->open_session(conn, NULL, NULL, &session);
+        STOP.store(false);
+        assert(session != NULL);
+    }
+    ~ThreadState(){
+        delete(stats);
+    }
+};
 namespace leveldb {
 
     namespace {
@@ -65,170 +168,13 @@ namespace leveldb {
             return Slice(s.data() + start, limit - start);
         }
 
-        class Stats {
 
-        private:
-            const Setting &setting;
-            boost::circular_buffer<std::pair<struct timespec,struct timespec>> readTimeData[2];
-            boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
-            boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
-            std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
-
-            tbb::spin_rw_mutex timeDataRwLock;
-            const uint64_t timeDataMax = 100000;
-            std::mutex dataCapMtx;
-        public:
-            std::atomic<uint64_t > typedDone_[2];//0:write 1:read
-            Stats(Setting &setting1) :setting(setting1){
-
-                readTimeData[0].set_capacity(timeDataMax);
-                readTimeData[1].set_capacity(timeDataMax);
-                updateTimeData[0].set_capacity(timeDataMax);
-                updateTimeData[1].set_capacity(timeDataMax);
-                createTimeData[0].set_capacity(timeDataMax);
-                createTimeData[1].set_capacity(timeDataMax);
-                timeData[0] = updateTimeData;
-                timeData[1] = readTimeData;
-                timeData[2] = createTimeData;
-
-            }
-            void rsetDataCapcity(uint64_t cap){
-                dataCapMtx.lock();
-                readTimeData[0].rset_capacity(cap);
-                readTimeData[1].rset_capacity(cap);
-                updateTimeData[0].rset_capacity(cap);
-                updateTimeData[1].rset_capacity(cap);
-                createTimeData[0].rset_capacity(cap);
-                createTimeData[1].rset_capacity(cap);
-                dataCapMtx.unlock();
-            }
-            std::string getTimeData(void) {
-                std::stringstream ret;
-                {
-                    tbb::spin_rw_mutex::scoped_lock lock(timeDataRwLock, true);
-                    updateTimeData[0].swap(updateTimeData[1]);
-                    readTimeData[0].swap(readTimeData[1]);
-                    createTimeData[0].swap(createTimeData[1]);
-                }
-                ret << "Update" << std::endl;
-                for (auto &eachData : updateTimeData[1]) {
-                    auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
-                    ret << time << "\t";
-                    time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
-                    ret << time << std::endl;
-                }
-                ret << "Read" << std::endl;
-                for (auto &eachData : readTimeData[1]) {
-                    auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
-                    ret << time << "\t";
-                    time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
-                    ret << time << std::endl;
-                }
-                ret << "Create" << std::endl;
-                for (auto &eachData : createTimeData[1]) {
-                    auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
-                    ret << time << "\t";
-                    time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
-                    ret << time << std::endl;
-                }
-                createTimeData[1].clear();
-                updateTimeData[1].clear();
-                readTimeData[1].clear();
-
-                return ret.str();
-            }
-            void FinishedSingleOp(unsigned char type, struct timespec *start, struct timespec *end){
-                //读写锁
-                timeDataRwLock.lock_read();
-                timeData[type][0].push_back(std::make_pair(*start,*end));
-                timeDataRwLock.unlock();
-            }
-        };
 
 // State shared by all concurrent executions of the same benchmark.
-        struct SharedState {
-            port::Mutex mu;
-            port::CondVar cv;
-            int total;
-            Setting *setting;
-            // Each thread goes through the following states:
-            //    (1) initializing
-            //    (2) waiting for others to be initialized
-            //    (3) running
-            //    (4) done
-
-            int num_initialized;
-            int num_done;
-            bool start;
-            SharedState() : cv(&mu) { }
-        };
 
 // Per-thread state for concurrent executions of the same benchmark.
-        struct ThreadState {
-            int tid;             // 0..n-1 when running in n threads
-            Random rand;         // Has different seeds for different threads
-            Stats *stats;
-            SharedState* shared;
-            std::atomic<uint8_t> STOP;
-            WT_SESSION *session;
-            std::atomic<std::vector<uint8_t >*> *which;
-            ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* w)
-                    :   tid(index),
-                        rand(1000 + index),
-                        which(w)
-                        {
-                stats = new Stats(setting1);
-                STOP.store(false);
-            }
-            ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,std::atomic<std::vector<uint8_t >*>* w)
-            :tid(index),rand(index + 1000),which(w){
-
-                stats = new Stats(setting1);
-                conn->open_session(conn, NULL, NULL, &session);
-                STOP.store(false);
-                assert(session != NULL);
-            }
-            ~ThreadState(){
-                delete(stats);
-            }
-        };
     }  // namespace
 }  // namespace leveldb
-struct WikipediaRow {
-    int32_t cur_id;
-    int32_t cur_namespace;
-    std::string cur_title;
-    std::string cur_text;
-    std::string cur_comment;
-    uint64_t cur_user;
-    std::string cur_user_text;
-    std::string cur_timestamp;
-    std::string cur_restrictions;
-    int32_t	cur_counter;
-    int32_t cur_is_redirect;
-    int32_t cur_minor_edit;
-    std::string cur_random;
-    std::string cur_touched;
-    std::string inverse_timestamp;
-
-    DATA_IO_LOAD_SAVE(WikipediaRow,
-                      &cur_id
-                      &cur_namespace
-                      &Schema::StrZero(cur_title)
-                      &Schema::StrZero(cur_text)
-                      &Schema::StrZero(cur_comment)
-                      &cur_user
-                      &Schema::StrZero(cur_user_text)
-                      &Schema::StrZero(cur_timestamp)
-                      &Schema::StrZero(cur_restrictions)
-                      &cur_counter
-                      &cur_is_redirect
-                      &cur_minor_edit
-                      &Schema::StrZero(cur_random)
-                      &Schema::StrZero(cur_touched)
-                      &Schema::StrZero(inverse_timestamp)
-    )
-};
 
 
 #endif //TERARKDB_TEST_FRAMEWORK_LEVELDB_H

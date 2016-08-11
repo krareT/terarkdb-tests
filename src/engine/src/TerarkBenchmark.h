@@ -28,7 +28,6 @@
 #include <string.h>
 #include <string>
 
-//#include "stdafx.h"
 #include <terark/db/db_table.hpp>
 #include <terark/io/MemStream.hpp>
 #include <terark/io/DataIO.hpp>
@@ -45,18 +44,10 @@ using namespace db;
 class Benchmark{
 private:
 public:
-    std::vector<std::pair<std::thread,leveldb::ThreadState*>> threads;
+    std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
     Benchmark(Setting &s):setting(s){};
-    std::string GatherTimeData(){
-        std::stringstream ret;
-        for( auto& eachThread : threads){
-            ret << "Thread " << eachThread.second->tid << std::endl;
-            ret << eachThread.second->stats->getTimeData() << std::endl;
-        }
-        return ret.str();
-    }
-    void Run(void){
+    virtual void  Run(void) final {
         Open();
         Load();
         RunBenchmark();
@@ -65,10 +56,10 @@ public:
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;
-    virtual bool ReadOneKey(leveldb::ThreadState*) = 0;
-    virtual bool WriteOneKey(leveldb::ThreadState*) = 0;
-    virtual leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which) = 0;
-    static void ThreadBody(Benchmark *bm,leveldb::ThreadState* state){
+    virtual bool ReadOneKey(ThreadState*) = 0;
+    virtual bool WriteOneKey(ThreadState*) = 0;
+    virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which) = 0;
+    static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
     void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent){
@@ -84,7 +75,7 @@ public:
 
         while (target > threads.size()){
             //Add new thread.
-            leveldb::ThreadState* state = newThreadState(which);
+            ThreadState* state = newThreadState(which);
             threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
         }
         while (target < threads.size()){
@@ -116,10 +107,10 @@ public:
         }
         adjustThreadNum(0, nullptr);
     }
-    void ReadWhileWriting(leveldb::ThreadState *thread) {
+    void ReadWhileWriting(ThreadState *thread) {
 
         std::cout << "Thread " << thread->tid << " start!" << std::endl;
-        std::unordered_map<uint8_t, bool (Benchmark::*)(leveldb::ThreadState *thread)> func_map;
+        std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *thread)> func_map;
         func_map[1] = &Benchmark::ReadOneKey;
         func_map[0] = &Benchmark::WriteOneKey;
 
@@ -137,13 +128,21 @@ public:
         }
         std::cout << "Thread " << thread->tid << " stop!" << std::endl;
     }
+    std::string GatherTimeData(){
+        std::stringstream ret;
+        for( auto& eachThread : threads){
+            ret << "Thread " << eachThread.second->tid << std::endl;
+            ret << eachThread.second->stats->getTimeData() << std::endl;
+        }
+        return ret.str();
+    }
 };
 class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
     fstrvec allkeys_;
-    leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
-        return new leveldb::ThreadState(threads.size(),setting,which);
+    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
+        return new ThreadState(threads.size(),setting,which);
     }
     void PrintHeader() {
         fprintf(stdout, "NarkDB Test Begins!");
@@ -172,7 +171,6 @@ private:
         std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
         assert(allkeys_.size() != 0);
         setting.FLAGS_num = allkeys_.size();
-
         //DoWrite(true);
     }
 
@@ -195,7 +193,6 @@ private:
         std::string str;
 
 
-        WikipediaRow recRow;
         int64_t writen = 0;
         long long linenumber = 0;
         long long recordnumber = 0;
@@ -224,7 +221,7 @@ private:
         printf("linenumber %lld, recordnumber %lld, time %s\n",linenumber, recordnumber, asctime(timenow));
 
     }
-    bool ReadOneKey(leveldb::ThreadState *thread) {
+    bool ReadOneKey(ThreadState *thread) {
 
             valvec<byte> keyHit, val;
             valvec<valvec<byte> > cgDataVec;
@@ -247,14 +244,9 @@ private:
                 found++;
             return found > 0;
         }
-
-    bool WriteOneKey(leveldb::ThreadState *thread) {
-            //DoWrite(thread,false,1);
+    bool WriteOneKey(ThreadState *thread) {
             return true;
-        }
-
-
-
+    }
 };
 using namespace leveldb;
 class WiredTigerBenchmark : public Benchmark{
@@ -346,8 +338,8 @@ public:
     ~WiredTigerBenchmark() {
     }
 private:
-    leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
-        return new leveldb::ThreadState(threads.size(),setting,conn_,which);
+    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
+        return new ThreadState(threads.size(),setting,conn_,which);
     }
     void Load(void){
         DoWrite(true);

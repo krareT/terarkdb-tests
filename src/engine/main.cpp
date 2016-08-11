@@ -30,7 +30,7 @@ void compact( Setting &setting){
     DbTablePtr tab = DbTable::open(setting.FLAGS_db);
     std::cout << "press any key to compact" << std::endl;
     getchar();
-    //tab->compact();
+    tab->compact();
     tab->safeStopAndWaitForCompress();
     tab= nullptr;
 }
