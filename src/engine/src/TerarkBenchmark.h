@@ -43,37 +43,12 @@
 using namespace terark;
 using namespace db;
 class Benchmark{
-public:
-    virtual std::string GatherTimeData(void)= 0;
-    virtual void Run(void) = 0;
-    virtual void Open(void) = 0;
-    virtual void Load(void) = 0;
-    virtual void ReadWhileWriting(leveldb::ThreadState *) = 0;
-    virtual bool ReadOneKey(leveldb::ThreadState*) = 0;
-    virtual bool WriteOneKey(leveldb::ThreadState*) = 0;
-    static void ThreadBody(Benchmark *bm,leveldb::ThreadState* state){
-        bm->ReadWhileWriting(state);
-    }
-};
-class TerarkBenchmark : public Benchmark{
 private:
-
-    CompositeTablePtr tab;
-    fstrvec allkeys_;
-    int num_;
-    int value_size_;
-    int entries_per_batch_;
-    int reads_;
-    int heap_counter_;
-    Setting &setting;
-    std::vector<std::pair<std::thread,leveldb::ThreadState*>> threads;
-
-    void PrintHeader() {
-        fprintf(stdout, "NarkDB Test Begins!");
-    }
 public:
+    std::vector<std::pair<std::thread,leveldb::ThreadState*>> threads;
+    Setting &setting;
+    Benchmark(Setting &s):setting(s){};
     std::string GatherTimeData(){
-
         std::stringstream ret;
         for( auto& eachThread : threads){
             ret << "Thread " << eachThread.second->tid << std::endl;
@@ -81,76 +56,35 @@ public:
         }
         return ret.str();
     }
-    TerarkBenchmark(Setting &setting1)
-            : tab(NULL),
-              num_(setting1.FLAGS_num),
-              value_size_(setting1.FLAGS_value_size),
-              entries_per_batch_(1),
-              reads_(setting1.FLAGS_reads < 0 ? setting1.FLAGS_num : setting1.FLAGS_reads),
-              heap_counter_(0),
-              setting(setting1) {
-        std::vector <std::string> files;
-        leveldb::Env::Default()->GetChildren(setting.FLAGS_db, &files);
-        for (int i = 0; i < files.size(); i++) {
-            if (leveldb::Slice(files[i]).starts_with("heap-")) {
-                leveldb::Env::Default()->DeleteFile(std::string(setting.FLAGS_db) + "/" + files[i]);
-            }
-        }
-        if (!setting.FLAGS_use_existing_db) {
-            leveldb::DestroyDB(setting.FLAGS_db, leveldb::Options());
-        }
-    }
-
-    ~TerarkBenchmark() {
-        tab->safeStopAndWaitForCompress();
-        tab = NULL;
-    }
-
-    void Run() {
-        PrintHeader();
-        std::cout << " Run() " << std::endl;
+    void Run(void){
         Open();
-        std::ifstream ifs(setting.FLAGS_keys_data);
-        std::string str;
-        std::string key1;
-        std::string key2;
-        while (getline(ifs, str)) {
-            allkeys_.push_back(str);
+        Load();
+        RunBenchmark();
+        Close();
+    };
+    virtual void Open(void) = 0;
+    virtual void Load(void) = 0;
+    virtual void Close(void) = 0;
+    virtual bool ReadOneKey(leveldb::ThreadState*) = 0;
+    virtual bool WriteOneKey(leveldb::ThreadState*) = 0;
+    virtual leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which) = 0;
+    static void ThreadBody(Benchmark *bm,leveldb::ThreadState* state){
+        bm->ReadWhileWriting(state);
+    }
+    void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent){
+        assert(readPercent <= 100);
+        if (plan.size() != 100){
+            plan.resize(100);
         }
-        allkeys_.shrink_to_fit();
-        printf("allkeys_.mem_size=%zd\n", allkeys_.full_mem_size());
-        std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
-        assert(allkeys_.size() != 0);
-        setting.FLAGS_num = allkeys_.size();
-        //Load();
-        void (TerarkBenchmark::*method)(leveldb::ThreadState *) = &TerarkBenchmark::ReadWhileWriting;
-        int num_threads = setting.FLAGS_threads;
-        struct timespec start, end;
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        RunTerarkBenchmark(num_threads, "RW", method);
-
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        long long timeuse = 1000000000LL * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-        printf("RunTerarkBenchmark total time is : %lld \n", timeuse / 1000000000LL);
-        //tab->syncFinishWriting();
-        //tab->safeStopAndWaitForCompress();
-        tab->safeStopAndWaitForFlush();
-        allkeys_.erase_all();
+        std::fill_n(plan.begin(),readPercent,1);
+        std::fill(plan.begin()+readPercent,plan.end(),0);
+        std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
     }
-
-private:
-
-    void Load(void){
-        DoWrite(true);
-    }
-
-    void adjustThreadNum(   std::vector<std::pair<std::thread,leveldb::ThreadState*>> &threads,
-                            uint32_t target,
-                            std::atomic<std::vector<uint8_t >*>* which){
+    void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* which){
 
         while (target > threads.size()){
             //Add new thread.
-            leveldb::ThreadState* state = new leveldb::ThreadState(threads.size(),setting,which);
+            leveldb::ThreadState* state = newThreadState(which);
             threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
         }
         while (target < threads.size()){
@@ -161,22 +95,8 @@ private:
             threads.pop_back();
         }
     }
-    void adjustDataCapcity(uint64_t cap){
-        for(auto& eachThread : threads){
-
-        }
-    }
-    void RunTerarkBenchmark(int n, leveldb::Slice name,
-                      void (TerarkBenchmark::*method)(leveldb::ThreadState *)) {
-        leveldb::SharedState shared;
-        shared.total = n;
-        shared.num_initialized = 0;
-        shared.num_done = 0;
-        shared.start = false;
-        shared.setting = & (this->setting);
-
+    void RunBenchmark(void){
         int old_readPercent = -1;
-
         std::atomic<std::vector<uint8_t > *> planAddr;
         std::vector<uint8_t > plan[2];
         bool backupPlan = false;//不作真假，只用来切换plan
@@ -190,15 +110,74 @@ private:
                 backupPlan = !backupPlan;
             }
             int threadNum = setting.baseSetting.getThreadNums();
-            adjustThreadNum(threads,threadNum,&planAddr);
+            adjustThreadNum(threadNum,&planAddr);
             uint64_t data_cap = setting.baseSetting.getDataCapcity();
-            adjustDataCapcity(data_cap);
             sleep(5);
         }
-        adjustThreadNum(threads,0, nullptr);
+        adjustThreadNum(0, nullptr);
+    }
+    void ReadWhileWriting(leveldb::ThreadState *thread) {
+
+        std::cout << "Thread " << thread->tid << " start!" << std::endl;
+        std::unordered_map<uint8_t, bool (Benchmark::*)(leveldb::ThreadState *thread)> func_map;
+        func_map[1] = &Benchmark::ReadOneKey;
+        func_map[0] = &Benchmark::WriteOneKey;
+
+        struct timespec start,end;
+        while (thread->STOP.load() == false) {
+
+            std::vector<uint8_t > *plan = (*(thread->which)).load();
+            for (auto each : *plan) {
+                clock_gettime(CLOCK_MONOTONIC,&start);
+                if ((this->*func_map[each])(thread)) {
+                    clock_gettime(CLOCK_MONOTONIC,&end);
+                    thread->stats->FinishedSingleOp(each,&start,&end);
+                }
+            }
+        }
+        std::cout << "Thread " << thread->tid << " stop!" << std::endl;
+    }
+};
+class TerarkBenchmark : public Benchmark{
+private:
+    CompositeTablePtr tab;
+    fstrvec allkeys_;
+    leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
+        return new leveldb::ThreadState(threads.size(),setting,which);
+    }
+    void PrintHeader() {
+        fprintf(stdout, "NarkDB Test Begins!");
+    }
+    void Close(){tab->safeStopAndWaitForFlush();tab = NULL;};
+public:
+
+    TerarkBenchmark(Setting &setting1)
+            : tab(NULL), Benchmark(setting1){
+    }
+
+    ~TerarkBenchmark() {
+        tab->safeStopAndWaitForCompress();
+        tab = NULL;
+    }
+private:
+
+    void Load(void){
+        std::ifstream ifs(setting.FLAGS_keys_data);
+        std::string str;
+        while (getline(ifs, str)) {
+            allkeys_.push_back(str);
+        }
+        allkeys_.shrink_to_fit();
+        printf("allkeys_.mem_size=%zd\n", allkeys_.full_mem_size());
+        std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
+        assert(allkeys_.size() != 0);
+        setting.FLAGS_num = allkeys_.size();
+
+        //DoWrite(true);
     }
 
     void Open() {
+        PrintHeader();
         assert(tab == NULL);
         std::cout << "Open database " << setting.FLAGS_db<< std::endl;
         tab = CompositeTable::open(setting.FLAGS_db);
@@ -245,7 +224,7 @@ private:
         printf("linenumber %lld, recordnumber %lld, time %s\n",linenumber, recordnumber, asctime(timenow));
 
     }
-        bool ReadOneKey(leveldb::ThreadState *thread) {
+    bool ReadOneKey(leveldb::ThreadState *thread) {
 
             valvec<byte> keyHit, val;
             valvec<valvec<byte> > cgDataVec;
@@ -269,59 +248,23 @@ private:
             return found > 0;
         }
 
-        bool WriteOneKey(leveldb::ThreadState *thread) {
+    bool WriteOneKey(leveldb::ThreadState *thread) {
             //DoWrite(thread,false,1);
             return true;
         }
 
-        void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent) {
-            assert(readPercent <= 100);
-            if (plan.size() != 100){
-                plan.resize(100);
-            }
-            std::fill_n(plan.begin(),readPercent,1);
-            std::fill(plan.begin()+readPercent,plan.end(),0);
-            std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
-        }
 
-        void ReadWhileWriting(leveldb::ThreadState *thread) {
 
-            std::cout << "Thread " << thread->tid << " start!" << std::endl;
-            std::unordered_map<uint8_t, bool (TerarkBenchmark::*)(leveldb::ThreadState *thread)> func_map;
-            func_map[1] = &TerarkBenchmark::ReadOneKey;
-            func_map[0] = &TerarkBenchmark::WriteOneKey;
-
-            struct timespec start,end;
-            while (thread->STOP.load() == false) {
-
-                std::vector<uint8_t > *plan = (*(thread->which)).load();
-                for (auto each : *plan) {
-                    clock_gettime(CLOCK_MONOTONIC,&start);
-                    if ((this->*func_map[each])(thread)) {
-                        clock_gettime(CLOCK_MONOTONIC,&end);
-                        thread->stats->FinishedSingleOp(each,&start,&end);
-                    }
-                }
-            }
-            std::cout << "Thread " << thread->tid << " stop!" << std::endl;
-        }
 };
 using namespace leveldb;
 class WiredTigerBenchmark : public Benchmark{
 private:
     WT_CONNECTION *conn_;
     std::string uri_;
-    std::string urii_;
     int db_num_;
     int num_;
-    int value_size_;
-    int entries_per_batch_;
     int sync_;
-    int reads_;
-    int heap_counter_;
-    std::vector<std::pair<std::thread,ThreadState*>> threads;
     std::vector<std::string> allkeys_;
-    Setting &setting;
     void PrintHeader() {
         const int kKeySize = 16;
         PrintEnvironment();
@@ -339,7 +282,6 @@ private:
         PrintWarnings();
         fprintf(stdout, "------------------------------------------------\n");
     }
-
     void PrintWarnings() {
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
         fprintf(stdout,
@@ -360,7 +302,6 @@ private:
             fprintf(stdout, "WARNING: Snappy compression is not effective\n");
         }
     }
-
     void PrintEnvironment() {
         int wtmaj, wtmin, wtpatch;
         const char *wtver = wiredtiger_version(&wtmaj, &wtmin, &wtpatch);
@@ -399,111 +340,22 @@ private:
         }
 #endif
     }
-
 public:
-    std::string GatherTimeData(){
-
-        std::stringstream ret;
-        for( auto& eachThread : threads){
-            ret << "Thread " << eachThread.second->tid << ":";
-            ret << eachThread.second->stats->getTimeData();
-            ret << std::endl;
-        }
-        return ret.str();
+    WiredTigerBenchmark(Setting &setting1) : Benchmark(setting1) {
     }
-    WiredTigerBenchmark
-            (Setting &setting1)
-            : num_(setting1.FLAGS_num),
-              value_size_(setting1.FLAGS_value_size),
-              db_num_(0),
-              entries_per_batch_(1),
-              reads_(setting1.FLAGS_reads < 0 ? setting1.FLAGS_num : setting1.FLAGS_reads),
-              heap_counter_(0),
-              setting(setting1) {
-        std::vector<std::string> files;
-        Env::Default()->GetChildren(setting.FLAGS_db, &files);
-        for (int i = 0; i < files.size(); i++) {
-            if (Slice(files[i]).starts_with("heap-")) {
-                Env::Default()->DeleteFile(std::string(setting.FLAGS_db) + "/" + files[i]);
-            }
-        }
-        if (!setting.FLAGS_use_existing_db) {
-            for (int i = 0; i < files.size(); i++) {
-                std::string file_name(setting.FLAGS_db);
-                file_name += "/";
-                file_name += files[i];
-                Env::Default()->DeleteFile(file_name.c_str());
-            }
-        }
-    }
-
     ~WiredTigerBenchmark() {
     }
-
-    void Run() {
-        PrintHeader();
-        Open();
-        Load();
-        allkeys_.shrink_to_fit();
-        void (WiredTigerBenchmark::*method)(ThreadState *);
-        struct timespec start, end;
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        method = &WiredTigerBenchmark::ReadWhileWriting;
-        RunWiredTigerBenchmark(setting.baseSetting.getThreadNums(), "RWThread", method);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        long long timeuse = 1000000000 * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
-        printf("RunWiredTigerBenchmark total time is : %lld \n", timeuse/1000000000);
-        allkeys_.clear();
-        std::cout << "---------" << std::endl;
-        if (conn_ != NULL) {
-            conn_->close(conn_, NULL);
-            conn_ = NULL;
-        }
-    }
-
 private:
+    leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
+        return new leveldb::ThreadState(threads.size(),setting,conn_,which);
+    }
     void Load(void){
         DoWrite(true);
+        allkeys_.shrink_to_fit();
     }
-    void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadState*>> &threads,
-                            uint32_t target,
-                            std::atomic<std::vector<uint8_t >*>* which){
-
-        while (target > threads.size()){
-            //Add new thread.
-            ThreadState *state = new leveldb::ThreadState(threads.size(),setting,conn_,which);
-            threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
-        }
-        while (target < threads.size()){
-            //delete thread
-            threads.back().second->STOP.store(true);
-            threads.back().first.join();
-            delete threads.back().second;
-            threads.pop_back();
-        }
-    }
-    void RunWiredTigerBenchmark(int n, leveldb::Slice name,
-                                void (WiredTigerBenchmark::*method)(leveldb::ThreadState *)) {
-        std::cout << "Run WiredTiger Benchmark!" << std::endl;
-
-        int old_readPercent = -1;
-        std::atomic<std::vector<uint8_t > *> planAddr;
-        std::vector<uint8_t > plan[2];
-        bool backupPlan = false;//不作真假，只用来切换plan
-        while( !setting.baseSetting.ifStop()){
-
-            int readPercent = setting.baseSetting.getReadPercent();
-            if (readPercent != old_readPercent){
-                old_readPercent = readPercent;
-                updatePlan(plan[backupPlan],readPercent);
-                planAddr.store( &(plan[backupPlan]));
-                backupPlan = !backupPlan;
-            }
-            int threadNum = setting.baseSetting.getThreadNums();
-            adjustThreadNum(threads,threadNum,&planAddr);
-            sleep(5);
-        }
-        adjustThreadNum(threads,0, nullptr);
+    void Close(void){
+        conn_->close(conn_, NULL);
+        conn_ = NULL;
     }
     bool ReadOneKey(ThreadState *thread) {
 
@@ -525,37 +377,13 @@ private:
         cursor->close(cursor);
         return found > 0;
     }
-
     bool WriteOneKey(ThreadState *thread) {
-
         return true;
     }
-
-    void ReadWhileWriting(leveldb::ThreadState *thread) {
-
-        std::cout << "Thread " << thread->tid << " start!" << std::endl;
-        std::unordered_map<uint8_t, bool (WiredTigerBenchmark::*)(ThreadState *thread)> func_map;
-        func_map[1] = &WiredTigerBenchmark::ReadOneKey;
-        func_map[0] = &WiredTigerBenchmark::WriteOneKey;
-
-        struct timespec start,end;
-        while (thread->STOP.load() == false) {
-
-            std::vector<uint8_t > *plan = (*(thread->which)).load();
-            for (auto each : *plan) {
-                clock_gettime(CLOCK_REALTIME,&start);
-                if ((this->*func_map[each])(thread)) {
-                    clock_gettime(CLOCK_REALTIME,&end);
-                    thread->stats->FinishedSingleOp(each,&start,&end);
-                }
-            }
-        }
-        std::cout << "Thread " << thread->tid << " stop!" << std::endl;
-    }
-
-
-    /* Start Wired Tiger modified section. */
     void Open() {
+        PrintHeader();
+        PrintEnvironment();
+        PrintWarnings();
 #define SMALL_CACHE 10*1024*1024
         std::stringstream config;
         config.str("");
@@ -630,10 +458,6 @@ private:
             session->close(session, NULL);
         }
     }
-
-
-
-
     void DoWrite(bool seq) {
 
         std::stringstream txn_config;
@@ -692,16 +516,6 @@ private:
         time(&now);
         timenow = localtime(&now);
         printf("recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
-    }
-
-    void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent) {
-        assert(readPercent <= 100);
-        if (plan.size() != 100){
-            plan.resize(100);
-        }
-        std::fill_n(plan.begin(),readPercent,1);
-        std::fill(plan.begin()+readPercent,plan.end(),0);
-        std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
     }
 };
 
