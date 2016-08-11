@@ -2,7 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <boost/asio.hpp>
-
+#include <string>
 using boost::asio::ip::tcp;
 
 enum { max_length = 1024 };
@@ -25,15 +25,15 @@ int main(int argc, char* argv[])
 
 
         while(true) {
-            char request[max_length];
-            sprintf(request, "query ops\n");
-            size_t request_length = std::strlen(request);
-            boost::asio::write(s, boost::asio::buffer(request, request_length));
+            std::cout << "Enter command:" ;
+            std::string line;
+            getline(std::cin,line);
+            line += '\n';
+            boost::asio::write(s, boost::asio::buffer(line, line.size()));
             boost::asio::streambuf buf;
             boost::asio::read_until(s, buf, "END\r\n");
 
             std::istream is(&buf);
-            std::string line;
 
             while (getline(is, line)) {
                 std::cout << line << std::endl;

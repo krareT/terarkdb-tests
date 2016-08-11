@@ -51,20 +51,13 @@ public:
     virtual void ReadWhileWriting(leveldb::ThreadState *) = 0;
     virtual bool ReadOneKey(leveldb::ThreadState*) = 0;
     virtual bool WriteOneKey(leveldb::ThreadState*) = 0;
+    static void ThreadBody(Benchmark *bm,leveldb::ThreadState* state){
+        bm->ReadWhileWriting(state);
+    }
 };
 class TerarkBenchmark : public Benchmark{
 private:
-    struct ThreadArg {
-        TerarkBenchmark *bm;
-        leveldb::ThreadState *thread;
-        //void (Benchmark::*method)(leveldb::ThreadState *);
-        void (TerarkBenchmark::*method)(leveldb::ThreadState *);
-        ThreadArg(TerarkBenchmark *b,leveldb::ThreadState *t,void (TerarkBenchmark::*m)(leveldb::ThreadState *))
-                :   bm(b),
-                    thread(t),
-                    method(m){
-        }
-    };
+
     CompositeTablePtr tab;
     fstrvec allkeys_;
     int num_;
@@ -73,7 +66,7 @@ private:
     int reads_;
     int heap_counter_;
     Setting &setting;
-    std::vector<std::pair<std::thread,ThreadArg*>> threads;
+    std::vector<std::pair<std::thread,leveldb::ThreadState*>> threads;
 
     void PrintHeader() {
         fprintf(stdout, "NarkDB Test Begins!");
@@ -83,8 +76,8 @@ public:
 
         std::stringstream ret;
         for( auto& eachThread : threads){
-            ret << "Thread " << eachThread.second->thread->tid << std::endl;
-            ret << eachThread.second->thread->stats->getTimeData() << std::endl;
+            ret << "Thread " << eachThread.second->tid << std::endl;
+            ret << eachThread.second->stats->getTimeData() << std::endl;
         }
         return ret.str();
     }
@@ -151,27 +144,19 @@ private:
         DoWrite(true);
     }
 
-    static void ThreadBody(void *v) {
-        ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
-        leveldb::ThreadState *thread = arg->thread;
-        (arg->bm->*(arg->method))(thread);
-    }
-    void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadArg*>> &threads,
+    void adjustThreadNum(   std::vector<std::pair<std::thread,leveldb::ThreadState*>> &threads,
                             uint32_t target,
-                            leveldb::SharedState *shared,
-                            void (TerarkBenchmark::*method)(leveldb::ThreadState *),
                             std::atomic<std::vector<uint8_t >*>* which){
 
         while (target > threads.size()){
             //Add new thread.
-            ThreadArg *threadArg = new ThreadArg(this,new leveldb::ThreadState(threads.size(),setting,which),method);
-            threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
+            leveldb::ThreadState* state = new leveldb::ThreadState(threads.size(),setting,which);
+            threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
         }
         while (target < threads.size()){
             //delete thread
-            threads.back().second->thread->STOP.store(true);
+            threads.back().second->STOP.store(true);
             threads.back().first.join();
-            delete threads.back().second->thread;
             delete threads.back().second;
             threads.pop_back();
         }
@@ -205,12 +190,12 @@ private:
                 backupPlan = !backupPlan;
             }
             int threadNum = setting.baseSetting.getThreadNums();
-            adjustThreadNum(threads,threadNum,&shared,method,&planAddr);
+            adjustThreadNum(threads,threadNum,&planAddr);
             uint64_t data_cap = setting.baseSetting.getDataCapcity();
             adjustDataCapcity(data_cap);
             sleep(5);
         }
-        adjustThreadNum(threads,0, nullptr, nullptr, nullptr);
+        adjustThreadNum(threads,0, nullptr);
     }
 
     void Open() {
@@ -324,17 +309,6 @@ private:
 using namespace leveldb;
 class WiredTigerBenchmark : public Benchmark{
 private:
-    struct ThreadArg {
-        WiredTigerBenchmark* bm;
-        ThreadState* thread;
-        void (WiredTigerBenchmark::*method)(ThreadState*);
-        ThreadArg(WiredTigerBenchmark* bm0,ThreadState* ts,
-                  void (WiredTigerBenchmark::*m)(ThreadState*))
-                :   bm(bm0),
-                    thread(ts),
-                    method(m)
-        {}
-    };
     WT_CONNECTION *conn_;
     std::string uri_;
     std::string urii_;
@@ -345,7 +319,7 @@ private:
     int sync_;
     int reads_;
     int heap_counter_;
-    std::vector<std::pair<std::thread,ThreadArg*>> threads;
+    std::vector<std::pair<std::thread,ThreadState*>> threads;
     std::vector<std::string> allkeys_;
     Setting &setting;
     void PrintHeader() {
@@ -429,11 +403,10 @@ private:
 public:
     std::string GatherTimeData(){
 
-        static std::mutex mtx;
         std::stringstream ret;
         for( auto& eachThread : threads){
-            ret << "Thread " << eachThread.second->thread->tid << ":";
-            ret << eachThread.second->thread->stats->getTimeData();
+            ret << "Thread " << eachThread.second->tid << ":";
+            ret << eachThread.second->stats->getTimeData();
             ret << std::endl;
         }
         return ret.str();
@@ -492,61 +465,27 @@ private:
     void Load(void){
         DoWrite(true);
     }
-    static void ThreadBody(void *v) {
-        ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
-        leveldb::ThreadState *thread = arg->thread;
-
-        (arg->bm->*(arg->method))(thread);
-    }
-    void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadArg*>> &threads,
+    void adjustThreadNum(   std::vector<std::pair<std::thread,ThreadState*>> &threads,
                             uint32_t target,
-                            void (WiredTigerBenchmark::*method)(leveldb::ThreadState *),
                             std::atomic<std::vector<uint8_t >*>* which){
 
         while (target > threads.size()){
             //Add new thread.
-            ThreadArg *threadArg = new ThreadArg(this,new leveldb::ThreadState(threads.size(),setting,conn_,which),method);
-            threads.push_back( std::make_pair(std::thread(ThreadBody,threadArg),threadArg));
+            ThreadState *state = new leveldb::ThreadState(threads.size(),setting,conn_,which);
+            threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
         }
         while (target < threads.size()){
             //delete thread
-            threads.back().second->thread->STOP.store(true);
+            threads.back().second->STOP.store(true);
             threads.back().first.join();
-            delete threads.back().second->thread;
             delete threads.back().second;
             threads.pop_back();
         }
     }
-    void gatherThreadInfo(std::vector<std::pair<std::thread,ThreadArg*>> &threads){
-
-        std::vector<uint64_t > readVec;
-        std::vector<uint64_t > writeVec;
-        uint64_t total_read = 0;
-        uint64_t total_write = 0;
-        std::cout << "------------------" << std::endl;
-
-        for(auto& eachThreadInfo : threads){
-            readVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[1].exchange(0));
-            writeVec.push_back(eachThreadInfo.second->thread->stats->typedDone_[0].exchange(0));
-            total_read += readVec.back();
-            total_write += writeVec.back();
-        }
-        for(int i = 0; i < readVec.size();i++){
-            std::cout << "Thread " << i << " read " << readVec[i] << " write " << writeVec[i] << std::endl;
-        }
-        std::cout << "Total read " << total_read << " write " << total_write << std::endl;
-
-
-    }
     void RunWiredTigerBenchmark(int n, leveldb::Slice name,
                                 void (WiredTigerBenchmark::*method)(leveldb::ThreadState *)) {
         std::cout << "Run WiredTiger Benchmark!" << std::endl;
-        leveldb::SharedState shared;
-        shared.total = n;
-        shared.num_initialized = 0;
-        shared.num_done = 0;
-        shared.start = false;
-        shared.setting = & (this->setting);
+
         int old_readPercent = -1;
         std::atomic<std::vector<uint8_t > *> planAddr;
         std::vector<uint8_t > plan[2];
@@ -561,10 +500,10 @@ private:
                 backupPlan = !backupPlan;
             }
             int threadNum = setting.baseSetting.getThreadNums();
-            adjustThreadNum(threads,threadNum,method,&planAddr);
+            adjustThreadNum(threads,threadNum,&planAddr);
             sleep(5);
         }
-        adjustThreadNum(threads,0,nullptr, nullptr);
+        adjustThreadNum(threads,0, nullptr);
     }
     bool ReadOneKey(ThreadState *thread) {
 
