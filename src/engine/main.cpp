@@ -27,10 +27,10 @@ void tcpServer(Setting *setting,Benchmark *bm){
     }
 }
 void compact( Setting &setting){
-    auto tab = CompositeTable::open(setting.FLAGS_db);
+    DbTablePtr tab = DbTable::open(setting.FLAGS_db);
     std::cout << "press any key to compact" << std::endl;
     getchar();
-    tab->compact();
+    //tab->compact();
     tab->safeStopAndWaitForCompress();
     tab= nullptr;
 }

@@ -140,7 +140,7 @@ public:
 };
 class TerarkBenchmark : public Benchmark{
 private:
-    CompositeTablePtr tab;
+    DbTablePtr tab;
     fstrvec allkeys_;
     leveldb::ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
         return new leveldb::ThreadState(threads.size(),setting,which);
