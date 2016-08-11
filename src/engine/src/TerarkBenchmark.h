@@ -46,13 +46,18 @@ class Benchmark{
 public:
     virtual std::string GatherTimeData(void)= 0;
     virtual void Run(void) = 0;
+    virtual void Open(void) = 0;
+    virtual void Load(void) = 0;
+    virtual void ReadWhileWriting(leveldb::ThreadState *) = 0;
+    virtual bool ReadOneKey(leveldb::ThreadState*) = 0;
+    virtual bool WriteOneKey(leveldb::ThreadState*) = 0;
 };
 class TerarkBenchmark : public Benchmark{
 private:
     struct ThreadArg {
         TerarkBenchmark *bm;
         leveldb::ThreadState *thread;
-
+        //void (Benchmark::*method)(leveldb::ThreadState *);
         void (TerarkBenchmark::*method)(leveldb::ThreadState *);
         ThreadArg(TerarkBenchmark *b,leveldb::ThreadState *t,void (TerarkBenchmark::*m)(leveldb::ThreadState *))
                 :   bm(b),
@@ -62,7 +67,6 @@ private:
     };
     CompositeTablePtr tab;
     fstrvec allkeys_;
-
     int num_;
     int value_size_;
     int entries_per_batch_;
@@ -77,7 +81,6 @@ private:
 public:
     std::string GatherTimeData(){
 
-        static std::mutex mtx;
         std::stringstream ret;
         for( auto& eachThread : threads){
             ret << "Thread " << eachThread.second->thread->tid << std::endl;
@@ -118,7 +121,6 @@ public:
         std::string str;
         std::string key1;
         std::string key2;
-
         while (getline(ifs, str)) {
             allkeys_.push_back(str);
         }
@@ -127,7 +129,7 @@ public:
         std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
         assert(allkeys_.size() != 0);
         setting.FLAGS_num = allkeys_.size();
-        //DoWrite(true);
+        //Load();
         void (TerarkBenchmark::*method)(leveldb::ThreadState *) = &TerarkBenchmark::ReadWhileWriting;
         int num_threads = setting.FLAGS_threads;
         struct timespec start, end;
@@ -145,6 +147,9 @@ public:
 
 private:
 
+    void Load(void){
+        DoWrite(true);
+    }
 
     static void ThreadBody(void *v) {
         ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
@@ -323,7 +328,6 @@ private:
         WiredTigerBenchmark* bm;
         ThreadState* thread;
         void (WiredTigerBenchmark::*method)(ThreadState*);
-
         ThreadArg(WiredTigerBenchmark* bm0,ThreadState* ts,
                   void (WiredTigerBenchmark::*m)(ThreadState*))
                 :   bm(bm0),
@@ -465,35 +469,17 @@ public:
 
     void Run() {
         PrintHeader();
-        std::cout << " Run() " << std::endl;
-
-        /*std::ifstream ifs(setting.FLAGS_keys_data);
-        std::string str;
-
-        while(getline(ifs, str)) {
-            allkeys_.push_back(str);
-        }
-        ifs.close();*/
-
         Open();
-        DoWrite(true);
+        Load();
         allkeys_.shrink_to_fit();
-
-
         void (WiredTigerBenchmark::*method)(ThreadState *);
-
-
         struct timespec start, end;
         clock_gettime(CLOCK_MONOTONIC, &start);
-
         method = &WiredTigerBenchmark::ReadWhileWriting;
-
         RunWiredTigerBenchmark(setting.baseSetting.getThreadNums(), "RWThread", method);
-
         clock_gettime(CLOCK_MONOTONIC, &end);
         long long timeuse = 1000000000 * ( end.tv_sec - start.tv_sec ) + end.tv_nsec -start.tv_nsec;
         printf("RunWiredTigerBenchmark total time is : %lld \n", timeuse/1000000000);
-
         allkeys_.clear();
         std::cout << "---------" << std::endl;
         if (conn_ != NULL) {
@@ -503,7 +489,9 @@ public:
     }
 
 private:
-
+    void Load(void){
+        DoWrite(true);
+    }
     static void ThreadBody(void *v) {
         ThreadArg *arg = reinterpret_cast<ThreadArg *>(v);
         leveldb::ThreadState *thread = arg->thread;
