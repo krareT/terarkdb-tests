@@ -169,16 +169,8 @@ BaseSetting::BaseSetting(){
     setFunc_map["stop"] = &BaseSetting::strSetStop;
     setFunc_map["read_percent"] = &BaseSetting::strSetReadPercent;
     setFunc_map["thread_num"] = &BaseSetting::strSetThreadNums;
-    setFunc_map["time_data_capcity"] = &BaseSetting::strSetTimeDataCapicity;
 }
-bool BaseSetting::strSetTimeDataCapicity(std::string& value){
 
-    uint64_t val = stoi(value);
-    if ( val > TIME_DATA_MAX_CAPCITY)
-        return false;
-    data_capcity.store(val);
-    return true;
-}
 bool BaseSetting::strSetStop(std::string &value) {
 
     if (value == "true"){

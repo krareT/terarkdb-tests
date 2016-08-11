@@ -102,7 +102,6 @@ public:
             }
             int threadNum = setting.baseSetting.getThreadNums();
             adjustThreadNum(threadNum,&planAddr);
-            uint64_t data_cap = setting.baseSetting.getDataCapcity();
             sleep(5);
         }
         adjustThreadNum(0, nullptr);

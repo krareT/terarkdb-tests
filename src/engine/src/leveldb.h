@@ -56,12 +56,9 @@ private:
     boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
     boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
     std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
-
     tbb::spin_rw_mutex timeDataRwLock;
     const uint64_t timeDataMax = 100000;
-    std::mutex dataCapMtx;
 public:
-    std::atomic<uint64_t > typedDone_[2];//0:write 1:read
     Stats(Setting &setting1) :setting(setting1){
 
         readTimeData[0].set_capacity(timeDataMax);
@@ -74,16 +71,6 @@ public:
         timeData[1] = readTimeData;
         timeData[2] = createTimeData;
 
-    }
-    void rsetDataCapcity(uint64_t cap){
-        dataCapMtx.lock();
-        readTimeData[0].rset_capacity(cap);
-        readTimeData[1].rset_capacity(cap);
-        updateTimeData[0].rset_capacity(cap);
-        updateTimeData[1].rset_capacity(cap);
-        createTimeData[0].rset_capacity(cap);
-        createTimeData[1].rset_capacity(cap);
-        dataCapMtx.unlock();
     }
     std::string getTimeData(void) {
         std::stringstream ret;

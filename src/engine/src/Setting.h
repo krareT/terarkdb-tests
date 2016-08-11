@@ -15,7 +15,6 @@ private:
     std::atomic<uint8_t > READ_PERCENT;
     std::atomic<uint8_t > STOP;
     std::atomic<uint32_t> THREAD_NUMS;
-    std::atomic<uint64_t > data_capcity;
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFunc_map;
     const uint64_t TIME_DATA_MAX_CAPCITY = 10000000;
 
@@ -39,14 +38,12 @@ public:
     void setStop(void);
     void setThreadNums(uint32_t);
     uint32_t getThreadNums(void);
-    uint64_t getDataCapcity(void){ return data_capcity.load();};
     std::string setBaseSetting(std::string &line);
     std::string toString();
 
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);
-    bool strSetTimeDataCapicity(std::string&);
 };
 class Setting{
 
