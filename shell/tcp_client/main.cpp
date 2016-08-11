@@ -38,7 +38,6 @@ int main(int argc, char* argv[])
             while (getline(is, line)) {
                 std::cout << line << std::endl;
             }
-		    sleep(5);
         }
 	 }
     catch (std::exception& e)
