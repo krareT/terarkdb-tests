@@ -12,7 +12,7 @@
 #include <src/Setting.h>
 #include "src/TerarkBenchmark.h"
 #include "src/TcpServer.h"
-
+#include <signal.h>
 void tcpServer(Setting *setting,Benchmark *bm){
     std::cout << "------------Tcp Server start-------------" << std::endl;
     try
@@ -34,12 +34,19 @@ void compact( Setting &setting){
     tab->safeStopAndWaitForCompress();
     tab= nullptr;
 }
+Setting *set;
+void sigint_fuc(int sig){
+    std::cout << "Ctrl+c" << std::endl;
+    set->baseSetting.setStop();
+}
 int main(int argc, char** argv) {
 
+    signal(SIGINT,sigint_fuc);
     if (argc < 2){
         fprintf(stderr,"WiredTiger or Terark?");
     }
     Setting setting(argc,argv,argv[1]);
+    set = &setting;
     Benchmark *bm = nullptr;
     if (strcmp(argv[1],"Terark") == 0) {
         bm = new TerarkBenchmark(setting);
