@@ -46,74 +46,13 @@
 #include "tbb/spin_rw_mutex.h"
 #include "Setting.h"
 #include <boost/circular_buffer.hpp>
+#include <tbb/concurrent_queue.h>
+#include "src/Stats.h"
 using namespace terark;
 using namespace db;
-class Stats {
 
-private:
-    const Setting &setting;
-    boost::circular_buffer<std::pair<struct timespec,struct timespec>> readTimeData[2];
-    boost::circular_buffer<std::pair<struct timespec,struct timespec>> updateTimeData[2];
-    boost::circular_buffer<std::pair<struct timespec,struct timespec>> createTimeData[2];
-    std::unordered_map<int, boost::circular_buffer<std::pair<struct timespec,struct timespec>>*> timeData;
-    tbb::spin_rw_mutex timeDataRwLock;
-    const uint64_t timeDataMax = 100000;
-public:
-    Stats(Setting &setting1) :setting(setting1){
 
-        readTimeData[0].set_capacity(timeDataMax);
-        readTimeData[1].set_capacity(timeDataMax);
-        updateTimeData[0].set_capacity(timeDataMax);
-        updateTimeData[1].set_capacity(timeDataMax);
-        createTimeData[0].set_capacity(timeDataMax);
-        createTimeData[1].set_capacity(timeDataMax);
-        timeData[0] = updateTimeData;
-        timeData[1] = readTimeData;
-        timeData[2] = createTimeData;
 
-    }
-    std::string getTimeData(void) {
-        std::stringstream ret;
-        {
-            tbb::spin_rw_mutex::scoped_lock lock(timeDataRwLock, true);
-            updateTimeData[0].swap(updateTimeData[1]);
-            readTimeData[0].swap(readTimeData[1]);
-            createTimeData[0].swap(createTimeData[1]);
-        }
-        ret << "Update" << std::endl;
-        for (auto &eachData : updateTimeData[1]) {
-            auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
-            ret << time << "\t";
-            time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
-            ret << time << std::endl;
-        }
-        ret << "Read" << std::endl;
-        for (auto &eachData : readTimeData[1]) {
-            auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
-            ret << time << "\t";
-            time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
-            ret << time << std::endl;
-        }
-        ret << "Create" << std::endl;
-        for (auto &eachData : createTimeData[1]) {
-            auto time = eachData.first.tv_sec * 1000000000 + eachData.first.tv_nsec;
-            ret << time << "\t";
-            time = eachData.second.tv_sec * 1000000000 + eachData.second.tv_nsec;
-            ret << time << std::endl;
-        }
-        createTimeData[1].clear();
-        updateTimeData[1].clear();
-        readTimeData[1].clear();
-
-        return ret.str();
-    }
-    void FinishedSingleOp(unsigned char type, struct timespec *start, struct timespec *end){
-        //读写锁
-        timeDataRwLock.lock_read();
-        timeData[type][0].push_back(std::make_pair(*start,*end));
-        timeDataRwLock.unlock();
-    }
-};
 struct ThreadState {
     int tid;             // 0..n-1 when running in n threads
     Stats *stats;

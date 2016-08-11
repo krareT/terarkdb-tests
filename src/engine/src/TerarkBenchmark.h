@@ -131,7 +131,6 @@ public:
         std::stringstream ret;
         for( auto& eachThread : threads){
             ret << "Thread " << eachThread.second->tid << std::endl;
-            ret << eachThread.second->stats->getTimeData() << std::endl;
         }
         return ret.str();
     }

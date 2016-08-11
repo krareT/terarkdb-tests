@@ -96,8 +96,7 @@ public:
     std::string GatherTimeData(){
         std::stringstream ret;
         for( auto& eachThread : threads){
-            ret << "Thread " << eachThread.second->tid << std::endl;
-            ret << eachThread.second->stats->getTimeData() << std::endl;
+            ret << "Thread " << Stats::readTimeDataCq.unsafe_size() << std::endl;
         }
         return ret.str();
     }

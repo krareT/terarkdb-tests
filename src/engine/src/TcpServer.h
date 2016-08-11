@@ -59,7 +59,6 @@ private:
         std::string message;
         if (line == "query ops"){
             message = benchmark->GatherTimeData();
-            //message = "Hi~\n\n\n";
         }else {
             message = setting->baseSetting.setBaseSetting(line);
         }
