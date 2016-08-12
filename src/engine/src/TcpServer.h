@@ -17,70 +17,25 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include "leveldb.h"
-#include "src/TerarkBenchmark.h"
+#include "src/Benchmark.h"
 using boost::asio::ip::tcp;
 
 class Session
         : public std::enable_shared_from_this<Session>
 {
 public:
-    Session(tcp::socket socket)
-            : socket_(std::move(socket))
-    {
-    }
+    Session(tcp::socket socket) : socket_(std::move(socket)) {};
 
-    void start(Setting *setting1,Benchmark *bm)
-    {
+    void start(Setting *setting1,Benchmark *bm) {
         setting = setting1;
         benchmark = bm;
         do_read();
     }
 
 private:
-    void do_read()
-    {
-        auto self(shared_from_this());
-        boost::asio::async_read_until(socket_, buf_, "\n",
-                                      [this,self](boost::system::error_code ec, std::size_t lenth)
-                                      {
-                                          read_line_handler(ec,lenth);
-                                          do_read();
-
-                                      });
-    }
-    void read_line_handler(const boost::system::error_code& ec,std::size_t size) {
-
-        if (ec)
-            return;
-        std::istream is(&buf_);
-        std::string line;
-        std::getline(is, line);
-        std::cout << "Get:" << line << std::endl;
-        std::string message;
-        if (line == "query ops"){
-            message = benchmark->GatherTimeData();
-        }else {
-            message = setting->baseSetting.setBaseSetting(line);
-        }
-        message += "\nEND\r\n";
-        do_write(message);
-    }
-    void do_write(std::string &message)
-    {
-        auto self(shared_from_this());
-
-        boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
-                                 [this, self,message](boost::system::error_code ec, std::size_t transferred_byte)
-                                 {
-                                    if (transferred_byte == message.size())
-                                        std::cout << "Reply finish!" << std::endl;
-                                    else{
-                                        std::cout << "Send:" << transferred_byte << std::endl;
-                                        std::string msg = message.substr(transferred_byte);
-                                        do_write(msg);
-                                    }
-                                 });
-    }
+    void do_read();
+    void read_line_handler(const boost::system::error_code& ec,std::size_t size);
+    void do_write(std::string &message);
 
     tcp::socket socket_;
     boost::asio::streambuf buf_;

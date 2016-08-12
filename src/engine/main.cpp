@@ -10,7 +10,7 @@
 #include <terark/db/db_table.hpp>
 #include <terark/util/fstrvec.hpp>
 #include <src/Setting.h>
-#include "src/TerarkBenchmark.h"
+#include "src/Benchmark.h"
 #include "src/TcpServer.h"
 #include <signal.h>
 #include "src/Stats.h"

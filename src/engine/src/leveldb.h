@@ -53,37 +53,7 @@ using namespace db;
 
 
 
-struct ThreadState {
-    int tid;             // 0..n-1 when running in n threads
-    Stats *stats;
-    std::atomic<uint8_t> STOP;
-    WT_SESSION *session;
-    std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
-    std::atomic<std::vector<uint8_t >*> *whichSamplingPlan;
 
-    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
-                std::atomic<std::vector<uint8_t >*>* wsp)
-            :   tid(index),
-                whichExecutePlan(wep),
-                whichSamplingPlan(wsp)
-    {
-        stats = new Stats(setting1);
-        STOP.store(false);
-    }
-    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
-                std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
-            :tid(index),
-             whichExecutePlan(wep),
-             whichSamplingPlan(wsp){
-        stats = new Stats(setting1);
-        conn->open_session(conn, NULL, NULL, &session);
-        STOP.store(false);
-        assert(session != NULL);
-    }
-    ~ThreadState(){
-        delete(stats);
-    }
-};
 namespace leveldb {
 
     namespace {
@@ -100,11 +70,6 @@ namespace leveldb {
             return Slice(s.data() + start, limit - start);
         }
 
-
-
-// State shared by all concurrent executions of the same benchmark.
-
-// Per-thread state for concurrent executions of the same benchmark.
     }  // namespace
 }  // namespace leveldb
 

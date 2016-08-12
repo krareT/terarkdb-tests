@@ -41,7 +41,34 @@
 #include "src/leveldb.h"
 using namespace terark;
 using namespace db;
+struct ThreadState {
+    int tid;             // 0..n-1 when running in n threads
+    Stats stats;
+    std::atomic<uint8_t> STOP;
+    WT_SESSION *session;
+    std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
+    std::atomic<std::vector<uint8_t >*> *whichSamplingPlan;
 
+    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
+                std::atomic<std::vector<uint8_t >*>* wsp)
+            :   tid(index),
+                whichExecutePlan(wep),
+                whichSamplingPlan(wsp)
+    {
+        STOP.store(false);
+    }
+    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
+                std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
+            :tid(index),
+             whichExecutePlan(wep),
+             whichSamplingPlan(wsp){
+        conn->open_session(conn, NULL, NULL, &session);
+        STOP.store(false);
+        assert(session != NULL);
+    }
+    ~ThreadState(){
+    }
+};
 class Benchmark{
 private:
     std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *)> executeFuncMap;
@@ -59,10 +86,8 @@ public:
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
         executeFuncMap[0] = &Benchmark::WriteOneKey;
-
-        samplingFuncMap[0] = &Benchmark::executeOneOperation;
+        samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
-
     };
     virtual void  Run(void) final {
         Open();
@@ -81,135 +106,21 @@ public:
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
-    void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
+    void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal);
 
-        if (plan.size() < 100)
-            plan.resize(100);
-        uint8_t pos = 0;
-        for(auto& eachPercent : percent){
-            assert(pos <= 100);
-            std::fill_n(plan.begin() + pos,eachPercent.second,eachPercent.first);
-            pos += eachPercent.second;
-        }
-        assert(pos <= 100);
-        std::fill_n(plan.begin()+pos,100-pos,defaultVal);
-        shufflePlan(plan);
-    }
-
-    void shufflePlan(std::vector<uint8_t > &plan){
-        std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
-    }
+    void shufflePlan(std::vector<uint8_t > &plan);
 
     void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
-                         std::atomic<std::vector<uint8_t >*>* whichSPlan){
+                         std::atomic<std::vector<uint8_t >*>* whichSPlan);
+    void adjustExecutePlan(uint8_t readPercent);
+    void adjustSamplingPlan(uint8_t samplingRate);
+    void RunBenchmark(void);
+    bool executeOneOperationWithSampling(ThreadState* state,uint8_t type);
+    bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
+    bool executeOneOperation(ThreadState* state,uint8_t type);
+    void ReadWhileWriting(ThreadState *thread);
 
-        while (target > threads.size()){
-            //Add new thread.
-            ThreadState* state = newThreadState(whichEPlan,whichSPlan);
-            threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
-        }
-        while (target < threads.size()){
-            //delete thread
-            threads.back().second->STOP.store(true);
-            threads.back().first.join();
-            delete threads.back().second;
-            threads.pop_back();
-        }
-    }
-    void adjustExecutePlan(uint8_t readPercent){
-
-        std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
-        planDetails.push_back(std::make_pair(1,readPercent));
-        updatePlan(executePlan[whichEPlan],planDetails,0);
-        executePlanAddr.store( &(executePlan[whichEPlan]));
-        whichEPlan = !whichEPlan;
-    }
-    void adjustSamplingPlan(uint8_t samplingRate){
-
-        std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
-        planDetails.push_back(std::make_pair(1,samplingRate));
-        updatePlan(samplingPlan[whichSPlan],planDetails,0);
-        samplingPlanAddr.store(& (samplingPlan[whichSPlan]));
-        whichSPlan = !whichSPlan;
-    }
-    void RunBenchmark(void){
-        int old_readPercent = -1;
-        int old_samplingRate = -1;
-
-
-        while( !setting.baseSetting.ifStop()){
-
-            int readPercent = setting.baseSetting.getReadPercent();
-            if (readPercent != old_readPercent){
-                //两份执行计划相互切换并不是完全的线程安全，
-                //这里假定在经过5秒睡眠后，所有的其他线程都已经切换到了正确的执行计划。
-                old_readPercent = readPercent;
-                adjustExecutePlan(readPercent);
-            }else{
-                if (std::count(executePlan[whichEPlan].begin(),executePlan[whichEPlan].end(),1) != readPercent)
-                    executePlan[whichEPlan] = executePlan[!whichEPlan];
-                shufflePlan(executePlan[whichEPlan]);
-                executePlanAddr.store(&( executePlan[whichEPlan]));
-                whichEPlan  = !whichEPlan;
-            }
-            int samplingRate = setting.baseSetting.getSamplingRate();
-            if ( old_samplingRate != samplingRate){
-                old_samplingRate = samplingRate;
-                adjustSamplingPlan(samplingRate);
-            }
-            int threadNum = setting.baseSetting.getThreadNums();
-            adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
-            sleep(5);
-        }
-        adjustThreadNum(0, nullptr, nullptr);
-    }
-
-    bool executeOneOperationWithSampling(ThreadState* state,uint8_t type){
-
-        struct timespec start,end;
-        bool ret;
-        clock_gettime(CLOCK_MONOTONIC,&start);
-        if (ret = ((this->*executeFuncMap[type])(state))){
-            clock_gettime(CLOCK_MONOTONIC,&end);
-            state->stats->FinishedSingleOp(type, &start, &end);
-        }
-        return ret;
-    }
-
-    bool executeOneOperation(ThreadState* state,uint8_t type){
-        assert(executeFuncMap.count(type) > 0);
-        std::vector<uint8_t > *samplingPlan = (*(state->whichSamplingPlan)).load();
-
-        samplingRecord[type] ++;
-        if (samplingRecord[type] > 100){
-            samplingRecord[type] = 0;
-        }
-        if ( (*samplingPlan)[ (samplingRecord[type]-1) % samplingPlan->size()] == 1)
-            return executeOneOperationWithSampling(state,type);
-        return ((this->*executeFuncMap[type])(state));
-    }
-
-    void ReadWhileWriting(ThreadState *thread) {
-
-        std::cout << "Thread " << thread->tid << " start!" << std::endl;
-        struct timespec start,end;
-        while (thread->STOP.load() == false) {
-
-            std::vector<uint8_t > *executePlan = (*(thread->whichExecutePlan)).load();
-            for (auto type : *executePlan) {
-                executeOneOperation(thread,type);
-            }
-        }
-        std::cout << "Thread " << thread->tid << " stop!" << std::endl;
-    }
-
-    std::string GatherTimeData(){
-        std::stringstream ret;
-        for( auto& eachThread : threads){
-            ret << "Thread " << Stats::readTimeDataCq.unsafe_size() << std::endl;
-        }
-        return ret.str();
-    }
+    std::string GatherTimeData();
 };
 class TerarkBenchmark : public Benchmark{
 private:
