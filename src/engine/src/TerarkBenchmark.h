@@ -47,6 +47,10 @@ private:
     std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *)> executeFuncMap;
     std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *,uint8_t)> samplingFuncMap;
     std::unordered_map<uint8_t ,uint8_t > samplingRecord;
+    std::atomic<std::vector<uint8_t > *> executePlanAddr;
+    std::atomic<std::vector<uint8_t > *> samplingPlanAddr;
+    std::vector<uint8_t > executePlan[2];
+    std::vector<uint8_t > samplingPlan[2];
 public:
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
@@ -71,6 +75,7 @@ public:
     virtual bool WriteOneKey(ThreadState*) = 0;
     virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
                                         std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
+
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
@@ -88,9 +93,11 @@ public:
         std::fill_n(plan.begin()+pos,100-pos,defaultVal);
         shufflePlan(plan);
     }
+
     void shufflePlan(std::vector<uint8_t > &plan){
         std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
     }
+
     void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
                          std::atomic<std::vector<uint8_t >*>* whichSPlan){
 
@@ -110,13 +117,9 @@ public:
     void RunBenchmark(void){
         int old_readPercent = -1;
         int old_samplingRate = -1;
-        std::atomic<std::vector<uint8_t > *> executePlanAddr;
-        std::atomic<std::vector<uint8_t > *> samplingPlanAddr;
-
-        std::vector<uint8_t > executePlan[2];
-        std::vector<uint8_t > samplingPlan[2];
         bool whichEPlan = false;//不作真假，只用来切换plan
         bool whichSPlan = false;
+
         while( !setting.baseSetting.ifStop()){
 
             int readPercent = setting.baseSetting.getReadPercent();
@@ -132,8 +135,7 @@ public:
             }else{
                 if (std::count(executePlan[whichEPlan].begin(),executePlan[whichEPlan].end(),1) != readPercent)
                     executePlan[whichEPlan] = executePlan[!whichEPlan];
-                else
-                    shufflePlan(executePlan[whichEPlan]);
+                shufflePlan(executePlan[whichEPlan]);
                 executePlanAddr.store(&( executePlan[whichEPlan]));
                 whichEPlan  = !whichEPlan;
             }
@@ -177,6 +179,7 @@ public:
             return executeOneOperationWithSampling(state,type);
         return ((this->*executeFuncMap[type])(state));
     }
+
     void ReadWhileWriting(ThreadState *thread) {
 
         std::cout << "Thread " << thread->tid << " start!" << std::endl;
@@ -190,6 +193,7 @@ public:
         }
         std::cout << "Thread " << thread->tid << " stop!" << std::endl;
     }
+
     std::string GatherTimeData(){
         std::stringstream ret;
         for( auto& eachThread : threads){
@@ -202,6 +206,16 @@ class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
     fstrvec allkeys_;
+
+public:
+
+    TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
+
+    ~TerarkBenchmark() {
+        tab->safeStopAndWaitForCompress();
+        tab = NULL;
+    }
+private:
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
                                 std::atomic<std::vector<uint8_t >*>* whichSPlan){
         return new ThreadState(threads.size(),setting,whichEPlan,whichSPlan);
@@ -210,18 +224,6 @@ private:
         fprintf(stdout, "NarkDB Test Begins!");
     }
     void Close(){tab->safeStopAndWaitForFlush();tab = NULL;};
-public:
-
-    TerarkBenchmark(Setting &setting1)
-            : tab(NULL), Benchmark(setting1){
-    }
-
-    ~TerarkBenchmark() {
-        tab->safeStopAndWaitForCompress();
-        tab = NULL;
-    }
-private:
-
     void Load(void){
         std::ifstream ifs(setting.FLAGS_keys_data);
         std::string str;
