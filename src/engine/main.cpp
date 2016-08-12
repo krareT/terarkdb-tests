@@ -41,7 +41,7 @@ Setting *set;
 
 void sigint_fuc(int sig) {
     std::cout << "Ctrl+c" << std::endl;
-    set->baseSetting.setStop();
+    set->setStop();
 }
 
 int main(int argc, char **argv) {

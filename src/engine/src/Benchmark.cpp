@@ -107,7 +107,6 @@ bool Benchmark::executeOneOperation(ThreadState* state,uint8_t type){
     }
     return (this->*samplingFuncMap[( (*samplingPlan)[(samplingRecord[type]-1) % samplingPlan->size()])])(state,type);
 }
-
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
 
     std::cout << "Thread " << thread->tid << " start!" << std::endl;
