@@ -12,35 +12,31 @@
 
 class BaseSetting{
 private:
-    std::atomic<uint8_t > READ_PERCENT;
-    std::atomic<uint8_t > STOP;
-    std::atomic<uint32_t> THREAD_NUMS;
-    std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFunc_map;
-    const uint64_t TIME_DATA_MAX_CAPCITY = 10000000;
-
+    std::atomic<uint8_t > readPercent;
+    std::atomic<uint8_t > stop;
+    std::atomic<uint32_t> threadNums;
+    std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
+    std::atomic<uint8_t > samplingRate;
     enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
 public:
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
-    std::string INIT_DATA_SOURCE;
-    std::string WRITE_DATA_SOURCE;
-
     enum READ_TYPE{
         READ_SEQ,
         READ_RANDOM
     };
-    double WRITE_INSERT_PERCENT;
-    uint64_t OPS_RECORD_STEP;
-
     void setReadPercent(uint8_t);
     uint8_t getReadPercent(void);
+    uint8_t getSamplingRate(void);
     bool ifStop(void);
     void setStop(void);
     void setThreadNums(uint32_t);
     uint32_t getThreadNums(void);
+
     std::string setBaseSetting(std::string &line);
     std::string toString();
 
+    bool strSetSamplingRate(std::string&);
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);

@@ -6,6 +6,7 @@
 #include "Setting.h"
 #include <iostream>
 #include <include/leveldb/options.h>
+#include <sstream>
 
 void Setting::wiredTigerSetting(int argc, char **argv){
     std::string default_db_path;
@@ -164,20 +165,32 @@ Setting::Setting(int argc,char **argv,char *name){
 }
 BaseSetting::BaseSetting(){
 
-    READ_PERCENT.store(100);
-    STOP.store(false);
-    setFunc_map["stop"] = &BaseSetting::strSetStop;
-    setFunc_map["read_percent"] = &BaseSetting::strSetReadPercent;
-    setFunc_map["thread_num"] = &BaseSetting::strSetThreadNums;
+    readPercent.store(100);
+    samplingRate.store(20);
+    stop.store(false);
+    setFuncMap["stop"]          = &BaseSetting::strSetStop;
+    setFuncMap["read_percent"]  = &BaseSetting::strSetReadPercent;
+    setFuncMap["thread_num"]    = &BaseSetting::strSetThreadNums;
+    setFuncMap["sampling_rate"] = &BaseSetting::strSetSamplingRate;
 }
+uint8_t BaseSetting::getSamplingRate(void){
+    return samplingRate.load();
+}
+bool BaseSetting::strSetSamplingRate(std::string &value) {
 
+    uint8_t sp = stoi(value);
+    if (sp > 100)
+        return false;
+    samplingRate.store(sp);
+    return true;
+}
 bool BaseSetting::strSetStop(std::string &value) {
 
     if (value == "true"){
-        STOP.store(true);
+        stop.store(true);
         return true;
     }else if (value == "false"){
-        STOP.store(false);
+        stop.store(false);
         return true;
     }else{
         return false;
@@ -202,38 +215,37 @@ bool BaseSetting::strSetThreadNums(std::string &value) {
 }
 bool BaseSetting::ifStop()
 {
-    return STOP.load();
+    return stop.load();
 }
-void BaseSetting::setReadPercent(uint8_t readPercent) {
+void BaseSetting::setReadPercent(uint8_t rp) {
 
-    if ( readPercent < 0)
-        readPercent = 0;
-    if ( readPercent > 100)
-        readPercent = 100;
-    READ_PERCENT.store(readPercent);
+    if ( rp > 100)
+        rp = 100;
+    readPercent.store(rp);
 }
 
 uint8_t BaseSetting::getReadPercent(void) {
 
-    return READ_PERCENT.load();
+    return readPercent.load();
 }
 void BaseSetting::setThreadNums(uint32_t num)
 {
-    THREAD_NUMS.store(num);
+    threadNums.store(num);
 }
 uint32_t BaseSetting::getThreadNums(void) {
-    return THREAD_NUMS.load();
+    return threadNums.load();
 }
 void BaseSetting::setStop(void){
-    STOP.store(true);
+    stop.store(true);
 }
 std::string BaseSetting::toString() {
 
-    char buf[1024];
-    snprintf(buf,1024,"read_percent:%u\nstop:%u\nthreads_num:%u\n",
-             READ_PERCENT.load(),STOP.load(),THREAD_NUMS.load());
-    std::string msg(buf);
-    return msg;
+    std::stringstream ret;
+    ret << "readPercent\t" << static_cast<int >(getReadPercent()) << std::endl;
+    ret << "samplingRate\t" << static_cast<int >(getSamplingRate()) << std::endl;
+    ret << "threadNums\t" << getThreadNums() << std::endl;
+    ret << "stop\t" << ifStop() << std::endl;
+    return ret.str();
 }
 std::string BaseSetting::setBaseSetting(std::string &line){
 
@@ -248,9 +260,9 @@ std::string BaseSetting::setBaseSetting(std::string &line){
         size_t div = each_kv.find('=');
         std::string key = each_kv.substr(0,div);
         std::string value = each_kv.substr(div+1);
-        if (setFunc_map.count(key) > 0){
+        if (setFuncMap.count(key) > 0){
 
-            if ((this->*setFunc_map[key])(value)){
+            if ((this->*setFuncMap[key])(value)){
                 message += "set\t" + key + "\tsuccess\t";
             }
             else{

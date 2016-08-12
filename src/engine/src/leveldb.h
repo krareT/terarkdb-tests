@@ -58,17 +58,23 @@ struct ThreadState {
     Stats *stats;
     std::atomic<uint8_t> STOP;
     WT_SESSION *session;
-    std::atomic<std::vector<uint8_t >*> *which;
-    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* w)
+    std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
+    std::atomic<std::vector<uint8_t >*> *whichSamplingPlan;
+
+    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
+                std::atomic<std::vector<uint8_t >*>* wsp)
             :   tid(index),
-                which(w)
+                whichExecutePlan(wep),
+                whichSamplingPlan(wsp)
     {
         stats = new Stats(setting1);
         STOP.store(false);
     }
-    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,std::atomic<std::vector<uint8_t >*>* w)
-            :tid(index),which(w){
-
+    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
+                std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
+            :tid(index),
+             whichExecutePlan(wep),
+             whichSamplingPlan(wsp){
         stats = new Stats(setting1);
         conn->open_session(conn, NULL, NULL, &session);
         STOP.store(false);

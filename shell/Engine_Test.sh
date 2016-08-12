@@ -19,7 +19,7 @@ free -m
 date
 export TerarkDB_WrSegCacheSizeMB=500
 
-../build/Terark_Engine_Test Terark --benchmarks=fillrandom --num=$record_num --sync_index=1 --db=$dirname --resource_data=/dev/stdin --threads=8 --keys_data=$key
+../build/Terark_Engine_Test Terark --benchmarks=fillrandom --num=$record_num --sync_index=1 --db=$dirname --resource_data=/dev/stdin --threads=1 --keys_data=$key
 free -m
 date
 du -s -b $dirname

@@ -41,12 +41,23 @@
 #include "src/leveldb.h"
 using namespace terark;
 using namespace db;
+
 class Benchmark{
 private:
+    std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *)> executeFuncMap;
+    std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *,uint8_t)> samplingFuncMap;
+    std::unordered_map<uint8_t ,uint8_t > samplingRecord;
 public:
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
-    Benchmark(Setting &s):setting(s){};
+    Benchmark(Setting &s):setting(s){
+        executeFuncMap[1] = &Benchmark::ReadOneKey;
+        executeFuncMap[0] = &Benchmark::WriteOneKey;
+
+        samplingFuncMap[0] = &Benchmark::executeOneOperation;
+        samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
+
+    };
     virtual void  Run(void) final {
         Open();
         Load();
@@ -58,24 +69,34 @@ public:
     virtual void Close(void) = 0;
     virtual bool ReadOneKey(ThreadState*) = 0;
     virtual bool WriteOneKey(ThreadState*) = 0;
-    virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which) = 0;
+    virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
+                                        std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
-    void updatePlan(std::vector<uint8_t> &plan, uint8_t readPercent){
-        assert(readPercent <= 100);
-        if (plan.size() != 100){
+    void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
+
+        if (plan.size() < 100)
             plan.resize(100);
+        uint8_t pos = 0;
+        for(auto& eachPercent : percent){
+            assert(pos <= 100);
+            std::fill_n(plan.begin() + pos,eachPercent.second,eachPercent.first);
+            pos += eachPercent.second;
         }
-        std::fill_n(plan.begin(),readPercent,1);
-        std::fill(plan.begin()+readPercent,plan.end(),0);
+        assert(pos <= 100);
+        std::fill_n(plan.begin()+pos,100-pos,defaultVal);
+        shufflePlan(plan);
+    }
+    void shufflePlan(std::vector<uint8_t > &plan){
         std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
     }
-    void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* which){
+    void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
+                         std::atomic<std::vector<uint8_t >*>* whichSPlan){
 
         while (target > threads.size()){
             //Add new thread.
-            ThreadState* state = newThreadState(which);
+            ThreadState* state = newThreadState(whichEPlan,whichSPlan);
             threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
         }
         while (target < threads.size()){
@@ -88,41 +109,74 @@ public:
     }
     void RunBenchmark(void){
         int old_readPercent = -1;
-        std::atomic<std::vector<uint8_t > *> planAddr;
-        std::vector<uint8_t > plan[2];
-        bool backupPlan = false;//不作真假，只用来切换plan
+        int old_samplingRate = -1;
+        std::atomic<std::vector<uint8_t > *> executePlanAddr;
+        std::atomic<std::vector<uint8_t > *> samplingPlanAddr;
+
+        std::vector<uint8_t > executePlan[2];
+        std::vector<uint8_t > samplingPlan[2];
+        bool whichEPlan = false;//不作真假，只用来切换plan
+        bool whichSPlan = false;
         while( !setting.baseSetting.ifStop()){
 
             int readPercent = setting.baseSetting.getReadPercent();
             if (readPercent != old_readPercent){
                 old_readPercent = readPercent;
-                updatePlan(plan[backupPlan],readPercent);
-                planAddr.store( &(plan[backupPlan]));
-                backupPlan = !backupPlan;
+                std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
+                planDetails.push_back(std::make_pair(1,readPercent));
+                updatePlan(executePlan[whichEPlan],planDetails,0);
+                executePlanAddr.store( &(executePlan[whichEPlan]));
+                whichEPlan = !whichEPlan;
+            }
+            int samplingRate = setting.baseSetting.getSamplingRate();
+            if ( old_samplingRate != samplingRate){
+                old_samplingRate = samplingRate;
+                std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
+                planDetails.push_back(std::make_pair(1,samplingRate));
+                updatePlan(samplingPlan[whichSPlan],planDetails,0);
+                samplingPlanAddr.store(& (samplingPlan[whichSPlan]));
+                whichSPlan = !whichSPlan;
             }
             int threadNum = setting.baseSetting.getThreadNums();
-            adjustThreadNum(threadNum,&planAddr);
+            adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
             sleep(5);
         }
-        adjustThreadNum(0, nullptr);
+        adjustThreadNum(0, nullptr, nullptr);
+    }
+
+    bool executeOneOperationWithSampling(ThreadState* state,uint8_t type){
+
+        struct timespec start,end;
+        bool ret;
+        clock_gettime(CLOCK_MONOTONIC,&start);
+        if (ret = ((this->*executeFuncMap[type])(state))){
+            clock_gettime(CLOCK_MONOTONIC,&end);
+            state->stats->FinishedSingleOp(type, &start, &end);
+        }
+        return ret;
+    }
+
+    bool executeOneOperation(ThreadState* state,uint8_t type){
+        assert(executeFuncMap.count(type) > 0);
+        std::vector<uint8_t > *samplingPlan = (*(state->whichSamplingPlan)).load();
+
+        samplingRecord[type] ++;
+        if (samplingRecord[type] > 100){
+            samplingRecord[type] = 0;
+        }
+        if ( (*samplingPlan)[ (samplingRecord[type]-1) % samplingPlan->size()] == 1)
+            return executeOneOperationWithSampling(state,type);
+        return ((this->*executeFuncMap[type])(state));
     }
     void ReadWhileWriting(ThreadState *thread) {
 
         std::cout << "Thread " << thread->tid << " start!" << std::endl;
-        std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *thread)> func_map;
-        func_map[1] = &Benchmark::ReadOneKey;
-        func_map[0] = &Benchmark::WriteOneKey;
-
         struct timespec start,end;
         while (thread->STOP.load() == false) {
 
-            std::vector<uint8_t > *plan = (*(thread->which)).load();
-            for (auto each : *plan) {
-                clock_gettime(CLOCK_MONOTONIC,&start);
-                if ((this->*func_map[each])(thread)) {
-                    clock_gettime(CLOCK_MONOTONIC,&end);
-                    thread->stats->FinishedSingleOp(each,&start,&end);
-                }
+            std::vector<uint8_t > *executePlan = (*(thread->whichExecutePlan)).load();
+            for (auto type : *executePlan) {
+                executeOneOperation(thread,type);
             }
         }
         std::cout << "Thread " << thread->tid << " stop!" << std::endl;
@@ -130,7 +184,7 @@ public:
     std::string GatherTimeData(){
         std::stringstream ret;
         for( auto& eachThread : threads){
-            ret << "Thread " << eachThread.second->tid << std::endl;
+            ret << "Thread " << Stats::readTimeDataCq.unsafe_size() << std::endl;
         }
         return ret.str();
     }
@@ -139,8 +193,9 @@ class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
     fstrvec allkeys_;
-    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
-        return new ThreadState(threads.size(),setting,which);
+    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
+                                std::atomic<std::vector<uint8_t >*>* whichSPlan){
+        return new ThreadState(threads.size(),setting,whichEPlan,whichSPlan);
     }
     void PrintHeader() {
         fprintf(stdout, "NarkDB Test Begins!");
@@ -336,8 +391,9 @@ public:
     ~WiredTigerBenchmark() {
     }
 private:
-    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* which){
-        return new ThreadState(threads.size(),setting,conn_,which);
+    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
+                                std::atomic<std::vector<uint8_t >*>* whichSPlan){
+        return new ThreadState(threads.size(),setting,conn_,whichEPlan,whichSPlan);
     }
     void Load(void){
         DoWrite(true);

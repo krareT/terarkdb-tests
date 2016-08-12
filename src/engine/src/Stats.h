@@ -47,6 +47,7 @@ public:
     }
 
     void FinishedSingleOp(unsigned char type, struct timespec *start, struct timespec *end){
+
         (this->*timeDataFuncMap[type])(start,end);
     }
 };
