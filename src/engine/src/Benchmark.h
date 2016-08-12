@@ -150,7 +150,6 @@ private:
         while (getline(ifs, str)) {
             allkeys_.push_back(str);
         }
-        allkeys_.shrink_to_fit();
         printf("allkeys_.mem_size=%zd\n", allkeys_.full_mem_size());
         std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
         assert(allkeys_.size() != 0);
@@ -191,12 +190,11 @@ private:
 
             if (ctxw->upsertRow(row) < 0) { // unique index
                 printf("Insert failed: %s\n", ctxw->errMsg.c_str());
-                exit(-1);
+            //  exit(-1);
             }
             recordnumber++;
             if ( recordnumber % 100000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber << std::endl;
-            //std::cout << "-";
         }
         time_t now;
         struct tm *timenow;
@@ -206,7 +204,6 @@ private:
 
     }
     bool ReadOneKey(ThreadState *thread) {
-
             valvec<byte> keyHit, val;
             valvec<valvec<byte> > cgDataVec;
             valvec<llong> idvec;

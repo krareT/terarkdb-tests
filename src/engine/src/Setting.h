@@ -25,21 +25,22 @@ public:
         READ_SEQ,
         READ_RANDOM
     };
-    void setReadPercent(uint8_t);
     uint8_t getReadPercent(void);
     uint8_t getSamplingRate(void);
+    uint32_t getThreadNums(void);
     bool ifStop(void);
     void setStop(void);
-    void setThreadNums(uint32_t);
-    uint32_t getThreadNums(void);
 
+    void setReadPercent(uint8_t);
+    void setThreadNums(uint32_t);
     std::string setBaseSetting(std::string &line);
-    std::string toString();
 
     bool strSetSamplingRate(std::string&);
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);
+    std::string toString();
+
 };
 class Setting : public BaseSetting{
 
@@ -118,21 +119,29 @@ public:
      int *shuff = nullptr;
 
     bool FLAGS_use_lsm = true;
-
-
 // Stagger starting point of reads for sequential (or reverse).
     bool FLAGS_stagger = false;
 
 // Stagger starting point of reads for sequential (or reverse).
     int FLAGS_max_compact_wait = 1200;
 
-
-
 // Use the db with the following name.
     void terarkSetting(int argc,char **argv);
     void wiredTigerSetting(int argc,char **argv);
     Setting(int argc,char **argv,char *name);
 };
-
+class TerarkSetting : private Setting{
+private:
+    std::unordered_map<
+            std::string,
+            std::pair<bool (TerarkSetting::*)(std::string&),
+                    uint32_t (TerarkSetting::*)(void)>>  funcMap;
+public:
+    bool strSetCompressionRatio(std::string&);
+    uint32_t getCompressionRatio(void);
+    bool strSet(std::string&);
+    int64_t strGet(std::string&);
+    TerarkSetting(int argc,char **argv,char *name);
+};
 
 #endif //TERARKDB_TEST_FRAMEWORK_SETTING_H

@@ -34,9 +34,9 @@
 	"MinMergeSegNum"	: 3,
 	"TableIndex" : [
 		{
-		   	"fields": "cur_title",
+		   	"fields": "cur_title,cur_timestamp",
 		   	"ordered" : true,
-			"unique" : false,
+			"unique" : true,
 			"nltNestLevel": 2
 	   	}
 	]

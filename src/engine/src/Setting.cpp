@@ -274,3 +274,32 @@ std::string BaseSetting::setBaseSetting(std::string &line){
     }
     return message + toString();
 }
+
+TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {
+
+    funcMap["--compress_ratio"] = std::make_pair(&TerarkSetting::strSetCompressionRatio,
+                                                 &TerarkSetting::getCompressionRatio);
+}
+
+bool TerarkSetting::strSet(std::string& str){
+    //找到‘=’
+    auto pos = str.find('=');
+    std::string key = str.substr(0,pos);
+    std::string value = str.substr(pos+1);
+    if (funcMap.count(key) > 0)
+        return (this->*(funcMap[key]).first)(value);
+    else
+        return false;
+}
+int64_t TerarkSetting::strGet(std::string& key){
+    if (funcMap.count(key) > 0)
+        return (this->*(funcMap[key].second))();
+    else
+        return false;
+}
+uint32_t TerarkSetting::getCompressionRatio() {
+
+}
+bool TerarkSetting::strSetCompressionRatio(std::string &val) {
+    //找到小数点
+}
