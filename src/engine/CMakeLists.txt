@@ -24,7 +24,7 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         port/port_posix.cc ./util/testutil.cc src/Setting.cpp src/Setting.h src/leveldb.h
         src/TerarkBenchmark.h
         src/TcpServer.cpp src/TcpServer.h
-        src/Benchmark.cpp src/Benchmark.h src/Stats.cpp src/Stats.h)
+        src/Benchmark.cpp src/Benchmark.h src/Stats.cpp src/Stats.h src/analysis_worker.h src/analysis_worker.cpp)
 
 target_link_libraries(Terark_Engine_Test
                         tbb
