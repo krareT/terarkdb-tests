@@ -51,6 +51,8 @@ private:
     std::atomic<std::vector<uint8_t > *> samplingPlanAddr;
     std::vector<uint8_t > executePlan[2];
     std::vector<uint8_t > samplingPlan[2];
+    bool whichEPlan = false;//不作真假，只用来切换plan
+    bool whichSPlan = false;
 public:
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
@@ -114,11 +116,26 @@ public:
             threads.pop_back();
         }
     }
+    void adjustExecutePlan(uint8_t readPercent){
+
+        std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
+        planDetails.push_back(std::make_pair(1,readPercent));
+        updatePlan(executePlan[whichEPlan],planDetails,0);
+        executePlanAddr.store( &(executePlan[whichEPlan]));
+        whichEPlan = !whichEPlan;
+    }
+    void adjustSamplingPlan(uint8_t samplingRate){
+
+        std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
+        planDetails.push_back(std::make_pair(1,samplingRate));
+        updatePlan(samplingPlan[whichSPlan],planDetails,0);
+        samplingPlanAddr.store(& (samplingPlan[whichSPlan]));
+        whichSPlan = !whichSPlan;
+    }
     void RunBenchmark(void){
         int old_readPercent = -1;
         int old_samplingRate = -1;
-        bool whichEPlan = false;//不作真假，只用来切换plan
-        bool whichSPlan = false;
+
 
         while( !setting.baseSetting.ifStop()){
 
@@ -127,11 +144,7 @@ public:
                 //两份执行计划相互切换并不是完全的线程安全，
                 //这里假定在经过5秒睡眠后，所有的其他线程都已经切换到了正确的执行计划。
                 old_readPercent = readPercent;
-                std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
-                planDetails.push_back(std::make_pair(1,readPercent));
-                updatePlan(executePlan[whichEPlan],planDetails,0);
-                executePlanAddr.store( &(executePlan[whichEPlan]));
-                whichEPlan = !whichEPlan;
+                adjustExecutePlan(readPercent);
             }else{
                 if (std::count(executePlan[whichEPlan].begin(),executePlan[whichEPlan].end(),1) != readPercent)
                     executePlan[whichEPlan] = executePlan[!whichEPlan];
@@ -142,11 +155,7 @@ public:
             int samplingRate = setting.baseSetting.getSamplingRate();
             if ( old_samplingRate != samplingRate){
                 old_samplingRate = samplingRate;
-                std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
-                planDetails.push_back(std::make_pair(1,samplingRate));
-                updatePlan(samplingPlan[whichSPlan],planDetails,0);
-                samplingPlanAddr.store(& (samplingPlan[whichSPlan]));
-                whichSPlan = !whichSPlan;
+                adjustSamplingPlan(samplingRate);
             }
             int threadNum = setting.baseSetting.getThreadNums();
             adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
