@@ -41,10 +41,10 @@ public:
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);
 };
-class Setting{
+class Setting : public BaseSetting{
 
 public:
-    BaseSetting baseSetting;
+    //BaseSetting baseSetting;
     const char* FLAGS_benchmarks =
             "fillseq,"
                     "deleteseq,"

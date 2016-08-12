@@ -160,7 +160,7 @@ Setting::Setting(int argc,char **argv,char *name){
         fprintf(stderr,"error:argv[1]:%s",argv[1]);
         exit(1);
     }
-    baseSetting.setThreadNums(FLAGS_threads);
+    setThreadNums(FLAGS_threads);
 
 }
 BaseSetting::BaseSetting(){

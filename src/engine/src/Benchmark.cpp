@@ -57,9 +57,9 @@ void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
 
 
-    while( !setting.baseSetting.ifStop()){
+    while( !setting.ifStop()){
 
-        int readPercent = setting.baseSetting.getReadPercent();
+        int readPercent = setting.getReadPercent();
         if (readPercent != old_readPercent){
             //两份执行计划相互切换并不是完全的线程安全，
             //这里假定在经过5秒睡眠后，所有的其他线程都已经切换到了正确的执行计划。
@@ -72,12 +72,12 @@ void Benchmark::RunBenchmark(void){
             executePlanAddr.store(&( executePlan[whichEPlan]));
             whichEPlan  = !whichEPlan;
         }
-        int samplingRate = setting.baseSetting.getSamplingRate();
+        int samplingRate = setting.getSamplingRate();
         if ( old_samplingRate != samplingRate){
             old_samplingRate = samplingRate;
             adjustSamplingPlan(samplingRate);
         }
-        int threadNum = setting.baseSetting.getThreadNums();
+        int threadNum = setting.getThreadNums();
         adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
         sleep(5);
     }

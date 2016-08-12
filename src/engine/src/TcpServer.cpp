@@ -25,7 +25,7 @@ void Session::read_line_handler(const boost::system::error_code& ec,std::size_t 
     if (line == "query ops"){
         message = benchmark->GatherTimeData();
     }else {
-        message = setting->baseSetting.setBaseSetting(line);
+        message = setting->setBaseSetting(line);
     }
     message += "\nEND\r\n";
     do_write(message);
@@ -33,7 +33,6 @@ void Session::read_line_handler(const boost::system::error_code& ec,std::size_t 
 void Session::do_write(std::string &message)
 {
     auto self(shared_from_this());
-
     boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
                              [this, self,message](boost::system::error_code ec, std::size_t transferred_byte)
                              {
