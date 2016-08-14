@@ -7,14 +7,15 @@
 
 #include <thread>
 #include "Stats.h"
-#include "mysql.h"
+#include "mysql_driver.h"
 
 class AnalysisWorker{
 private:
     std::thread worker;
-    MySQL conn;
+    sql::Connection* conn;
 public:
     AnalysisWorker();
+    ~AnalysisWorker();
     void run();
 };
 #endif //TERARKDB_TEST_FRAMEWORK_ANALYSIS_THREAD_H

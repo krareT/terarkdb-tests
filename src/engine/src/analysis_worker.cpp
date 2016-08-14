@@ -2,15 +2,19 @@
 // Created by terark on 16-8-11.
 //
 #include "inttypes.h"
+
+#include "cppconn/prepared_statement.h"
+
 #include "analysis_worker.h"
 #include "Stats.h"
 
 class TimeBucket{
 private:
-    MySQL* conn = nullptr;
+    sql::Connection* conn = nullptr;
 
     int findTimeBucket(uint64_t time, int step_in_seconds) {
-        return time / (step_in_seconds * 1000 * 1000);
+        uint64_t t = time / (step_in_seconds * 1000 * 1000);
+        return (int)t;
     }
 
     /**
@@ -20,14 +24,21 @@ private:
      * @param type
      */
     void upload(int bucket, int ops, int type){
-        // upload data into aliyun rds
+        assert(conn != nullptr);
+        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_10s(time_slice, ops, ops_type) VALUES(?, ?, ?)");
+        ps->setInt(1, bucket);
+        ps->setInt(2, ops);
+        ps->setInt(3, type);
+        ps->executeUpdate();
+        delete ps;
+        printf("%d - %d - %d\n", bucket, ops, type);
     }
 
 public:
     uint64_t current_bucket = 0;  // seconds
     int operation_count = 0;
 
-    TimeBucket(MySQL* const conn){
+    TimeBucket(sql::Connection* const conn){
         this->conn = conn;
     }
 
@@ -51,31 +62,37 @@ public:
         }else{
             operation_count++;
         }
-
     }
 };
 
 
 AnalysisWorker::AnalysisWorker() {
     // init mysql connection
-    const char user[] = "root";
-    const char passwd[] = "";
-    const char host[] = "";
-    const char table_10s_log = "";
-    int port = 3306;
-    if(mysql_real_connect(&conn, host, user, passwd, table_10s_log, port, NULL, 0)) {
+    sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+    conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", "benchmark@123");
+
+    if(conn != nullptr && conn->isValid()) {
+        conn->setSchema("benchmark");
+        sql::PreparedStatement* pstmt = conn->prepareStatement("UPDATE engine_test_10s set `time_slice` = 1 WHERE 1 = 0");
+        pstmt->executeUpdate();
         std::cout<<"database connected!"<<std::endl;
+        delete pstmt;
     }else{
         std::cout<<"database failed"<<std::endl;
     }
 }
 
+AnalysisWorker::~AnalysisWorker() {
+    delete conn;
+}
+
 void AnalysisWorker::run() {
     printf("Analysis worker is running ... \n");
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    TimeBucket read_bucket(&conn);
-    TimeBucket insert_bucket(&conn);
-    TimeBucket update_bucket(&conn);
+    assert(conn != NULL);
+    TimeBucket read_bucket(conn);
+    TimeBucket insert_bucket(conn);
+    TimeBucket update_bucket(conn);
 
     while(true) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);
@@ -92,5 +109,6 @@ void AnalysisWorker::run() {
             printf("Analysis worker sleep for 3 seconds\n");
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
+        // TODO break the loop when receive ctrl+C
     }
 }
