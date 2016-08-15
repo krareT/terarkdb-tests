@@ -13,12 +13,14 @@
 class BaseSetting{
 private:
     std::atomic<uint8_t > readPercent;
+    std::atomic<uint8_t > insertPercent;
     std::atomic<uint8_t > stop;
     std::atomic<uint32_t> threadNums;
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
     enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
     std::string updateDataPath;
+
 public:
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
@@ -28,6 +30,7 @@ public:
     };
     uint8_t getReadPercent(void);
     uint8_t getSamplingRate(void);
+    uint8_t getInsertPercent(void);
     uint32_t getThreadNums(void);
     const std::string &getUpdateDataPath(void);
     bool ifStop(void);
@@ -42,6 +45,7 @@ public:
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);
+    bool strSetInsertPercent(std::string&);
     std::string toString();
 
 };

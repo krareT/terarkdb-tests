@@ -36,10 +36,12 @@ void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t
         threads.pop_back();
     }
 }
-void Benchmark::adjustExecutePlan(uint8_t readPercent){
+void Benchmark::adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent){
 
     std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
     planDetails.push_back(std::make_pair(1,readPercent));
+    planDetails.push_back(std::make_pair(2,insertPercent));
+
     updatePlan(executePlan[whichEPlan],planDetails,0);
     executePlanAddr.store( &(executePlan[whichEPlan]));
     whichEPlan = !whichEPlan;
@@ -55,16 +57,18 @@ void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
 void Benchmark::RunBenchmark(void){
     int old_readPercent = -1;
     int old_samplingRate = -1;
-
+    int old_insertPercent = -1;
 
     while( !setting.ifStop()){
 
         int readPercent = setting.getReadPercent();
-        if (readPercent != old_readPercent){
+        int insertPercent = setting.getInsertPercent();
+        if (readPercent != old_readPercent || old_insertPercent != insertPercent){
             //两份执行计划相互切换并不是完全的线程安全，
             //这里假定在经过5秒睡眠后，所有的其他线程都已经切换到了正确的执行计划。
             old_readPercent = readPercent;
-            adjustExecutePlan(readPercent);
+            old_insertPercent = insertPercent;
+            adjustExecutePlan(readPercent,insertPercent);
         }else{
             if (std::count(executePlan[whichEPlan].begin(),executePlan[whichEPlan].end(),1) != readPercent)
                 executePlan[whichEPlan] = executePlan[!whichEPlan];

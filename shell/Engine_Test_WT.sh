@@ -1,5 +1,5 @@
 
-file=~/Documents/data/wiki.txt.gz
+file=/mnt/hdd/wiki.txt.gz
 
 record_num=7911684
 #cachesize=1073741824

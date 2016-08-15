@@ -1,5 +1,5 @@
 
-file=~/Documents/data/wiki.txt.gz
+file=/mnt/hdd/wiki.txt.gz
 key=~/Documents/data/wiki_keys
 record_num=45
 dirname=./experiment/new_wiki/

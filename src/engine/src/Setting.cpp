@@ -173,6 +173,8 @@ BaseSetting::BaseSetting(){
     setFuncMap["-thread_num"]       = &BaseSetting::strSetThreadNums;
     setFuncMap["-sampling_rate"]    = &BaseSetting::strSetSamplingRate;
     setFuncMap["-update_data_path"] = &BaseSetting::strSetUpdateDataPath;
+    setFuncMap["-insert_percent"] = &BaseSetting::strSetInsertPercent;
+
 }
 uint8_t BaseSetting::getSamplingRate(void){
     return samplingRate.load();
@@ -299,6 +301,18 @@ std::string BaseSetting::setBaseSetting(int argc, const char **argv) {
 
 bool BaseSetting::strSetUpdateDataPath(std::string &) {
     return false;
+}
+
+uint8_t BaseSetting::getInsertPercent(void) {
+    return insertPercent.load();
+}
+
+bool BaseSetting::strSetInsertPercent(std::string &value) {
+    uint8_t val = stoi(value);
+    if (val > 100)
+        return  false;
+    insertPercent.store(val);
+    return true;
 }
 
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {

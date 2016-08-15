@@ -80,9 +80,12 @@ private:
     std::vector<uint8_t > samplingPlan[2];
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
+
 public:
+    const uint64_t line70percent = 200000;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
+    static tbb::concurrent_queue<std::string> updateDataCq;
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
         executeFuncMap[0] = &Benchmark::UpdateOneKey;
@@ -114,7 +117,7 @@ public:
 
     void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
                          std::atomic<std::vector<uint8_t >*>* whichSPlan);
-    void adjustExecutePlan(uint8_t readPercent);
+    void adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent);
     void adjustSamplingPlan(uint8_t samplingRate);
     void RunBenchmark(void);
     bool executeOneOperationWithSampling(ThreadState* state,uint8_t type);
@@ -319,8 +322,10 @@ private:
         }
 #endif
     }
+    std::ifstream ifs;
 public:
     WiredTigerBenchmark(Setting &setting1) : Benchmark(setting1) {
+        ifs.open(setting.FLAGS_resource_data);
     }
     ~WiredTigerBenchmark() {
     }
@@ -405,6 +410,33 @@ private:
 
     }
     bool InsertOneKey(ThreadState *thread){
+        WT_CURSOR *cursor;
+        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
+        if (ret != 0) {
+            fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+            exit(1);
+        }
+
+        std::string str;
+        getline(ifs,str);
+        size_t firstTab =  str.find('\t');
+        assert(firstTab != std::string::npos);
+        size_t secondTab = str.find('\t',firstTab + 1);
+        assert(secondTab != std::string::npos);
+        size_t thirdTab = str.find('\t',secondTab + 1);
+        assert(thirdTab != std::string::npos);
+        std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
+        allkeys_.push_back(key);
+        std::cout << "Insert New Key:" << key << std::endl;
+        cursor->set_key(cursor, key.c_str());
+        str.erase(secondTab,thirdTab-secondTab);
+        cursor->set_value(cursor,str.c_str());
+        //std::cout << "key:" << key << std::endl;
+        ret = cursor->insert(cursor);
+        if (ret != 0) {
+            fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
+            return false;
+        }
         return true;
     }
     void Open() {
@@ -508,13 +540,13 @@ private:
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
             exit(1);
         }
-        std::ifstream ifs(setting.FLAGS_resource_data);
+
         std::string str;
         int64_t writen = 0;
         long long recordnumber = 0;
         allkeys_.clear();
-        int temp = 1;
-        while(getline(ifs, str) && temp--) {
+        uint64_t line = line70percent;
+        while(getline(ifs, str) && line--) {
             //寻找第二个和第三个\t
             size_t firstTab =  str.find('\t');
             assert(firstTab != std::string::npos);

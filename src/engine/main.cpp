@@ -14,7 +14,7 @@
 #include "src/TcpServer.h"
 #include <signal.h>
 #include "src/Stats.h"
-#include "src/analysis_worker.h"
+//#include "src/analysis_worker.h"
 
 void tcpServer(Setting *setting, Benchmark *bm) {
     std::cout << "------------Tcp Server start-------------" << std::endl;
@@ -38,7 +38,7 @@ void compact(Setting &setting) {
 }
 
 Setting *set;
-AnalysisWorker *worker;
+//AnalysisWorker *worker;
 
 void sigint_fuc(int sig) {
     std::cout << "Ctrl+c" << std::endl;
@@ -66,10 +66,6 @@ int main(int argc, char **argv) {
     std::thread tcpServerThread(tcpServer, &setting, bm);
 
     // start a thread for analysis and data upload
-    worker = new AnalysisWorker();
-    std::thread workerThrad([](AnalysisWorker* w) {
-        w->run();
-    }, worker);
 
     if (nullptr != bm) bm->Run();
 
