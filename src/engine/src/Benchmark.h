@@ -85,7 +85,8 @@ public:
     Setting &setting;
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
-        executeFuncMap[0] = &Benchmark::WriteOneKey;
+        executeFuncMap[0] = &Benchmark::UpdateOneKey;
+        executeFuncMap[2] = &Benchmark::InsertOneKey;
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
     };
@@ -99,7 +100,8 @@ public:
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;
     virtual bool ReadOneKey(ThreadState*) = 0;
-    virtual bool WriteOneKey(ThreadState*) = 0;
+    virtual bool UpdateOneKey(ThreadState *) = 0;
+    virtual bool InsertOneKey(ThreadState *) = 0;
     virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
                                         std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
 
@@ -154,8 +156,8 @@ private:
         std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
         assert(allkeys_.size() != 0);
         setting.FLAGS_num = allkeys_.size();
-        //DoWrite(true);
-        //tab->compact();
+        DoWrite(true);
+        tab->compact();
     }
 
     void Open() {
@@ -226,8 +228,11 @@ private:
                 found++;
             return found > 0;
         }
-    bool WriteOneKey(ThreadState *thread) {
-            return true;
+    bool UpdateOneKey(ThreadState *thread) {
+
+    }
+    bool InsertOneKey(ThreadState *thread){
+
     }
 };
 using namespace leveldb;
@@ -352,7 +357,54 @@ private:
         cursor->close(cursor);
         return found > 0;
     }
-    bool WriteOneKey(ThreadState *thread) {
+    bool ReadOneKey(ThreadState *thread,std::string &key,std::string &value){
+        WT_CURSOR *cursor;
+        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
+        if (ret != 0) {
+            fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+            exit(1);
+        }
+        int found = 0;
+
+        cursor->set_key(cursor, key.c_str());
+        if (cursor->search(cursor) == 0) {
+            found++;
+            const char* val;
+            ret = cursor->get_value(cursor, &val);
+            assert(ret == 0);
+            value.assign(val);
+        }
+        cursor->close(cursor);
+        return found > 0;
+    }
+    bool UpdateOneKey(ThreadState *thread) {
+
+        std::string value;
+        std::string &key = allkeys_[rand()%allkeys_.size()];
+        bool ret = ReadOneKey(thread,allkeys_[rand() % allkeys_.size()],value);
+        if (!ret)
+            return false;
+
+        return InsertOneKey(thread,key,value);
+    }
+    bool InsertOneKey(ThreadState *thread,std::string &key,std::string &value){
+        WT_CURSOR *cursor;
+        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
+        if (ret != 0) {
+            fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+            exit(1);
+        }
+        cursor->set_key(cursor,key.c_str());
+        cursor->set_value(cursor,value.c_str());
+        ret = cursor->insert(cursor);
+        if (ret != 0) {
+            fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
+            return false;
+        }
+        return true;
+
+    }
+    bool InsertOneKey(ThreadState *thread){
         return true;
     }
     void Open() {
@@ -461,7 +513,8 @@ private:
         int64_t writen = 0;
         long long recordnumber = 0;
         allkeys_.clear();
-        while(getline(ifs, str)) {
+        int temp = 1;
+        while(getline(ifs, str) && temp--) {
             //寻找第二个和第三个\t
             size_t firstTab =  str.find('\t');
             assert(firstTab != std::string::npos);
@@ -484,7 +537,9 @@ private:
             if (recordnumber % 100000 == 0)
                 std::cout << "Record number: " << recordnumber << std::endl;
         }
+
         std::cout << allkeys_.size() << std::endl;
+        std::cout << allkeys_[0] << std::endl;
         cursor->close(cursor);
         time_t now;
         struct tm *timenow;
