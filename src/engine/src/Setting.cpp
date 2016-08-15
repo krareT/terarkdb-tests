@@ -150,9 +150,9 @@ void Setting::terarkSetting(int argc, char **argv) {
 }
 
 Setting::Setting(int argc,char **argv,char *name){
-    if ( strcmp(name,"WiredTiger") == 0){
+    if ( strcmp(name,"wiredtiger") == 0){
         wiredTigerSetting(argc,argv);
-    }else if (strcmp(name,"Terark") == 0){
+    }else if (strcmp(name,"terarkdb") == 0){
         terarkSetting(argc,argv);
     }else if (strcmp(name,"compact") == 0){
         terarkSetting(argc,argv);
