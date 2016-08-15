@@ -11,10 +11,12 @@
 class TimeBucket{
 private:
     sql::Connection* conn = nullptr;
+    uint64_t step_in_seconds = 10; // in seconds
 
-    int findTimeBucket(uint64_t time, int step_in_seconds) {
-        uint64_t t = time / (step_in_seconds * 1000 * 1000);
-        return (int)t;
+    int findTimeBucket(uint64_t time) {
+        uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
+        // printf("find time bucket : %" PRIu64 ", result = %" PRIu64 "\n", time, t*10);
+        return t*10;
     }
 
     /**
@@ -53,15 +55,17 @@ public:
             return;
         }
         // when meet the next bucket, upload previous one first, default step is 10 seconds
-        int next_bucket = findTimeBucket(start, 10);
+        int next_bucket = findTimeBucket(start);
         if(next_bucket > current_bucket) {
-            int ops = operation_count / 10;
+            int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
+//            printf("current_bucket = %d, operations = %d, ops = %d", current_bucket, operation_count, ops);
             upload(current_bucket, ops, type);
             operation_count = 1;
             current_bucket = next_bucket;
         }else{
             operation_count++;
         }
+//        printf("current_bucket = %d, operations = %d", current_bucket, operation_count);
     }
 };
 
@@ -73,7 +77,7 @@ AnalysisWorker::AnalysisWorker() {
 
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");
-        sql::PreparedStatement* pstmt = conn->prepareStatement("UPDATE engine_test_10s set `time_bucket` = 1 WHERE 1 = 0");
+        sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_10s WHERE time_bucket = 0");
         pstmt->executeUpdate();
         std::cout<<"database connected!"<<std::endl;
         delete pstmt;
@@ -104,16 +108,13 @@ void AnalysisWorker::run() {
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
 
         if(b1){
-
-            read_bucket.add(read_result.first, read_result.second, 0);
+            read_bucket.add(read_result.first, read_result.second, 1);
         }
         if(b2){
-
-            insert_bucket.add(insert_result.first, insert_result.second, 1);
+            insert_bucket.add(insert_result.first, insert_result.second, 2);
         }
         if(b3){
-  
-            update_bucket.add(update_result.first, update_result.second, 2);
+            update_bucket.add(update_result.first, update_result.second, 3);
         }
         if(!b1 && !b2 && !b3){
             if(shoud_stop){
