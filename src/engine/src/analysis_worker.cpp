@@ -66,7 +66,7 @@ private:
         delete ps_memory;
 
         // 上传CPU数据
-        sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, usage, engine_name) VALUES(?, ?, ?)");
+        sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, engine_name) VALUES(?, ?, ?)");
         ps_cpu->setInt(1, bucket);
         ps_cpu->setDouble(2, getCurrentCPURate());
         ps_cpu->setString(3, engine);
