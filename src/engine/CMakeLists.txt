@@ -29,7 +29,8 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         port/port_posix.cc ./util/testutil.cc src/Setting.cpp src/Setting.h src/leveldb.h
         src/Benchmark.h
         src/TcpServer.cpp src/TcpServer.h
-        src/Stats.cpp src/Stats.h src/Benchmark.cpp)
+        src/Stats.cpp src/Stats.h src/Benchmark.cpp
+        src/analysis_worker.cpp)
 
 target_link_libraries(Terark_Engine_Test
                         tbb
@@ -39,4 +40,6 @@ target_link_libraries(Terark_Engine_Test
                         terark-db-r
                         wiredtiger
                         pthread
-                        snappy)
+                        snappy
+                        mysqlclient
+                        mysqlcppconn)
