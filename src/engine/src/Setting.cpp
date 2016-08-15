@@ -168,10 +168,11 @@ BaseSetting::BaseSetting(){
     readPercent.store(100);
     samplingRate.store(20);
     stop.store(false);
-    setFuncMap["stop"]          = &BaseSetting::strSetStop;
-    setFuncMap["read_percent"]  = &BaseSetting::strSetReadPercent;
-    setFuncMap["thread_num"]    = &BaseSetting::strSetThreadNums;
-    setFuncMap["sampling_rate"] = &BaseSetting::strSetSamplingRate;
+    setFuncMap["-stop"]             = &BaseSetting::strSetStop;
+    setFuncMap["-read_percent"]     = &BaseSetting::strSetReadPercent;
+    setFuncMap["-thread_num"]       = &BaseSetting::strSetThreadNums;
+    setFuncMap["-sampling_rate"]    = &BaseSetting::strSetSamplingRate;
+    setFuncMap["-update_data_path"] = &BaseSetting::strSetUpdateDataPath;
 }
 uint8_t BaseSetting::getSamplingRate(void){
     return samplingRate.load();
@@ -273,6 +274,31 @@ std::string BaseSetting::setBaseSetting(std::string &line){
         }
     }
     return message + toString();
+}
+
+std::string BaseSetting::setBaseSetting(int argc, const char **argv) {
+
+    std::string message;
+    for(int i = 0; i < argc; i ++){
+        const char *pos = strchr(argv[i],'=');
+        std::string key(argv[i],pos-argv[i]);
+        std::string value(pos + 1);
+        if (setFuncMap.count(key) == 0) {
+            message += "invalid command:" + key + "\n";
+            continue;
+        }
+        if ((this->*setFuncMap[key])(value)){
+            message += "set\t" + key + "\tsuccess\t";
+        }
+        else{
+            message += "set\t" + key + "\tfailure\t";
+        }
+    }
+    return message;
+}
+
+bool BaseSetting::strSetUpdateDataPath(std::string &) {
+    return false;
 }
 
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {

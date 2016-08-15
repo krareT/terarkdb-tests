@@ -25,13 +25,13 @@ private:
      */
     void upload(int bucket, int ops, int type){
         assert(conn != nullptr);
-        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_10s(time_slice, ops, ops_type) VALUES(?, ?, ?)");
+        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_10s(time_bucket, ops, ops_type) VALUES(?, ?, ?)");
         ps->setInt(1, bucket);
         ps->setInt(2, ops);
         ps->setInt(3, type);
         ps->executeUpdate();
         delete ps;
-        printf("%d - %d - %d\n", bucket, ops, type);
+        printf("upload : bucket[%d] - %d - %d\n", bucket, ops, type);
     }
 
 public:
@@ -73,7 +73,7 @@ AnalysisWorker::AnalysisWorker() {
 
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");
-        sql::PreparedStatement* pstmt = conn->prepareStatement("UPDATE engine_test_10s set `time_slice` = 1 WHERE 1 = 0");
+        sql::PreparedStatement* pstmt = conn->prepareStatement("UPDATE engine_test_10s set `time_bucket` = 1 WHERE 1 = 0");
         pstmt->executeUpdate();
         std::cout<<"database connected!"<<std::endl;
         delete pstmt;
@@ -104,12 +104,15 @@ void AnalysisWorker::run() {
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
 
         if(b1){
+
             read_bucket.add(read_result.first, read_result.second, 0);
         }
         if(b2){
+
             insert_bucket.add(insert_result.first, insert_result.second, 1);
         }
         if(b3){
+  
             update_bucket.add(update_result.first, update_result.second, 2);
         }
         if(!b1 && !b2 && !b3){
@@ -118,8 +121,6 @@ void AnalysisWorker::run() {
             }
             printf("Analysis worker sleep for 5 seconds\n");
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-
         }
-        // TODO break the loop when receive ctrl+C
     }
 }

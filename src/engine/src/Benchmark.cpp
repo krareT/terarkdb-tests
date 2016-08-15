@@ -85,13 +85,14 @@ void Benchmark::RunBenchmark(void){
 }
 bool Benchmark::executeOneOperationWithSampling(ThreadState* state,uint8_t type){
 
+
     struct timespec start,end;
     bool ret;
     clock_gettime(CLOCK_MONOTONIC,&start);
-    if (ret = ((this->*executeFuncMap[type])(state))){
+    //if (ret = ((this->*executeFuncMap[type])(state))){
         clock_gettime(CLOCK_MONOTONIC,&end);
         state->stats.FinishedSingleOp(type, &start, &end);
-    }
+    //}
     return ret;
 }
 bool Benchmark::executeOneOperationWithoutSampling(ThreadState* state,uint8_t type){
@@ -106,6 +107,7 @@ bool Benchmark::executeOneOperation(ThreadState* state,uint8_t type){
         samplingRecord[type] = 0;
     }
     return (this->*samplingFuncMap[( (*samplingPlan)[(samplingRecord[type]-1) % samplingPlan->size()])])(state,type);
+    //return executeOneOperationWithSampling(state,type);
 }
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
 
@@ -115,6 +117,7 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
 
         std::vector<uint8_t > *executePlan = (*(thread->whichExecutePlan)).load();
         for (auto type : *executePlan) {
+
             executeOneOperation(thread,type);
         }
     }

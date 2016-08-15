@@ -18,6 +18,7 @@ private:
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
     enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
+    std::string updateDataPath;
 public:
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
@@ -28,13 +29,15 @@ public:
     uint8_t getReadPercent(void);
     uint8_t getSamplingRate(void);
     uint32_t getThreadNums(void);
+    const std::string &getUpdateDataPath(void);
     bool ifStop(void);
     void setStop(void);
 
     void setReadPercent(uint8_t);
     void setThreadNums(uint32_t);
     std::string setBaseSetting(std::string &line);
-
+    std::string setBaseSetting(int argc,const char **argv);
+    bool strSetUpdateDataPath(std::string&);
     bool strSetSamplingRate(std::string&);
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
