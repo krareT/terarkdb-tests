@@ -2,6 +2,8 @@
 // Created by terark on 16-8-12.
 //
 #include "Benchmark.h"
+tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
+tbb::concurrent_vector<std::string> Benchmark::allkeys;
 void Benchmark::updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
 
     if (plan.size() < 100)
@@ -59,6 +61,7 @@ void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
     int old_insertPercent = -1;
 
+    std::thread loadInsertDataThread(Benchmark::loadInsertData,&ifs,&setting);
     while( !setting.ifStop()){
 
         int readPercent = setting.getReadPercent();
@@ -86,6 +89,7 @@ void Benchmark::RunBenchmark(void){
         sleep(5);
     }
     adjustThreadNum(0, nullptr, nullptr);
+    loadInsertDataThread.join();
 }
 bool Benchmark::executeOneOperationWithSampling(ThreadState* state,uint8_t type){
 

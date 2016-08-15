@@ -165,7 +165,8 @@ Setting::Setting(int argc,char **argv,char *name){
 }
 BaseSetting::BaseSetting(){
 
-    readPercent.store(99);
+    readPercent.store(80);
+    insertPercent.store(10);
     samplingRate.store(20);
     stop.store(false);
     setFuncMap["-stop"]             = &BaseSetting::strSetStop;

@@ -39,6 +39,7 @@
 #include <src/Setting.h>
 #include <thread>
 #include "src/leveldb.h"
+#include <tbb/concurrent_vector.h>
 using namespace terark;
 using namespace db;
 struct ThreadState {
@@ -82,16 +83,37 @@ private:
     bool whichSPlan = false;
 
 public:
+    std::ifstream ifs;
     const uint64_t line70percent = 200000;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
+    static tbb::concurrent_vector<std::string> allkeys;
+    static void loadInsertData(std::ifstream *ifs,Setting *setting){
+        assert(ifs->is_open());
+        std::string str;
+
+        while( setting->ifStop() == false && !ifs->eof()){
+
+            while( updateDataCq.unsafe_size() < 20000){
+
+                if (ifs->eof())
+                    break;
+                getline(*ifs,str);
+                updateDataCq.push(str);
+            }
+            std::cout << "loadInsertData thread sleep 3 seconds" << std::endl;
+            sleep(3);
+        }
+    }
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
         executeFuncMap[0] = &Benchmark::UpdateOneKey;
         executeFuncMap[2] = &Benchmark::InsertOneKey;
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
+        ifs.open(setting.FLAGS_resource_data);
+        assert(ifs.is_open());
     };
     virtual void  Run(void) final {
         Open();
@@ -246,7 +268,6 @@ private:
     int db_num_;
     int num_;
     int sync_;
-    std::vector<std::string> allkeys_;
     void PrintHeader() {
         const int kKeySize = 16;
         PrintEnvironment();
@@ -322,10 +343,10 @@ private:
         }
 #endif
     }
-    std::ifstream ifs;
+
 public:
     WiredTigerBenchmark(Setting &setting1) : Benchmark(setting1) {
-        ifs.open(setting.FLAGS_resource_data);
+
     }
     ~WiredTigerBenchmark() {
     }
@@ -336,7 +357,6 @@ private:
     }
     void Load(void){
         DoWrite(true);
-        allkeys_.shrink_to_fit();
     }
     void Close(void){
         conn_->close(conn_, NULL);
@@ -351,7 +371,7 @@ private:
             exit(1);
         }
         int found = 0;
-        std::string key(allkeys_.at(rand() % allkeys_.size()));
+        std::string key(allkeys.at(rand() % allkeys.size()));
         cursor->set_key(cursor, key.c_str());
         if (cursor->search(cursor) == 0) {
             found++;
@@ -385,8 +405,8 @@ private:
     bool UpdateOneKey(ThreadState *thread) {
 
         std::string value;
-        std::string &key = allkeys_[rand()%allkeys_.size()];
-        bool ret = ReadOneKey(thread,allkeys_[rand() % allkeys_.size()],value);
+        std::string &key = allkeys.at(rand() % allkeys.size());
+        bool ret = ReadOneKey(thread,key,value);
         if (!ret)
             return false;
 
@@ -418,7 +438,9 @@ private:
         }
 
         std::string str;
-        getline(ifs,str);
+        if ( !updateDataCq.try_pop(str)) {
+            return false;
+        }
         size_t firstTab =  str.find('\t');
         assert(firstTab != std::string::npos);
         size_t secondTab = str.find('\t',firstTab + 1);
@@ -426,17 +448,19 @@ private:
         size_t thirdTab = str.find('\t',secondTab + 1);
         assert(thirdTab != std::string::npos);
         std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
-        allkeys_.push_back(key);
         std::cout << "Insert New Key:" << key << std::endl;
+
+        allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
         str.erase(secondTab,thirdTab-secondTab);
         cursor->set_value(cursor,str.c_str());
-        //std::cout << "key:" << key << std::endl;
+
         ret = cursor->insert(cursor);
         if (ret != 0) {
             fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
             return false;
         }
+        cursor->close(cursor);
         return true;
     }
     void Open() {
@@ -518,7 +542,7 @@ private:
         }
     }
     void DoWrite(bool seq) {
-
+        std::cout << "DoWrite!" << std::endl;
         std::stringstream txn_config;
         txn_config.str("");
         txn_config << "isolation=snapshot";
@@ -531,8 +555,8 @@ private:
         std::stringstream cur_config;
         cur_config.str("");
         cur_config << "overwrite";
-        if (seq && setting.FLAGS_threads == 1)
-            cur_config << ",bulk=true";
+        //if (seq && setting.FLAGS_threads == 1)
+        //    cur_config << ",bulk=true";
         WT_SESSION *session;
         conn_->open_session(conn_, NULL, NULL, &session);
         int ret = session->open_cursor(session, uri_.c_str(), NULL, cur_config.str().c_str(), &cursor);
@@ -544,7 +568,7 @@ private:
         std::string str;
         int64_t writen = 0;
         long long recordnumber = 0;
-        allkeys_.clear();
+        allkeys.clear();
         uint64_t line = line70percent;
         while(getline(ifs, str) && line--) {
             //寻找第二个和第三个\t
@@ -555,7 +579,7 @@ private:
             size_t thirdTab = str.find('\t',secondTab + 1);
             assert(thirdTab != std::string::npos);
             std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
-            allkeys_.push_back(key);
+            allkeys.push_back(key);
             cursor->set_key(cursor, key.c_str());
             str.erase(secondTab,thirdTab-secondTab);
             cursor->set_value(cursor,str.c_str());
@@ -570,8 +594,7 @@ private:
                 std::cout << "Record number: " << recordnumber << std::endl;
         }
 
-        std::cout << allkeys_.size() << std::endl;
-        std::cout << allkeys_[0] << std::endl;
+        std::cout << allkeys.size() << std::endl;
         cursor->close(cursor);
         time_t now;
         struct tm *timenow;
