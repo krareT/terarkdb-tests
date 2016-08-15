@@ -27,13 +27,14 @@ private:
      */
     void upload(int bucket, int ops, int type){
         assert(conn != nullptr);
-        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_10s(time_bucket, ops, ops_type) VALUES(?, ?, ?)");
+        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
         ps->setInt(1, bucket);
         ps->setInt(2, ops);
         ps->setInt(3, type);
+        ps->setString(4, "terarkdb");
         ps->executeUpdate();
         delete ps;
-        printf("upload : bucket[%d] - %d - %d\n", bucket, ops, type);
+        printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
     }
 
 public:
@@ -120,7 +121,7 @@ void AnalysisWorker::run() {
             if(shoud_stop){
                 break;
             }
-            printf("Analysis worker sleep for 5 seconds\n");
+//            printf("Analysis worker sleep for 5 seconds\n");
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }

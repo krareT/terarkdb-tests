@@ -14,7 +14,7 @@ cmake ./CMakeLists.txt
 make
 cd shell
 echo "####Now, running wiredtiger benchmark"
-zcat $file | ../build/Terark_Engine_Test WiredTiger --keys_data=$keys --benchmarks=fillrandom --num=$record_num --db=$dirname --use_lsm=0 --resource_data=/dev/stdin --threads=8
+zcat $file | ../build/Terark_Engine_Test wiredtiger --keys_data=$keys --benchmarks=fillrandom --num=$record_num --db=$dirname --use_lsm=0 --resource_data=/dev/stdin --threads=8
 echo "####wiredtiger benchmark finish"
 
 

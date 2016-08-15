@@ -54,10 +54,10 @@ int main(int argc, char **argv) {
     Setting setting(argc, argv, argv[1]);
     set = &setting;
     Benchmark *bm = nullptr;
-    if (strcmp(argv[1], "Terark") == 0) {
+    if (strcmp(argv[1], "terarkdb") == 0) {
         bm = new TerarkBenchmark(setting);
     }
-    else if (strcmp(argv[1], "WiredTiger") == 0) {
+    else if (strcmp(argv[1], "wiredtiger") == 0) {
         bm = new WiredTigerBenchmark(setting);
     }
     else if (strcmp(argv[1], "compact") == 0) {
