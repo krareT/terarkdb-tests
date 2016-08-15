@@ -13,9 +13,11 @@ class AnalysisWorker{
 private:
     std::thread worker;
     sql::Connection* conn;
+    volatile bool shoud_stop = false;
 public:
     AnalysisWorker();
     ~AnalysisWorker();
     void run();
+    void stop();
 };
 #endif //TERARKDB_TEST_FRAMEWORK_ANALYSIS_THREAD_H

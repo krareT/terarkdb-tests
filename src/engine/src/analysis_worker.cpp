@@ -86,6 +86,10 @@ AnalysisWorker::~AnalysisWorker() {
     delete conn;
 }
 
+void AnalysisWorker::stop() {
+    shoud_stop = true;
+}
+
 void AnalysisWorker::run() {
     printf("Analysis worker is running ... \n");
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
@@ -101,13 +105,20 @@ void AnalysisWorker::run() {
 
         if(b1){
             read_bucket.add(read_result.first, read_result.second, 0);
-        } else if(b2){
+        }
+        if(b2){
             insert_bucket.add(insert_result.first, insert_result.second, 1);
-        } else if(b3){
+        }
+        if(b3){
             update_bucket.add(update_result.first, update_result.second, 2);
-        } else {
-            printf("Analysis worker sleep for 3 seconds\n");
-            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        }
+        if(!b1 && !b2 && !b3){
+            if(shoud_stop){
+                break;
+            }
+            printf("Analysis worker sleep for 5 seconds\n");
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
         }
         // TODO break the loop when receive ctrl+C
     }

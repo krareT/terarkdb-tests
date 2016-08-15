@@ -38,6 +38,7 @@ void compact(Setting &setting) {
 }
 
 Setting *set;
+AnalysisWorker *worker;
 
 void sigint_fuc(int sig) {
     std::cout << "Ctrl+c" << std::endl;
@@ -65,8 +66,8 @@ int main(int argc, char **argv) {
     std::thread tcpServerThread(tcpServer, &setting, bm);
 
     // start a thread for analysis and data upload
-    AnalysisWorker *worker = new AnalysisWorker();
-    std::thread workerThrad([](AnalysisWorker *w) {
+    worker = new AnalysisWorker();
+    std::thread workerThrad([](AnalysisWorker* w) {
         w->run();
     }, worker);
 
