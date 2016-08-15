@@ -1,12 +1,13 @@
 //
 // Created by terark on 16-8-11.
 //
+#include "stdlib.h"
 #include "inttypes.h"
-
 #include "cppconn/prepared_statement.h"
 
 #include "analysis_worker.h"
 #include "Stats.h"
+
 
 class TimeBucket{
 private:
@@ -19,6 +20,19 @@ private:
         return t*10;
     }
 
+    int getCurrentCPURate(){
+        return 10;
+    }
+
+    /**
+     * total, free, cached, used
+     *
+     * @return in MB
+     */
+    int* getCurrentMemory(){
+        int arr[] = {64000, 30000, 20000, 14000};
+        return arr;
+    }
     /**
      * upload data into MySQL cloud database
      * @param bucket
@@ -27,14 +41,36 @@ private:
      */
     void upload(int bucket, int ops, int type){
         assert(conn != nullptr);
-        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
-        ps->setInt(1, bucket);
-        ps->setInt(2, ops);
-        ps->setInt(3, type);
-        ps->setString(4, "terarkdb");
+        std::string engine = "terarkdb";
+
+        // 上传ops数据
+        sql::PreparedStatement* ps_ops = conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
+        ps_ops->setInt(1, bucket);
+        ps_ops->setInt(2, ops);
+        ps_ops->setInt(3, type);
+        ps_ops->setString(4, engine);
         //ps->executeUpdate();
-        delete ps;
+        delete ps_ops;
         printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
+
+        // 上传内存数据
+        sql::PreparedStatement* ps_memory = conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
+        int mem[] = getCurrentMemory();
+        ps_cpu->setInt(1, bucket);
+        ps_cpu->setInt(2, mem[0]);
+        ps_cpu->setInt(3, mem[1]);
+        ps_cpu->setInt(4, mem[2]);
+        ps_cpu->setInt(5, mem[3]);
+        ps_cpu->setString(6, engine);
+        delete ps_memory;
+
+        // 上传CPU数据
+        sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, usage, engine_name) VALUES(?, ?, ?)");
+        ps_cpu->setInt(1, bucket);
+        ps_cpu->setInt(2, getCurrentCPURate());
+        ps_cpu->setString(3, engine);
+
+        delete ps_cpu;
     }
 
 public:
@@ -59,14 +95,12 @@ public:
         int next_bucket = findTimeBucket(start);
         if(next_bucket > current_bucket) {
             int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
-//            printf("current_bucket = %d, operations = %d, ops = %d", current_bucket, operation_count, ops);
             upload(current_bucket, ops, type);
             operation_count = 1;
             current_bucket = next_bucket;
         }else{
             operation_count++;
         }
-//        printf("current_bucket = %d, operations = %d", current_bucket, operation_count);
     }
 };
 
@@ -74,7 +108,13 @@ public:
 AnalysisWorker::AnalysisWorker() {
     // init mysql connection
     sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
-    conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", "benchmark@123");
+    // env : MYSQL_PASSWD
+    const char* passwd = getenv("MYSQL_PASSWD");
+    if(passwd == NULL) {
+        printf("Please set env MYSQL_PASSWD !\n");
+        shoud_stop = true;
+    }
+    conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", string(passwd));
 
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");
@@ -121,7 +161,6 @@ void AnalysisWorker::run() {
             if(shoud_stop){
                 break;
             }
-//            printf("Analysis worker sleep for 5 seconds\n");
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }
