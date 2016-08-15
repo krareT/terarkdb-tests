@@ -30,7 +30,7 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         src/Benchmark.h
         src/TcpServer.cpp src/TcpServer.h
         src/Stats.cpp src/Stats.h src/Benchmark.cpp
-        src/analysis_worker.cpp)
+        src/analysis_worker.cpp util/system_resource.h)
 
 target_link_libraries(Terark_Engine_Test
                         tbb

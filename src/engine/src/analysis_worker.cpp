@@ -6,8 +6,7 @@
 #include "cppconn/prepared_statement.h"
 
 #include "analysis_worker.h"
-#include "Stats.h"
-
+#include "util/system_resource.h"
 
 class TimeBucket{
 private:
@@ -20,18 +19,17 @@ private:
         return t*10;
     }
 
-    int getCurrentCPURate(){
-        return 10;
+    double getCurrentCPURate(){
+        return benchmark::getCPUPercentage();
     }
 
     /**
-     * total, free, cached, used
+     * 1:total, 2:free, 3:cached, 4:used
      *
      * @return in MB
      */
-    int* getCurrentMemory(){
-        int arr[] = {64000, 30000, 20000, 14000};
-        return arr;
+    std::vector<int> getCurrentMemory(){
+        return benchmark::getPhysicalMemoryUsage();
     }
     /**
      * upload data into MySQL cloud database
@@ -49,27 +47,30 @@ private:
         ps_ops->setInt(2, ops);
         ps_ops->setInt(3, type);
         ps_ops->setString(4, engine);
-        //ps->executeUpdate();
+        ps_ops->executeUpdate();
         delete ps_ops;
         printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
 
         // 上传内存数据
         sql::PreparedStatement* ps_memory = conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
-        int mem[] = getCurrentMemory();
-        ps_cpu->setInt(1, bucket);
-        ps_cpu->setInt(2, mem[0]);
-        ps_cpu->setInt(3, mem[1]);
-        ps_cpu->setInt(4, mem[2]);
-        ps_cpu->setInt(5, mem[3]);
-        ps_cpu->setString(6, engine);
+        std::vector<int> arr = getCurrentMemory();
+        printf("total memory = %" PRId64 "\n", arr[0]);
+        ps_memory->setInt(1, bucket);
+        ps_memory->setInt(2, arr[0]);
+        ps_memory->setInt(3, arr[1]);
+        ps_memory->setInt(4, arr[2]);
+        ps_memory->setInt(5, arr[3]);
+        ps_memory->setString(6, engine);
+        ps_memory->executeUpdate();
+        arr.clear();
         delete ps_memory;
 
         // 上传CPU数据
         sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, usage, engine_name) VALUES(?, ?, ?)");
         ps_cpu->setInt(1, bucket);
-        ps_cpu->setInt(2, getCurrentCPURate());
+        ps_cpu->setDouble(2, getCurrentCPURate());
         ps_cpu->setString(3, engine);
-
+        ps_cpu->executeUpdate();
         delete ps_cpu;
     }
 
@@ -108,14 +109,12 @@ public:
 AnalysisWorker::AnalysisWorker() {
     // init mysql connection
     sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
-    // env : MYSQL_PASSWD
     const char* passwd = getenv("MYSQL_PASSWD");
     if(passwd == NULL) {
         printf("Please set env MYSQL_PASSWD !\n");
         shoud_stop = true;
     }
-    conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", string(passwd));
-
+    conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", std::string(passwd));
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");
         sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_ops_10s WHERE time_bucket = 0");
@@ -123,7 +122,8 @@ AnalysisWorker::AnalysisWorker() {
         std::cout<<"database connected!"<<std::endl;
         delete pstmt;
     }else{
-        std::cout<<"database failed"<<std::endl;
+        std::cout<<"database connection fault"<<std::endl;
+        shoud_stop = true;
     }
 }
 
