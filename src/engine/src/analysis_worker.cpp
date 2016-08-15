@@ -27,15 +27,15 @@ private:
      */
     void upload(int bucket, int ops, int type){
         assert(conn != nullptr);
-        /*sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
+        sql::PreparedStatement* ps = conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
         ps->setInt(1, bucket);
         ps->setInt(2, ops);
         ps->setInt(3, type);
         ps->setString(4, "terarkdb");
-        ps->executeUpdate();
+        //ps->executeUpdate();
         delete ps;
         printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
-    */}
+    }
 
 public:
     uint64_t current_bucket = 0;  // seconds
