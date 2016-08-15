@@ -448,7 +448,7 @@ private:
         size_t thirdTab = str.find('\t',secondTab + 1);
         assert(thirdTab != std::string::npos);
         std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
-        std::cout << "Insert New Key:" << key << std::endl;
+        //std::cout << "Insert New Key:" << key << std::endl;
 
         allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
