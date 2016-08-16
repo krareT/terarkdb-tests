@@ -87,6 +87,12 @@ private:
     bool whichSPlan = false;
 
 public:
+    std::string getKey(std::string &str){
+        std::vector<std::string> strvec;
+        boost::split(strvec,str,boost::is_any_of("\t"));
+        assert(strvec.size() > 7);
+        return strvec[2] + '\0' + strvec[7];
+    }
     std::ifstream ifs;
     const uint64_t line70percent = 200000;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
@@ -258,11 +264,7 @@ private:
     bool UpdateOneKey(ThreadState *thread) {
 
     }
-    std::string getKey(std::string &str){
-        std::vector<std::string> strvec;
-        boost::split(strvec,str,boost::is_any_of("\t"));
-        return strvec[2] + '\0' + strvec[7];
-    }
+
     bool InsertOneKey(ThreadState *thread){
 
 
