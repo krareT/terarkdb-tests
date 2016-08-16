@@ -450,6 +450,16 @@ private:
         return true;
 
     }
+    size_t findNthCh(std::string &str,char ch,int n){
+
+        size_t pos = -1;
+        while(n--){
+            pos = str.find(ch,pos+1);
+            if ( pos == std::string::npos)
+                break;
+        }
+        return n == 0? pos : -1;
+    }
     bool InsertOneKey(ThreadState *thread){
         WT_CURSOR *cursor;
         int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
@@ -469,7 +479,6 @@ private:
         size_t thirdTab = str.find('\t',secondTab + 1);
         assert(thirdTab != std::string::npos);
         std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
-        //std::cout << "Insert New Key:" << key << std::endl;
         allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
         str.erase(secondTab,thirdTab-secondTab);
