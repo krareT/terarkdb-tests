@@ -97,6 +97,7 @@ public:
         assert(ifs->is_open());
         std::string str;
 
+        std::cout << "loadInsertData start" << std::endl;
         while( setting->ifStop() == false && !ifs->eof()){
 
             while( updateDataCq.unsafe_size() < 20000){
@@ -109,6 +110,7 @@ public:
             std::cout << "loadInsertData thread sleep 3 seconds" << std::endl;
             sleep(3);
         }
+        std::cout << "loadInsertData stop" << std::endl;
     }
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
@@ -116,7 +118,7 @@ public:
         executeFuncMap[2] = &Benchmark::InsertOneKey;
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
-        ifs.open(setting.FLAGS_resource_data);
+        ifs.open(setting.getUpdateDataPath());
         assert(ifs.is_open());
     };
     virtual void  Run(void) final {
@@ -203,17 +205,12 @@ private:
 
     void DoWrite( bool seq) {
         std::cout << " Write the data to terark : " << setting.FLAGS_resource_data << std::endl;
-
-
         terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
         std::ifstream ifs(setting.FLAGS_resource_data);
         std::string str;
-
-
         int64_t writen = 0;
         long long linenumber = 0;
         long long recordnumber = 0;
-
         int total_line = setting.FLAGS_num;
         const Schema& rowSchema = tab->rowSchema();
         valvec<byte_t> row;
@@ -226,6 +223,7 @@ private:
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             //  exit(-1);
             }
+            allkeys.push_back(getKey(str));
             recordnumber++;
             if ( recordnumber % 100000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber << std::endl;
@@ -238,42 +236,49 @@ private:
 
     }
     bool ReadOneKey(ThreadState *thread) {
-            valvec<byte> keyHit, val;
-            valvec<valvec<byte> > cgDataVec;
-            valvec<llong> idvec;
-            valvec<size_t> colgroups;
-
-            for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-                colgroups.push_back(i);
-            }
-            int found = 0;
-            size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-            fstring key(allkeys_.at(rand() % allkeys_.size()));
-            tab->indexSearchExact(indexId, key, &idvec, ctx.get());
-            for (auto recId : idvec) {
-                tab->selectColgroups(recId, colgroups, &cgDataVec, ctx.get());
-            }
-            if(idvec.size() > 0)
-                found++;
-            return found > 0;
-        }
+//        valvec<byte> keyHit, val;
+//        valvec<valvec<byte> > cgDataVec;
+//        valvec<llong> idvec;
+//        valvec<size_t> colgroups;
+//        int found = 0;
+//
+//        for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
+//            colgroups.push_back(i);
+//        }
+//        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
+//        fstring key(allkeys_.at(rand() % allkeys_.size()));
+//        tab->indexSearchExact(indexId, key, &idvec, ctx.get());
+//        for (auto recId : idvec) {
+//            tab->selectColgroups(recId, colgroups, &cgDataVec, ctx.get());
+//        }
+//        if(idvec.size() > 0)
+//            found++;
+//        return found > 0;
+    }
     bool UpdateOneKey(ThreadState *thread) {
 
+    }
+    std::string getKey(std::string &str){
+        std::string key;
+        return key;
     }
     bool InsertOneKey(ThreadState *thread){
 
         std::string str;
-        if (updateDataCq.try_pop(str) == false)
+
+        if (updateDataCq.try_pop(str) == false) {
             return false;
+        }
         const Schema &rowSchema = tab->rowSchema();
         valvec<byte_t> row;
-        rowSchema.parseDelimText('\t', str, &row);
-
+        if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row))
+            return false;
+        //std::cout << rowSchema.toJsonStr(row) << std::endl;
         if (ctx->upsertRow(row) < 0) { // unique index
             printf("Insert failed: %s\n", ctx->errMsg.c_str());
-            //  exit(-1);
         }
-
+        allkeys.push_back(getKey(str));
+        return true;
     }
 };
 using namespace leveldb;
