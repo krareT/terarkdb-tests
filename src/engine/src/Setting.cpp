@@ -7,7 +7,7 @@
 #include <iostream>
 #include <include/leveldb/options.h>
 #include <sstream>
-
+std::string BaseSetting::BenchmarkName;
 void Setting::wiredTigerSetting(int argc, char **argv){
     std::string default_db_path;
 
@@ -159,7 +159,7 @@ Setting::Setting(int argc,char **argv,char *name){
     }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
-    std::cout << getUpdateDataPath() << std::endl;
+    BaseSetting::BenchmarkName.assign(name);
 }
 BaseSetting::BaseSetting(){
 

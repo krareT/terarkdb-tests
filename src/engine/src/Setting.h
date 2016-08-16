@@ -23,6 +23,7 @@ private:
     std::string updateDataPath;
 
 public:
+    static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
     enum READ_TYPE{
