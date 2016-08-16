@@ -96,7 +96,11 @@ public:
         int next_bucket = findTimeBucket(start);
         if(next_bucket > current_bucket) {
             int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
-            upload(current_bucket, ops, type);
+            try {
+                upload(current_bucket, ops, type);
+            }catch (std::exception& e){
+                printf(e.what());
+            }
             operation_count = 1;
             current_bucket = next_bucket;
         }else{

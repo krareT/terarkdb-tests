@@ -181,8 +181,8 @@ private:
         std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
         assert(allkeys_.size() != 0);
         setting.FLAGS_num = allkeys_.size();
-        DoWrite(true);
-        tab->compact();
+//        DoWrite(true);
+//        tab->compact();
     }
 
     void Open() {
