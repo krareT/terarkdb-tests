@@ -376,6 +376,18 @@ public:
     ~WiredTigerBenchmark() {
     }
 private:
+    size_t getKeyAndValue(std::string &str,std::string &key,std::string &val){
+        std::vector<std::string> strvec;
+        boost::split(strvec,str,boost::is_any_of("\t"));
+        assert(key.size() + val.size() == 0);
+        key = strvec[2] + strvec[7];
+        for(int i = 0; i < strvec.size(); i ++){
+            if (i == 2 || i == 7)
+                continue;
+            val += strvec[i];
+        }
+        return strvec.size();
+    }
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
                                 std::atomic<std::vector<uint8_t >*>* whichSPlan){
         return new ThreadState(threads.size(),setting,conn_,whichEPlan,whichSPlan);
@@ -454,16 +466,6 @@ private:
         return true;
 
     }
-    size_t findNthCh(std::string &str,char ch,int n){
-
-        size_t pos = -1;
-        while(n--){
-            pos = str.find(ch,pos+1);
-            if ( pos == std::string::npos)
-                break;
-        }
-        return n == 0? pos : -1;
-    }
     bool InsertOneKey(ThreadState *thread){
         WT_CURSOR *cursor;
         int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
@@ -475,17 +477,13 @@ private:
         if ( !updateDataCq.try_pop(str)) {
             return false;
         }
-        size_t firstTab =  str.find('\t');
-        assert(firstTab != std::string::npos);
-        size_t secondTab = str.find('\t',firstTab + 1);
-        assert(secondTab != std::string::npos);
-        size_t thirdTab = str.find('\t',secondTab + 1);
-        assert(thirdTab != std::string::npos);
-        std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
+        std::string key;
+        std::string val;
+        ret = getKeyAndValue(str,key,val);
+        assert(ret > 0);
         allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
-        str.erase(secondTab,thirdTab-secondTab);
-        cursor->set_value(cursor,str.c_str());
+        cursor->set_value(cursor,val.c_str());
 
         ret = cursor->insert(cursor);
         if (ret != 0) {
@@ -604,17 +602,13 @@ private:
         uint64_t line = line70percent;
         while(getline(ifs, str) && line--) {
             //寻找第二个和第三个\t
-            size_t firstTab =  str.find('\t');
-            assert(firstTab != std::string::npos);
-            size_t secondTab = str.find('\t',firstTab + 1);
-            assert(secondTab != std::string::npos);
-            size_t thirdTab = str.find('\t',secondTab + 1);
-            assert(thirdTab != std::string::npos);
-            std::string key = str.substr(secondTab+1,thirdTab - secondTab - 1);
+            std::string key;
+            std::string val;
+            ret = getKeyAndValue(str,key,val);
+            assert(ret > 0);
             allkeys.push_back(key);
             cursor->set_key(cursor, key.c_str());
-            str.erase(secondTab,thirdTab-secondTab);
-            cursor->set_value(cursor,str.c_str());
+            cursor->set_value(cursor,val.c_str());
             //std::cout << "key:" << key << std::endl;
             int ret = cursor->insert(cursor);
             if (ret != 0) {
