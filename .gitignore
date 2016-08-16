@@ -37,3 +37,5 @@ cmake_install.cmake
 #clion file
 .idea/
 build/*
+shell/experiment
+
