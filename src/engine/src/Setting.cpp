@@ -243,10 +243,12 @@ void BaseSetting::setStop(void){
 std::string BaseSetting::toString() {
 
     std::stringstream ret;
-    ret << "readPercent\t" << static_cast<int >(getReadPercent()) << std::endl;
-    ret << "samplingRate\t" << static_cast<int >(getSamplingRate()) << std::endl;
-    ret << "threadNums\t" << getThreadNums() << std::endl;
+    ret << "benchmark name" << BaseSetting::BenchmarkName << std::endl;
+    ret << "read percent\t" << static_cast<int >(getReadPercent()) << std::endl;
+    ret << "sampling rate\t" << static_cast<int >(getSamplingRate()) << std::endl;
+    ret << "thread nums\t" << getThreadNums() << std::endl;
     ret << "stop\t" << ifStop() << std::endl;
+    ret << "insert percent\t" << static_cast<int >(getInsertPercent()) << std::endl;
     return ret.str();
 }
 std::string BaseSetting::setBaseSetting(std::string &line){
