@@ -36,3 +36,4 @@ CMakeFiles
 cmake_install.cmake
 #clion file
 .idea/
+build/*
