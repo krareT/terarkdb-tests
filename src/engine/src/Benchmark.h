@@ -41,6 +41,7 @@
 #include "src/leveldb.h"
 #include <tbb/concurrent_vector.h>
 #include <stdint.h>
+#include <stdint-gcc.h>
 //terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 
 using namespace terark;
@@ -156,10 +157,12 @@ class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
     fstrvec allkeys_;
-
+    DbContextPtr ctx;
 public:
 
-    TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
+    TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){
+
+    };
 
     ~TerarkBenchmark() {
         tab->safeStopAndWaitForCompress();
@@ -194,13 +197,13 @@ private:
         std::cout << "Open database " << setting.FLAGS_db<< std::endl;
         tab = CompositeTable::open(setting.FLAGS_db);
         assert(tab != NULL);
+        ctx = tab->createDbContext();
+        ctx->syncIndex = setting.FLAGS_sync_index;
     }
 
     void DoWrite( bool seq) {
         std::cout << " Write the data to terark : " << setting.FLAGS_resource_data << std::endl;
-        DbContextPtr ctxw;
-        ctxw = tab->createDbContext();
-        ctxw->syncIndex = setting.FLAGS_sync_index;
+
 
         terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
         std::ifstream ifs(setting.FLAGS_resource_data);
@@ -219,8 +222,8 @@ private:
             total_line--;
             rowSchema.parseDelimText('\t', str, &row);
 
-            if (ctxw->upsertRow(row) < 0) { // unique index
-                printf("Insert failed: %s\n", ctxw->errMsg.c_str());
+            if (ctx->upsertRow(row) < 0) { // unique index
+                printf("Insert failed: %s\n", ctx->errMsg.c_str());
             //  exit(-1);
             }
             recordnumber++;
@@ -239,18 +242,16 @@ private:
             valvec<valvec<byte> > cgDataVec;
             valvec<llong> idvec;
             valvec<size_t> colgroups;
-            DbContextPtr ctxr;
-            ctxr = tab->createDbContext();
-            ctxr->syncIndex = setting.FLAGS_sync_index;
+
             for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
                 colgroups.push_back(i);
             }
             int found = 0;
-            size_t indexId = 0;
+            size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
             fstring key(allkeys_.at(rand() % allkeys_.size()));
-            tab->indexSearchExact(indexId, key, &idvec, ctxr.get());
+            tab->indexSearchExact(indexId, key, &idvec, ctx.get());
             for (auto recId : idvec) {
-                tab->selectColgroups(recId, colgroups, &cgDataVec, ctxr.get());
+                tab->selectColgroups(recId, colgroups, &cgDataVec, ctx.get());
             }
             if(idvec.size() > 0)
                 found++;
@@ -260,6 +261,18 @@ private:
 
     }
     bool InsertOneKey(ThreadState *thread){
+
+        std::string str;
+        if (updateDataCq.try_pop(str) == false)
+            return false;
+        const Schema &rowSchema = tab->rowSchema();
+        valvec<byte_t> row;
+        rowSchema.parseDelimText('\t', str, &row);
+
+        if (ctx->upsertRow(row) < 0) { // unique index
+            printf("Insert failed: %s\n", ctx->errMsg.c_str());
+            //  exit(-1);
+        }
 
     }
 };
