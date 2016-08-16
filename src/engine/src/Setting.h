@@ -39,13 +39,14 @@ public:
     void setReadPercent(uint8_t);
     void setThreadNums(uint32_t);
     std::string setBaseSetting(std::string &line);
-    std::string setBaseSetting(int argc,const char **argv);
+    std::string setBaseSetting(int argc,char **argv);
     bool strSetUpdateDataPath(std::string&);
     bool strSetSamplingRate(std::string&);
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);
     bool strSetInsertPercent(std::string&);
+
     std::string toString();
 
 };

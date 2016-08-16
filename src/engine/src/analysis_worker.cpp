@@ -54,7 +54,7 @@ private:
         // 上传内存数据
         sql::PreparedStatement* ps_memory = conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
         std::vector<int> arr = getCurrentMemory();
-        printf("total memory = %" PRId64 "\n", arr[0]);
+        printf("total memory = %d\n", arr[0]);
         ps_memory->setInt(1, bucket);
         ps_memory->setInt(2, arr[0]);
         ps_memory->setInt(3, arr[1]);
@@ -114,9 +114,10 @@ AnalysisWorker::AnalysisWorker() {
     // init mysql connection
     sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
     const char* passwd = getenv("MYSQL_PASSWD");
-    if(passwd == NULL) {
-        printf("Please set env MYSQL_PASSWD !\n");
+    if(passwd == NULL || strlen(passwd) == 0) {
+        printf("no MYSQL_PASSWD set, exit analysis thread!\n");
         shoud_stop = true;
+        return;
     }
     conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", std::string(passwd));
     if(conn != nullptr && conn->isValid()) {
@@ -140,14 +141,12 @@ void AnalysisWorker::stop() {
 }
 
 void AnalysisWorker::run() {
-    printf("Analysis worker is running ... \n");
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    assert(conn != NULL);
     TimeBucket read_bucket(conn);
     TimeBucket insert_bucket(conn);
     TimeBucket update_bucket(conn);
 
-    while(true) {
+    while(!shoud_stop) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);
         bool b2 = Stats::createTimeDataCq.try_pop(insert_result);
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
@@ -162,9 +161,6 @@ void AnalysisWorker::run() {
             update_bucket.add(update_result.first, update_result.second, 3);
         }
         if(!b1 && !b2 && !b3){
-            if(shoud_stop){
-                break;
-            }
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }

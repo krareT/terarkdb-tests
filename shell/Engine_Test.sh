@@ -3,7 +3,7 @@ file=/mnt/hdd/data/wiki_load.txt.gz
 key=~/Documents/data/wiki_keys
 record_num=45
 dirname=./experiment/new_wiki/
-
+update_file=/mnt/hdd/data/wiki.txt.gz
 cd ../
 cmake CMakeLists.txt
 make
@@ -20,7 +20,7 @@ export TerarkDB_WrSegCacheSizeMB=500
 
 export MYSQL_PASSWD=$1
 
-zcat $file | ../build/Terark_Engine_Test terarkdb --benchmarks=fillrandom --num=$record_num --sync_index=1 --db=$dirname --resource_data=/dev/stdin --threads=1 --keys_data=$key
+zcat $file | ../build/Terark_Engine_Test terarkdb -update_data_path=$update_file --benchmarks=fillrandom --num=$record_num --sync_index=1 --db=$dirname --resource_data=/dev/stdin --threads=1 --keys_data=$key
 free -m
 date
 du -s -b $dirname
