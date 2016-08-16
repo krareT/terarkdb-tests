@@ -168,9 +168,7 @@ private:
     DbContextPtr ctx;
 public:
 
-    TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){
-
-    };
+    TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
 
     ~TerarkBenchmark() {
         tab->safeStopAndWaitForCompress();
@@ -242,24 +240,28 @@ private:
 
     }
     bool ReadOneKey(ThreadState *thread) {
-//        valvec<byte> keyHit, val;
-//        valvec<valvec<byte> > cgDataVec;
-//        valvec<llong> idvec;
-//        valvec<size_t> colgroups;
-//        int found = 0;
-//
-//        for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-//            colgroups.push_back(i);
-//        }
-//        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-//        fstring key(allkeys_.at(rand() % allkeys_.size()));
-//        tab->indexSearchExact(indexId, key, &idvec, ctx.get());
-//        for (auto recId : idvec) {
-//            tab->selectColgroups(recId, colgroups, &cgDataVec, ctx.get());
-//        }
-//        if(idvec.size() > 0)
-//            found++;
-//        return found > 0;
+        if (allkeys.size() == 0)
+            return false;
+        valvec<byte> keyHit, val;
+        valvec<valvec<byte> > cgDataVec;
+        valvec<llong> idvec;
+        valvec<size_t> colgroups;
+        int found = 0;
+        for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
+            colgroups.push_back(i);
+        }
+        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
+        fstring key(allkeys.at(rand() % allkeys.size()));
+        //std::cout << key << std::endl;
+        tab->indexSearchExact(indexId, key, &idvec, ctx.get());
+
+        for (auto recId : idvec) {
+            tab->selectColgroups(recId, colgroups, &cgDataVec, ctx.get());
+        }
+        if(idvec.size() > 0)
+            found++;
+        //std::cout << bool(found > 0) << std::endl;
+        return found > 0;
     }
     bool UpdateOneKey(ThreadState *thread) {
 
