@@ -54,11 +54,14 @@ int main(int argc, char **argv) {
     Setting setting(argc, argv, argv[1]);
     set = &setting;
     Benchmark *bm = nullptr;
+
     if (strcmp(argv[1], "terarkdb") == 0) {
         bm = new TerarkBenchmark(setting);
+        worker = new AnalysisWorker("terarkdb");
     }
     else if (strcmp(argv[1], "wiredtiger") == 0) {
         bm = new WiredTigerBenchmark(setting);
+        worker = new AnalysisWorker("wiredtiger");
     }
     else if (strcmp(argv[1], "compact") == 0) {
         compact(setting);
@@ -66,7 +69,6 @@ int main(int argc, char **argv) {
     std::thread tcpServerThread(tcpServer, &setting, bm);
 
     // start a thread for analysis and data upload
-    worker = new AnalysisWorker();
     std::thread workerThrad([](AnalysisWorker* w) {
         w->run();
     }, worker);

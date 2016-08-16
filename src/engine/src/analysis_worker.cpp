@@ -12,6 +12,7 @@ class TimeBucket{
 private:
     sql::Connection* conn = nullptr;
     uint64_t step_in_seconds = 10; // in seconds
+    std::string engine_name;
 
     int findTimeBucket(uint64_t time) {
         uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
@@ -19,18 +20,6 @@ private:
         return t*10;
     }
 
-    double getCurrentCPURate(){
-        return benchmark::getCPUPercentage();
-    }
-
-    /**
-     * 1:total, 2:free, 3:cached, 4:used
-     *
-     * @return in MB
-     */
-    std::vector<int> getCurrentMemory(){
-        return benchmark::getPhysicalMemoryUsage();
-    }
     /**
      * upload data into MySQL cloud database
      * @param bucket
@@ -38,48 +27,59 @@ private:
      * @param type
      */
     void upload(int bucket, int ops, int type){
+        if(bucket == 0) {
+            return;
+        }
         assert(conn != nullptr);
-        std::string engine = "terarkdb";
 
         // 上传ops数据
         sql::PreparedStatement* ps_ops = conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
         ps_ops->setInt(1, bucket);
         ps_ops->setInt(2, ops);
         ps_ops->setInt(3, type);
-        ps_ops->setString(4, engine);
+        ps_ops->setString(4, engine_name);
         ps_ops->executeUpdate();
         delete ps_ops;
         printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
 
-        // 上传内存数据
-        sql::PreparedStatement* ps_memory = conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
-        std::vector<int> arr = getCurrentMemory();
-        printf("total memory = %d\n", arr[0]);
-        ps_memory->setInt(1, bucket);
-        ps_memory->setInt(2, arr[0]);
-        ps_memory->setInt(3, arr[1]);
-        ps_memory->setInt(4, arr[2]);
-        ps_memory->setInt(5, arr[3]);
-        ps_memory->setString(6, engine);
-        ps_memory->executeUpdate();
-        arr.clear();
-        delete ps_memory;
+        // 当上传read数据的时候,顺便把CPU等数据也上传
+        if(type == 1) {
+            // 上传内存数据
+            sql::PreparedStatement* ps_memory = conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
+            std::vector<int> arr = benchmark::getPhysicalMemoryUsage();
+            ps_memory->setInt(1, bucket);
+            ps_memory->setInt(2, arr[0]);
+            ps_memory->setInt(3, arr[1]);
+            ps_memory->setInt(4, arr[2]);
+            ps_memory->setInt(5, arr[3]);
+            ps_memory->setString(6, engine_name);
+            ps_memory->executeUpdate();
+            arr.clear();
+            delete ps_memory;
+            printf("total memory = %d\n", arr[0]);
 
-        // 上传CPU数据
-        sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, engine_name) VALUES(?, ?, ?)");
-        ps_cpu->setInt(1, bucket);
-        ps_cpu->setDouble(2, getCurrentCPURate());
-        ps_cpu->setString(3, engine);
-        ps_cpu->executeUpdate();
-        delete ps_cpu;
+            // 上传CPU数据
+            sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, engine_name) VALUES(?, ?, ?)");
+            double cpu = benchmark::getCPUPercentage();
+            if(cpu > 0){
+                ps_cpu->setInt(1, bucket);
+                ps_cpu->setDouble(2, cpu);
+                ps_cpu->setString(3, engine_name);
+                ps_cpu->executeUpdate();
+            }
+            delete ps_cpu;
+            printf("cpu usage = %f\n", cpu);
+
+        }
     }
 
 public:
     uint64_t current_bucket = 0;  // seconds
     int operation_count = 0;
 
-    TimeBucket(sql::Connection* const conn){
+    TimeBucket(sql::Connection* const conn, std::string engine_name){
         this->conn = conn;
+        this->engine_name = engine_name;
     }
 
     /**
@@ -99,7 +99,7 @@ public:
             try {
                 upload(current_bucket, ops, type);
             }catch (std::exception& e){
-                printf(e.what());
+                printf("%s\n", e.what());
             }
             operation_count = 1;
             current_bucket = next_bucket;
@@ -110,7 +110,8 @@ public:
 };
 
 
-AnalysisWorker::AnalysisWorker() {
+AnalysisWorker::AnalysisWorker(std::string engine_name) {
+    this->engine_name = engine_name;
     // init mysql connection
     sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
     const char* passwd = getenv("MYSQL_PASSWD");
@@ -142,9 +143,9 @@ void AnalysisWorker::stop() {
 
 void AnalysisWorker::run() {
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    TimeBucket read_bucket(conn);
-    TimeBucket insert_bucket(conn);
-    TimeBucket update_bucket(conn);
+    TimeBucket read_bucket(conn, engine_name);
+    TimeBucket insert_bucket(conn, engine_name);
+    TimeBucket update_bucket(conn, engine_name);
 
     while(!shoud_stop) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);

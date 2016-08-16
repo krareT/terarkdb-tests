@@ -14,8 +14,9 @@ private:
     std::thread worker;
     sql::Connection* conn;
     volatile bool shoud_stop = false;
+    std::string engine_name;
 public:
-    AnalysisWorker();
+    AnalysisWorker(std::string engine_name);
     ~AnalysisWorker();
     void run();
     void stop();
