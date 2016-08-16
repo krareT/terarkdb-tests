@@ -91,6 +91,10 @@ public:
         std::vector<std::string> strvec;
         boost::split(strvec,str,boost::is_any_of("\t"));
         assert(strvec.size() > 7);
+//        valvec<byte_t> encodedKey;
+//        tab->getIndexSchema(0);
+//        tab->getIndexSchema("title,timestamp");
+//        size_t n = indexSchema.parseDelimText(key, &encodedKey);
         return strvec[2] + '\0' + strvec[7];
     }
     std::ifstream ifs;
@@ -205,8 +209,23 @@ private:
         assert(tab != NULL);
         ctx = tab->createDbContext();
         ctx->syncIndex = setting.FLAGS_sync_index;
+        //test the col id
+//        std::cout << tab->getColumnId("cur_id") << std::endl;
+//        std::cout << tab->getColumnId("cur_namespace") << std::endl;
+//        std::cout << tab->getColumnId("cur_title") << std::endl;
+//        std::cout << tab->getColumnId("cur_text") << std::endl;
+//        std::cout << tab->getColumnId("cur_comment") << std::endl;
+//        std::cout << tab->getColumnId("cur_user") << std::endl;
+//        std::cout << tab->getColumnId("cur_user_text") << std::endl;
+//        std::cout << tab->getColumnId("cur_timestamp") << std::endl;
+//        std::cout << tab->getColumnId("cur_restrictions") << std::endl;
+//        std::cout << tab->getColumnId("cur_counter") << std::endl;
+//        std::cout << tab->getColumnId("cur_is_redirect") << std::endl;
+//        std::cout << tab->getColumnId("cur_minor_edit") << std::endl;
+//        std::cout << tab->getColumnId("cur_random") << std::endl;
+//        std::cout << tab->getColumnId("cur_touched") << std::endl;
+//        std::cout << tab->getColumnId("inverse_timestamp") << std::endl;
     }
-
     void DoWrite( bool seq) {
         std::cout << " Write the data to terark : " << setting.FLAGS_resource_data << std::endl;
         terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
@@ -252,24 +271,51 @@ private:
         }
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
-        //std::cout << key << std::endl;
         tab->indexSearchExact(indexId, key, &idvec, ctx.get());
+        assert(idvec.size() <= 1);
+        if (idvec.size() == 0)
+            return false;
+        valvec<byte> rowVal;
+        ctx->getValue(idvec[0], &rowVal);
+//        tab->selectColgroups(idvec[0], colgroups, &cgDataVec, ctx.get());
+//        std::cout << idvec[0] << std::endl;
+//        fstring test(cgDataVec[0]);
+//        std::cout << test << std::endl;
+        return true;
+    }
+    bool ReadOneKey(ThreadState *thread,std::string &key,valvec<byte>& rowVal,llong &rid) {
+        if (allkeys.size() == 0)
+            return false;
+        valvec<byte> keyHit, val;
+        valvec<llong> idvec;
+        valvec<size_t> colgroups;
 
-        for (auto recId : idvec) {
-            tab->selectColgroups(recId, colgroups, &cgDataVec, ctx.get());
+        for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
+            colgroups.push_back(i);
         }
-        if(idvec.size() > 0)
-            found++;
-        //std::cout << bool(found > 0) << std::endl;
-        return found > 0;
+
+        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
+        tab->indexSearchExact(indexId, key, &idvec, ctx.get());
+        assert(idvec.size() <= 1);
+        if (idvec.size() == 0)
+            return false;
+        ctx->getValue(idvec[0], &rowVal);
+        rid = idvec[0];
+        return true;
     }
     bool UpdateOneKey(ThreadState *thread) {
-
+        valvec<byte> rowVal;
+        llong rid;
+        if (allkeys.size() == 0)
+            return false;
+        if ( ReadOneKey(thread,allkeys.at(rand() % allkeys.size()),rowVal,rid) == false){
+            return false;
+        }
+        ctx->updateRow(rid,rowVal);
+        return true;
     }
 
     bool InsertOneKey(ThreadState *thread){
-
-
         std::string str;
 
         if (updateDataCq.try_pop(str) == false) {

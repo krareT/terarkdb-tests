@@ -1,18 +1,18 @@
 ﻿{
 	"RowSchema": {
 		"columns" : {
-			"cur_id"    	      	: { "type" : "int32" },
-			"cur_namespace"       	: { "type" : "int32" },
+			"cur_id"    	      	: { "type" : "strzero" },
+			"cur_namespace"       	: { "type" : "strzero" },
 			"cur_title"      		: { "type" : "strzero" },
 			"cur_text"      		: { "type" : "strzero" },
 			"cur_comment"       	: { "type" : "strzero" },
-			"cur_user"              : { "type" : "uint64" },
+			"cur_user"              : { "type" : "strzero" },
 			"cur_user_text"     	: { "type" : "strzero" },
 			"cur_timestamp"         : { "type" : "strzero" },
 			"cur_restrictions"      : { "type" : "strzero" },
-			"cur_counter"         	: { "type" : "int32" },
-			"cur_is_redirect"       : { "type" : "int32" },
-			"cur_minor_edit"        : { "type" : "int32" },
+			"cur_counter"         	: { "type" : "strzero" },
+			"cur_is_redirect"       : { "type" : "strzero" },
+			"cur_minor_edit"        : { "type" : "strzero" },
 			"cur_random"         	: { "type" : "strzero" },
 			"cur_touched"         	: { "type" : "strzero" },
 			"inverse_timestamp"   	: { "type" : "strzero" }
@@ -34,10 +34,10 @@
 	"MinMergeSegNum"	: 3,
 	"TableIndex" : [
 		{
-		   	"fields": "cur_title,cur_timestamp",
-		   	"ordered" : true,
+			"fields": "cur_title,cur_timestamp",
+			"ordered" : true,
 			"unique" : true,
 			"nltNestLevel": 2
-	   	}
+		}
 	]
 }
