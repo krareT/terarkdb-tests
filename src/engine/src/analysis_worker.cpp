@@ -111,7 +111,7 @@ AnalysisWorker::AnalysisWorker() {
     sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
     const char* passwd = getenv("MYSQL_PASSWD");
     if(passwd == NULL) {
-        printf("Please set env MYSQL_PASSWD !\n");
+        printf("no MYSQL_PASSWD set, exit analysis thread!\n");
         shoud_stop = true;
     }
     conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", std::string(passwd));
@@ -136,14 +136,13 @@ void AnalysisWorker::stop() {
 }
 
 void AnalysisWorker::run() {
-    printf("Analysis worker is running ... \n");
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
     assert(conn != NULL);
     TimeBucket read_bucket(conn);
     TimeBucket insert_bucket(conn);
     TimeBucket update_bucket(conn);
 
-    while(true) {
+    while(!shoud_stop) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);
         bool b2 = Stats::createTimeDataCq.try_pop(insert_result);
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
@@ -158,9 +157,6 @@ void AnalysisWorker::run() {
             update_bucket.add(update_result.first, update_result.second, 3);
         }
         if(!b1 && !b2 && !b3){
-            if(shoud_stop){
-                break;
-            }
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }
