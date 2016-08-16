@@ -467,7 +467,6 @@ private:
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
             exit(1);
         }
-
         std::string str;
         if ( !updateDataCq.try_pop(str)) {
             return false;
