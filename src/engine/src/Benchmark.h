@@ -40,6 +40,9 @@
 #include <thread>
 #include "src/leveldb.h"
 #include <tbb/concurrent_vector.h>
+#include <stdint.h>
+//terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
+
 using namespace terark;
 using namespace db;
 struct ThreadState {
