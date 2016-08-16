@@ -259,10 +259,12 @@ private:
 
     }
     std::string getKey(std::string &str){
-        std::string key;
-        return key;
+        std::vector<std::string> strvec;
+        boost::split(strvec,str,boost::is_any_of("\t"));
+        return strvec[2] + '\0' + strvec[7];
     }
     bool InsertOneKey(ThreadState *thread){
+
 
         std::string str;
 
@@ -273,11 +275,11 @@ private:
         valvec<byte_t> row;
         if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row))
             return false;
-        //std::cout << rowSchema.toJsonStr(row) << std::endl;
         if (ctx->upsertRow(row) < 0) { // unique index
             printf("Insert failed: %s\n", ctx->errMsg.c_str());
         }
         allkeys.push_back(getKey(str));
+        //std::cout << allkeys.back() << std::endl;
         return true;
     }
 };

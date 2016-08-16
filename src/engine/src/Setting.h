@@ -9,6 +9,7 @@
 #include <atomic>
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
+#include <stdint-gcc.h>
 
 class BaseSetting{
 private:
