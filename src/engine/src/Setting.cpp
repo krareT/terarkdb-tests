@@ -119,9 +119,6 @@ void Setting::terarkSetting(int argc, char **argv) {
         } else if (strncmp(argv[i], "--keys_data=", 12) == 0){
             FLAGS_keys_data = argv[i] + 12;
             std::cout << "FLAGS_keys_data:" << FLAGS_keys_data << std::endl;
-        } else{
-            fprintf(stderr, "Invalid flag '%s'\n", argv[i]);
-            exit(1);
         }
     }
 
@@ -161,7 +158,8 @@ Setting::Setting(int argc,char **argv,char *name){
         exit(1);
     }
     setThreadNums(FLAGS_threads);
-
+    setBaseSetting(argc,argv);
+    std::cout << getUpdateDataPath() << std::endl;
 }
 BaseSetting::BaseSetting(){
 
@@ -279,11 +277,13 @@ std::string BaseSetting::setBaseSetting(std::string &line){
     return message + toString();
 }
 
-std::string BaseSetting::setBaseSetting(int argc, const char **argv) {
+std::string BaseSetting::setBaseSetting(int argc, char **argv) {
 
     std::string message;
     for(int i = 0; i < argc; i ++){
-        const char *pos = strchr(argv[i],'=');
+        char *pos = strchr(argv[i],'=');
+        if (pos == NULL)
+            continue;
         std::string key(argv[i],pos-argv[i]);
         std::string value(pos + 1);
         if (setFuncMap.count(key) == 0) {
@@ -300,8 +300,12 @@ std::string BaseSetting::setBaseSetting(int argc, const char **argv) {
     return message;
 }
 
-bool BaseSetting::strSetUpdateDataPath(std::string &) {
-    return false;
+bool BaseSetting::strSetUpdateDataPath(std::string &value) {
+
+    if (0 == value.size()){
+        return false;
+    }
+    updateDataPath = value;
 }
 
 uint8_t BaseSetting::getInsertPercent(void) {
@@ -314,6 +318,10 @@ bool BaseSetting::strSetInsertPercent(std::string &value) {
         return  false;
     insertPercent.store(val);
     return true;
+}
+
+const std::string &BaseSetting::getUpdateDataPath(void) {
+    return updateDataPath;
 }
 
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {
