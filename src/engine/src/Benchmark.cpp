@@ -114,8 +114,8 @@ bool Benchmark::executeOneOperation(ThreadState* state,uint8_t type){
     if (samplingRecord[type] > 100){
         samplingRecord[type] = 0;
     }
-    //return (this->*samplingFuncMap[( (*samplingPlan)[(samplingRecord[type]-1) % samplingPlan->size()])])(state,type);
-    return executeOneOperationWithSampling(state,type);
+    return (this->*samplingFuncMap[( (*samplingPlan)[(samplingRecord[type]-1) % samplingPlan->size()])])(state,type);
+    //return executeOneOperationWithSampling(state,type);
 }
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
 
@@ -144,6 +144,7 @@ size_t Benchmark::updateKeys(void) {
 
     std::string str;
     while( getline(keysFile,str)){
+        assert(str.find('\0') != std::string::npos);
         allkeys.push_back(str);
     }
     return allkeys.size();

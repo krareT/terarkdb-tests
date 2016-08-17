@@ -178,9 +178,7 @@ private:
     DbTablePtr tab;
     DbContextPtr ctx;
 public:
-
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
-
     ~TerarkBenchmark() {
         tab->safeStopAndWaitForCompress();
         tab = NULL;
@@ -195,17 +193,15 @@ private:
     }
     void Close(){tab->safeStopAndWaitForFlush();tab = NULL;};
     void Load(void){
+
         DoWrite(true);
         tab->compact();
+        std::vector<std::string> old_key;
     }
     std::string getKey(std::string &str){
         std::vector<std::string> strvec;
         boost::split(strvec,str,boost::is_any_of("\t"));
-        assert(strvec.size() > 7);
-//        valvec<byte_t> encodedKey;
-//        tab->getIndexSchema(0);
-//        tab->getIndexSchema("title,timestamp");
-//        size_t n = indexSchema.parseDelimText(key, &encodedKey);
+        assert(strvec.size() == 15);
         return strvec[2] + '\0' + strvec[7];
     }
     void Open() {
@@ -225,12 +221,20 @@ private:
         long long recordnumber = 0;
         const Schema& rowSchema = tab->rowSchema();
         valvec<byte_t> row;
-        while(getline(loadFile, str)) {
-            rowSchema.parseDelimText('\t', str, &row);
-            if (ctx->upsertRow(row) < 0) { // unique index
+
+        int temp = 100;
+        while(getline(loadFile, str)&&temp --) {
+            if ( rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)){
+                std::cerr << "ERROR STR:" << str << std::endl;
+                continue;
+            }
+            llong rid;
+            if ( (rid = ctx->upsertRow(row)) < 0) { // unique index
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
             allkeys.push_back(getKey(str));
+            assert( VerifyOneKey(rid,row) == true);
+            assert( VerifyOneKey(allkeys.back()) == true);
             recordnumber++;
             if ( recordnumber % 10000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber/10000 << "w" << std::endl;
@@ -241,61 +245,60 @@ private:
         timenow = localtime(&now);
         printf("recordnumber %lld, time %s\n",recordnumber, asctime(timenow));
     }
-    bool ReadOneKey(ThreadState *thread) {
-        if (allkeys.size() == 0)
-            return false;
-        valvec<byte> keyHit, val;
-        valvec<valvec<byte> > cgDataVec;
+    bool VerifyOneKey(std::string k){
+
         valvec<llong> idvec;
-        valvec<size_t> colgroups;
-        int found = 0;
-        for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-            colgroups.push_back(i);
+        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
+        fstring oneKey(k);
+        tab->indexSearchExact(indexId, oneKey, &idvec, ctx.get());
+        return idvec.size() == 1;
+    }
+    bool VerifyOneKey(llong rid,valvec<byte> &outside){
+        valvec<byte > inside;
+        ctx->getValue(rid,&inside);
+        assert(inside.size() == outside.size());
+        for(int i = 0; i < inside.size(); i ++){
+            if (inside[i] != outside[i])
+                return false;
         }
+        return true;
+    }
+    bool ReadOneKey(ThreadState *thread) {
+        if (allkeys.size() == 0) {
+            std::cout << "allkeys empty" << std::endl;
+            return false;
+        }
+        valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec, ctx.get());
-        assert(idvec.size() <= 1);
-        if (idvec.size() == 0)
-            return false;
-        valvec<byte> rowVal;
-        ctx->getValue(idvec[0], &rowVal);
-//        tab->selectColgroups(idvec[0], colgroups, &cgDataVec, ctx.get());
-//        std::cout << idvec[0] << std::endl;
-//        fstring test(cgDataVec[0]);
-//        std::cout << test << std::endl;
+        assert(idvec.size() == 1);
         return true;
     }
-    bool ReadOneKey(ThreadState *thread,std::string &key,valvec<byte>& rowVal,llong &rid) {
-        if (allkeys.size() == 0)
-            return false;
+    bool ReadOneKey(std::string &key,valvec<byte>& outside,llong rid) {
+
         valvec<byte> keyHit, val;
         valvec<llong> idvec;
         valvec<size_t> colgroups;
 
-        for (size_t i = tab->getIndexNum(); i < tab->getColgroupNum(); i++) {
-            colgroups.push_back(i);
-        }
-
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         tab->indexSearchExact(indexId, key, &idvec, ctx.get());
-        assert(idvec.size() <= 1);
-        if (idvec.size() == 0)
-            return false;
-        ctx->getValue(idvec[0], &rowVal);
-        rid = idvec[0];
+        assert(idvec.size() == 1);
+        assert(rid == idvec[0]);
+        valvec<byte> row;
+        ctx->getValue(idvec[0],&row);
         return true;
     }
     bool UpdateOneKey(ThreadState *thread) {
-        valvec<byte> rowVal;
-        llong rid;
-        if (allkeys.size() == 0)
-            return false;
-        if ( ReadOneKey(thread,allkeys.at(rand() % allkeys.size()),rowVal,rid) == false){
-            return false;
-        }
-        ctx->updateRow(rid,rowVal);
-        return true;
+//        valvec<byte> rowVal;
+//        llong rid;
+//        if (allkeys.size() == 0)
+//            return false;
+//        if ( ReadOneKey(thread,allkeys.at(rand() % allkeys.size()),rowVal,rid) == false){
+//            return false;
+//        }
+//        ctx->updateRow(rid,rowVal);
+//        return true;
     }
 
     bool InsertOneKey(ThreadState *thread){
@@ -307,13 +310,13 @@ private:
         //std::cout << str << std::endl;
         const Schema &rowSchema = tab->rowSchema();
         valvec<byte_t> row;
-        if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row))
+        if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
+            std::cerr << "InsertOneKey error:" << str << std::endl;
             return false;
+        }
         if (ctx->upsertRow(row) < 0) { // unique index
             printf("Insert failed: %s\n", ctx->errMsg.c_str());
         }
-        //allkeys.push_back(getKey(str));
-        //std::cout << allkeys.back() << std::endl;
         return true;
     }
 };
@@ -652,5 +655,4 @@ private:
         printf("recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
     }
 };
-
 #endif //TERARKDB_TEST_FRAMEWORK_BENCHMARK_H
