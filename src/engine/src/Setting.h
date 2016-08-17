@@ -20,35 +20,38 @@ private:
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
     enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
-    std::string updateDataPath;
-
+    std::string insertDataPath;
+    std::string loadDataPath;
+    std::string keysDataPath;
+    bool run = true;
 public:
     static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
-    enum READ_TYPE{
-        READ_SEQ,
-        READ_RANDOM
-    };
     uint8_t getReadPercent(void);
     uint8_t getSamplingRate(void);
     uint8_t getInsertPercent(void);
     uint32_t getThreadNums(void);
-    const std::string &getUpdateDataPath(void);
+    const std::string &getInsertDataPath(void);
+    const std::string &getLoadDataPath(void);
+    const std::string &getKeysDataPath(void);
     bool ifStop(void);
+    std::string ifRunOrLoad(void);
     void setStop(void);
 
     void setReadPercent(uint8_t);
     void setThreadNums(uint32_t);
     std::string setBaseSetting(std::string &line);
     std::string setBaseSetting(int argc,char **argv);
-    bool strSetUpdateDataPath(std::string&);
+    bool strSetInsertDataPath(std::string &);
     bool strSetSamplingRate(std::string&);
     bool strSetStop(std::string&);
     bool strSetReadPercent(std::string&);
     bool strSetThreadNums(std::string&);
     bool strSetInsertPercent(std::string&);
-
+    bool strSetLoadDataPath(std::string&);
+    bool strSetLoadOrRun(std::string&);
+    bool strSetKeysDataPath(std::string&);
     std::string toString();
 
 };

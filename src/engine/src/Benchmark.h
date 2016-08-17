@@ -85,20 +85,12 @@ private:
     std::vector<uint8_t > samplingPlan[2];
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
-
+    std::ifstream keysFile;
+    std::ifstream insertFile;
+    size_t updateKeys(void);
+    void backupKeys(void);
 public:
-    std::string getKey(std::string &str){
-        std::vector<std::string> strvec;
-        boost::split(strvec,str,boost::is_any_of("\t"));
-        assert(strvec.size() > 7);
-//        valvec<byte_t> encodedKey;
-//        tab->getIndexSchema(0);
-//        tab->getIndexSchema("title,timestamp");
-//        size_t n = indexSchema.parseDelimText(key, &encodedKey);
-        return strvec[2] + '\0' + strvec[7];
-    }
-    std::ifstream ifs;
-    const uint64_t line70percent = 200000;
+    std::ifstream loadFile;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
@@ -106,18 +98,15 @@ public:
     static void loadInsertData(std::ifstream *ifs,Setting *setting){
         assert(ifs->is_open());
         std::string str;
-
         std::cout << "loadInsertData start" << std::endl;
         while( setting->ifStop() == false && !ifs->eof()){
 
             while( updateDataCq.unsafe_size() < 20000){
-
                 if (ifs->eof())
                     break;
                 getline(*ifs,str);
                 updateDataCq.push(str);
             }
-            std::cout << "loadInsertData thread sleep 3 seconds" << std::endl;
             sleep(3);
         }
         std::cout << "loadInsertData stop" << std::endl;
@@ -128,15 +117,30 @@ public:
         executeFuncMap[2] = &Benchmark::InsertOneKey;
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
-        ifs.open(setting.getUpdateDataPath());
-        assert(ifs.is_open());
+
+        insertFile.open(setting.getInsertDataPath());
+        assert(insertFile.is_open());
+        loadFile.open(setting.getLoadDataPath());
+        assert(loadFile.is_open());
+        keysFile.open(setting.getKeysDataPath());
+        assert(keysFile.is_open());
     };
     virtual void  Run(void) final {
         Open();
-        Load();
-        RunBenchmark();
+
+        std::cout << setting.ifRunOrLoad() << std::endl;
+        if (setting.ifRunOrLoad() == "load") {
+            allkeys.clear();
+            Load();
+            backupKeys();
+        }
+        else {
+            std::cout << "allKeys size:" <<updateKeys() << std::endl;
+            RunBenchmark();
+        }
         Close();
     };
+
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;
@@ -168,7 +172,6 @@ public:
 class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
-    fstrvec allkeys_;
     DbContextPtr ctx;
 public:
 
@@ -188,19 +191,19 @@ private:
     }
     void Close(){tab->safeStopAndWaitForFlush();tab = NULL;};
     void Load(void){
-        std::ifstream ifs(setting.FLAGS_keys_data);
-        std::string str;
-        while (getline(ifs, str)) {
-            allkeys_.push_back(str);
-        }
-        printf("allkeys_.mem_size=%zd\n", allkeys_.full_mem_size());
-        std::cout << allkeys_.size() << " " << setting.FLAGS_num << std::endl;
-        assert(allkeys_.size() != 0);
-        setting.FLAGS_num = allkeys_.size();
-//        DoWrite(true);
-//        tab->compact();
+        DoWrite(true);
+        tab->compact();
     }
-
+    std::string getKey(std::string &str){
+        std::vector<std::string> strvec;
+        boost::split(strvec,str,boost::is_any_of("\t"));
+        assert(strvec.size() > 7);
+//        valvec<byte_t> encodedKey;
+//        tab->getIndexSchema(0);
+//        tab->getIndexSchema("title,timestamp");
+//        size_t n = indexSchema.parseDelimText(key, &encodedKey);
+        return strvec[2] + '\0' + strvec[7];
+    }
     void Open() {
         PrintHeader();
         assert(tab == NULL);
@@ -209,54 +212,30 @@ private:
         assert(tab != NULL);
         ctx = tab->createDbContext();
         ctx->syncIndex = setting.FLAGS_sync_index;
-        //test the col id
-//        std::cout << tab->getColumnId("cur_id") << std::endl;
-//        std::cout << tab->getColumnId("cur_namespace") << std::endl;
-//        std::cout << tab->getColumnId("cur_title") << std::endl;
-//        std::cout << tab->getColumnId("cur_text") << std::endl;
-//        std::cout << tab->getColumnId("cur_comment") << std::endl;
-//        std::cout << tab->getColumnId("cur_user") << std::endl;
-//        std::cout << tab->getColumnId("cur_user_text") << std::endl;
-//        std::cout << tab->getColumnId("cur_timestamp") << std::endl;
-//        std::cout << tab->getColumnId("cur_restrictions") << std::endl;
-//        std::cout << tab->getColumnId("cur_counter") << std::endl;
-//        std::cout << tab->getColumnId("cur_is_redirect") << std::endl;
-//        std::cout << tab->getColumnId("cur_minor_edit") << std::endl;
-//        std::cout << tab->getColumnId("cur_random") << std::endl;
-//        std::cout << tab->getColumnId("cur_touched") << std::endl;
-//        std::cout << tab->getColumnId("inverse_timestamp") << std::endl;
+        std::cout << "Open success!" <<std::endl;
     }
     void DoWrite( bool seq) {
-        std::cout << " Write the data to terark : " << setting.FLAGS_resource_data << std::endl;
-        terark::NativeDataOutput<terark::AutoGrownMemIO> rowBuilder;
-        std::ifstream ifs(setting.FLAGS_resource_data);
+        std::cout << "Write the data to terark : " << setting.getLoadDataPath() << std::endl;
+        assert(loadFile.is_open());
         std::string str;
-        int64_t writen = 0;
-        long long linenumber = 0;
         long long recordnumber = 0;
-        int total_line = setting.FLAGS_num;
         const Schema& rowSchema = tab->rowSchema();
         valvec<byte_t> row;
-        while(getline(ifs, str) && total_line != 0) {
-            linenumber++;
-            total_line--;
+        while(getline(loadFile, str)) {
             rowSchema.parseDelimText('\t', str, &row);
-
             if (ctx->upsertRow(row) < 0) { // unique index
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
-            //  exit(-1);
             }
             allkeys.push_back(getKey(str));
             recordnumber++;
-            if ( recordnumber % 100000 == 0)
+            if ( recordnumber % 1000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber << std::endl;
         }
         time_t now;
         struct tm *timenow;
         time(&now);
         timenow = localtime(&now);
-        printf("linenumber %lld, recordnumber %lld, time %s\n",linenumber, recordnumber, asctime(timenow));
-
+        printf("recordnumber %lld, time %s\n",recordnumber, asctime(timenow));
     }
     bool ReadOneKey(ThreadState *thread) {
         if (allkeys.size() == 0)
@@ -321,6 +300,7 @@ private:
         if (updateDataCq.try_pop(str) == false) {
             return false;
         }
+        //std::cout << str << std::endl;
         const Schema &rowSchema = tab->rowSchema();
         valvec<byte_t> row;
         if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row))
@@ -416,7 +396,6 @@ private:
         }
 #endif
     }
-
 public:
     WiredTigerBenchmark(Setting &setting1) : Benchmark(setting1) {
 
@@ -628,13 +607,10 @@ private:
             txn_config << ",sync=full";
         else
             txn_config << ",sync=none";
-
         WT_CURSOR *cursor;
         std::stringstream cur_config;
         cur_config.str("");
         cur_config << "overwrite";
-        //if (seq && setting.FLAGS_threads == 1)
-        //    cur_config << ",bulk=true";
         WT_SESSION *session;
         conn_->open_session(conn_, NULL, NULL, &session);
         int ret = session->open_cursor(session, uri_.c_str(), NULL, cur_config.str().c_str(), &cursor);
@@ -644,11 +620,8 @@ private:
         }
 
         std::string str;
-        int64_t writen = 0;
         long long recordnumber = 0;
-        allkeys.clear();
-        uint64_t line = line70percent;
-        while(getline(ifs, str) && line--) {
+        while(getline(loadFile, str)) {
             //寻找第二个和第三个\t
             std::string key;
             std::string val;
@@ -667,8 +640,6 @@ private:
             if (recordnumber % 100000 == 0)
                 std::cout << "Record number: " << recordnumber << std::endl;
         }
-
-        std::cout << allkeys.size() << std::endl;
         cursor->close(cursor);
         time_t now;
         struct tm *timenow;

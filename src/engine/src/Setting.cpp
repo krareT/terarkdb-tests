@@ -70,9 +70,6 @@ void Setting::wiredTigerSetting(int argc, char **argv){
         FLAGS_db = default_db_path.c_str();
     }
 
-    shuff = (int *)malloc(FLAGS_threads * sizeof(int));
-    for (int i=0; i<FLAGS_threads; i++)
-        shuff[i] = i;
 
 }
 void Setting::terarkSetting(int argc, char **argv) {
@@ -134,14 +131,7 @@ void Setting::terarkSetting(int argc, char **argv) {
         FLAGS_db_table = default_db_table;
     }
 
-    if (FLAGS_resource_data == NULL) {
-        fprintf(stderr, "Please input the resource data file\n");
-        exit(-1);
-    }
 
-    shuff = (int *)malloc(FLAGS_threads * sizeof(int));
-    for (int i=0; i<FLAGS_threads; i++)
-        shuff[i] = i;
 
 
 }
@@ -160,20 +150,26 @@ Setting::Setting(int argc,char **argv,char *name){
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
     BaseSetting::BenchmarkName.assign(name);
+    std::cout << toString() << std::endl;
+    std::cout << "wait" << std::endl;
+
 }
 BaseSetting::BaseSetting(){
 
-    readPercent.store(80);
-    insertPercent.store(10);
+    readPercent.store(90);
+    insertPercent.store(0);
     samplingRate.store(20);
     stop.store(false);
+    run = true;
     setFuncMap["-stop"]             = &BaseSetting::strSetStop;
     setFuncMap["-read_percent"]     = &BaseSetting::strSetReadPercent;
     setFuncMap["-thread_num"]       = &BaseSetting::strSetThreadNums;
     setFuncMap["-sampling_rate"]    = &BaseSetting::strSetSamplingRate;
-    setFuncMap["-update_data_path"] = &BaseSetting::strSetUpdateDataPath;
-    setFuncMap["-insert_percent"] = &BaseSetting::strSetInsertPercent;
-
+    setFuncMap["-insert_data_path"] = &BaseSetting::strSetInsertDataPath;
+    setFuncMap["-insert_percent"]   = &BaseSetting::strSetInsertPercent;
+    setFuncMap["-load_data_path"]   = &BaseSetting::strSetLoadDataPath;
+    setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
+    setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
 }
 uint8_t BaseSetting::getSamplingRate(void){
     return samplingRate.load();
@@ -243,12 +239,16 @@ void BaseSetting::setStop(void){
 std::string BaseSetting::toString() {
 
     std::stringstream ret;
-    ret << "benchmark name" << BaseSetting::BenchmarkName << std::endl;
-    ret << "read percent\t" << static_cast<int >(getReadPercent()) << std::endl;
-    ret << "sampling rate\t" << static_cast<int >(getSamplingRate()) << std::endl;
-    ret << "thread nums\t" << getThreadNums() << std::endl;
-    ret << "stop\t" << ifStop() << std::endl;
-    ret << "insert percent\t" << static_cast<int >(getInsertPercent()) << std::endl;
+    ret << "benchmark name:\t" << BaseSetting::BenchmarkName << std::endl;
+    ret << "read percent:\t" << static_cast<int >(getReadPercent()) << std::endl;
+    ret << "sampling rate:\t" << static_cast<int >(getSamplingRate()) << std::endl;
+    ret << "thread nums:\t" << getThreadNums() << std::endl;
+    ret << "stop:\t" << ifStop() << std::endl;
+    ret << "insert percent:\t" << static_cast<int >(getInsertPercent()) << std::endl;
+    ret << "load_or_run:\t" << (run == true ? "run":"load") << std::endl;
+    ret << "keys_data_path:\t" << getKeysDataPath() << std::endl;
+    ret << "insert_data_path:\t" << getInsertDataPath() << std::endl;
+    ret << "load_data_path:\t" << getLoadDataPath() << std::endl;
     return ret.str();
 }
 std::string BaseSetting::setBaseSetting(std::string &line){
@@ -267,13 +267,13 @@ std::string BaseSetting::setBaseSetting(std::string &line){
         if (setFuncMap.count(key) > 0){
 
             if ((this->*setFuncMap[key])(value)){
-                message += "set\t" + key + "\tsuccess\t";
+                message += "set\t" + key + "\tsuccess\n";
             }
             else{
-                message += "set\t" + key + "\tfailure\t";
+                message += "set\t" + key + "\tfailure\n";
             }
         }else{
-            message += "invalid command:" + key + "\t";
+            message += "invalid command:" + key + "\n";
         }
     }
     return message + toString();
@@ -302,12 +302,13 @@ std::string BaseSetting::setBaseSetting(int argc, char **argv) {
     return message;
 }
 
-bool BaseSetting::strSetUpdateDataPath(std::string &value) {
+bool BaseSetting::strSetInsertDataPath(std::string &value) {
 
     if (0 == value.size()){
         return false;
     }
-    updateDataPath = value;
+    insertDataPath = value;
+    return true;
 }
 
 uint8_t BaseSetting::getInsertPercent(void) {
@@ -322,8 +323,51 @@ bool BaseSetting::strSetInsertPercent(std::string &value) {
     return true;
 }
 
-const std::string &BaseSetting::getUpdateDataPath(void) {
-    return updateDataPath;
+const std::string &BaseSetting::getInsertDataPath(void) {
+    return insertDataPath;
+}
+
+const std::string &BaseSetting::getLoadDataPath(void) {
+    return loadDataPath;
+}
+
+bool BaseSetting::strSetLoadDataPath(std::string& value) {
+    if (value.size() == 0)
+        return false;
+    loadDataPath = value;
+    return true;
+}
+
+std::string BaseSetting::ifRunOrLoad(void) {
+
+    std::string ret;
+    if (run == false)
+        ret = "load";
+    else
+        ret = "run";
+    return ret;
+}
+
+bool BaseSetting::strSetLoadOrRun(std::string &value){
+    if (value == "run"){
+        run = true;
+    }else if (value == "load"){
+        run = false;
+    }else{
+        return false;
+    }
+    return true;
+}
+
+const std::string &BaseSetting::getKeysDataPath(void) {
+    return keysDataPath;
+}
+
+bool BaseSetting::strSetKeysDataPath(std::string &value) {
+    if(value.empty())
+        return false;
+    keysDataPath = value;
+    return true;
 }
 
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {
