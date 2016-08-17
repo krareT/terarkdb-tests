@@ -308,7 +308,7 @@ private:
         if (ctx->upsertRow(row) < 0) { // unique index
             printf("Insert failed: %s\n", ctx->errMsg.c_str());
         }
-        allkeys.push_back(getKey(str));
+        //allkeys.push_back(getKey(str));
         //std::cout << allkeys.back() << std::endl;
         return true;
     }
