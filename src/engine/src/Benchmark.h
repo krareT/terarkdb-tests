@@ -118,12 +118,16 @@ public:
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
 
-        insertFile.open(setting.getInsertDataPath());
-        assert(insertFile.is_open());
-        loadFile.open(setting.getLoadDataPath());
-        assert(loadFile.is_open());
-        keysFile.open(setting.getKeysDataPath());
-        assert(keysFile.is_open());
+        if (setting.ifRunOrLoad() == "run") {
+            keysFile.open(setting.getKeysDataPath());
+            assert(keysFile.is_open());
+            insertFile.open(setting.getInsertDataPath());
+            assert(insertFile.is_open());
+        }
+        else {
+            loadFile.open(setting.getLoadDataPath());
+            assert(loadFile.is_open());
+        }
     };
     virtual void  Run(void) final {
         Open();
@@ -228,8 +232,8 @@ private:
             }
             allkeys.push_back(getKey(str));
             recordnumber++;
-            if ( recordnumber % 1000 == 0)
-                std::cout << "Insert reocord number: " << recordnumber << std::endl;
+            if ( recordnumber % 10000 == 0)
+                std::cout << "Insert reocord number: " << recordnumber/10000 << "w" << std::endl;
         }
         time_t now;
         struct tm *timenow;
