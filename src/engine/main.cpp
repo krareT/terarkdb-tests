@@ -7,8 +7,6 @@
 #include "db/db_impl.h"
 #include "db/version_set.h"
 #include <boost/asio.hpp>
-#include <terark/db/db_table.hpp>
-#include <terark/util/fstrvec.hpp>
 #include <src/Setting.h>
 #include "src/Benchmark.h"
 #include "src/TcpServer.h"

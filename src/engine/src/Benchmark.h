@@ -27,8 +27,7 @@
 #include <fstream>
 #include <string.h>
 #include <string>
-
-#include <terark/db/db_table.hpp>
+#include "terark/db/db_table.hpp"
 #include <terark/io/MemStream.hpp>
 #include <terark/io/DataIO.hpp>
 #include <terark/io/RangeStream.hpp>
@@ -102,8 +101,7 @@ public:
         std::string str;
         std::cout << "loadInsertData start" << std::endl;
         while( setting->ifStop() == false && !ifs->eof()){
-
-            while( updateDataCq.unsafe_size() < 20000){
+            while( updateDataCq.unsafe_size() < 200000){
                 if (ifs->eof())
                     break;
                 getline(*ifs,str);
@@ -203,13 +201,26 @@ private:
         boost::split(strvec,str,boost::is_any_of("\t"));
         return strvec[2] + '\0' + strvec[7];
     }
+    std::string getKey(llong rid,const DbContextPtr &ctx,const std::vector<size_t> &idvec){
+        std::string key;
+        valvec<byte> row;
+        for(auto eachId:idvec){
+            row.clear();
+            ctx->selectOneColumn(rid,eachId,&row);
+            key += fstring(row).c_str();
+            key += '\0';
+        }
+        //删除最后一个'\0'
+        key.pop_back();
+        std::cout << key << std::endl;
+        return key;
+    }
     void Open() {
         PrintHeader();
         assert(tab == NULL);
         std::cout << "Open database " << setting.FLAGS_db<< std::endl;
         tab = CompositeTable::open(setting.FLAGS_db);
         assert(tab != NULL);
-
     }
     void DoWrite( bool seq) {
         std::cout << "Write the data to terark : " << setting.getLoadDataPath() << std::endl;
@@ -221,16 +232,21 @@ private:
         DbContextPtr ctx = tab->createDbContext();
         ctx->syncIndex = setting.FLAGS_sync_index;
 
+        auto titleColId = tab->getColumnId("cur_title");
+        auto timestampColId = tab->getColumnId("cur_timestamp");
+        std::vector<size_t> idvec;
+        idvec.push_back(titleColId);
+        idvec.push_back(timestampColId);
         while(getline(loadFile, str)) {
             if ( rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)){
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
             }
-            llong rid;
-            if ( (rid = ctx->upsertRow(row)) < 0) { // unique index
+            llong rid = ctx->upsertRow(row);
+            if ( rid < 0) { // unique index
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
-            allkeys.push_back(getKey(str));
+            allkeys.push_back(getKey(rid,ctx,idvec));
             assert( VerifyOneKey(rid,row,ctx) == true);
 
             recordnumber++;
@@ -300,9 +316,9 @@ private:
         std::string str;
 
         if (updateDataCq.try_pop(str) == false) {
+            std::cerr << "cp empty!" << std::endl;
             return false;
         }
-        //std::cout << str << std::endl;
         const Schema &rowSchema = tab->rowSchema();
         valvec<byte_t> row;
         if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
@@ -311,6 +327,7 @@ private:
         }
         if (thread->ctx->upsertRow(row) < 0) { // unique index
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+            return false;
         }
         return true;
     }
