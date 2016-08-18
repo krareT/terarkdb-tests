@@ -53,14 +53,16 @@ struct ThreadState {
     WT_SESSION *session;
     std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
     std::atomic<std::vector<uint8_t >*> *whichSamplingPlan;
-
+    DbContextPtr ctx;
     ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
-                std::atomic<std::vector<uint8_t >*>* wsp)
+                std::atomic<std::vector<uint8_t >*>* wsp,DbTablePtr *tab)
             :   tid(index),
                 whichExecutePlan(wep),
                 whichSamplingPlan(wsp)
     {
         STOP.store(false);
+        ctx = (*tab)->createDbContext();
+        ctx->syncIndex = true;
     }
     ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
                 std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
@@ -176,7 +178,6 @@ public:
 class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
-    DbContextPtr ctx;
 public:
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
     ~TerarkBenchmark() {
@@ -186,7 +187,7 @@ public:
 private:
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
                                 std::atomic<std::vector<uint8_t >*>* whichSPlan){
-        return new ThreadState(threads.size(),setting,whichEPlan,whichSPlan);
+        return new ThreadState(threads.size(),setting,whichEPlan,whichSPlan,&tab);
     }
     void PrintHeader() {
         fprintf(stdout, "NarkDB Test Begins!");
@@ -210,9 +211,7 @@ private:
         std::cout << "Open database " << setting.FLAGS_db<< std::endl;
         tab = CompositeTable::open(setting.FLAGS_db);
         assert(tab != NULL);
-        ctx = tab->createDbContext();
-        ctx->syncIndex = setting.FLAGS_sync_index;
-        std::cout << "Open success!" <<std::endl;
+
     }
     void DoWrite( bool seq) {
         std::cout << "Write the data to terark : " << setting.getLoadDataPath() << std::endl;
@@ -221,9 +220,10 @@ private:
         long long recordnumber = 0;
         const Schema& rowSchema = tab->rowSchema();
         valvec<byte_t> row;
+        DbContextPtr ctx = tab->createDbContext();
+        ctx->syncIndex = setting.FLAGS_sync_index;
 
-        int temp = 100;
-        while(getline(loadFile, str)&&temp --) {
+        while(getline(loadFile, str)) {
             if ( rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)){
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
@@ -233,8 +233,8 @@ private:
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
             allkeys.push_back(getKey(str));
-            assert( VerifyOneKey(rid,row) == true);
-            assert( VerifyOneKey(allkeys.back()) == true);
+            assert( VerifyOneKey(rid,row,ctx) == true);
+
             recordnumber++;
             if ( recordnumber % 10000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber/10000 << "w" << std::endl;
@@ -245,15 +245,15 @@ private:
         timenow = localtime(&now);
         printf("recordnumber %lld, time %s\n",recordnumber, asctime(timenow));
     }
-    bool VerifyOneKey(std::string k){
-
-        valvec<llong> idvec;
-        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-        fstring oneKey(k);
-        tab->indexSearchExact(indexId, oneKey, &idvec, ctx.get());
-        return idvec.size() == 1;
-    }
-    bool VerifyOneKey(llong rid,valvec<byte> &outside){
+//    bool VerifyOneKey(const std::string &k,DbContextPtr &ctx){
+//
+//        valvec<llong> idvec;
+//        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
+//        fstring oneKey(k);
+//        tab->indexSearchExact(indexId, oneKey, &idvec,ctx.get());
+//        return idvec.size() == 1;
+//    }
+    bool VerifyOneKey(llong rid,valvec<byte> &outside,DbContextPtr &ctx){
         valvec<byte > inside;
         ctx->getValue(rid,&inside);
         assert(inside.size() == outside.size());
@@ -271,34 +271,31 @@ private:
         valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
-        tab->indexSearchExact(indexId, key, &idvec, ctx.get());
+        tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
         assert(idvec.size() == 1);
-        return true;
-    }
-    bool ReadOneKey(std::string &key,valvec<byte>& outside,llong rid) {
-
-        valvec<byte> keyHit, val;
-        valvec<llong> idvec;
-        valvec<size_t> colgroups;
-
-        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-        tab->indexSearchExact(indexId, key, &idvec, ctx.get());
-        assert(idvec.size() == 1);
-        assert(rid == idvec[0]);
-        valvec<byte> row;
-        ctx->getValue(idvec[0],&row);
+        valvec<byte > row;
+        thread->ctx->getValue(idvec[0],&row);
         return true;
     }
     bool UpdateOneKey(ThreadState *thread) {
-//        valvec<byte> rowVal;
-//        llong rid;
-//        if (allkeys.size() == 0)
-//            return false;
-//        if ( ReadOneKey(thread,allkeys.at(rand() % allkeys.size()),rowVal,rid) == false){
-//            return false;
-//        }
-//        ctx->updateRow(rid,rowVal);
-//        return true;
+        if (allkeys.size() == 0) {
+            std::cout << "allkeys empty" << std::endl;
+            return false;
+        }
+        valvec<llong> idvec;
+        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
+        fstring key(allkeys.at(rand() % allkeys.size()));
+        tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
+        assert(idvec.size() == 1);
+        valvec<byte > row;
+        thread->ctx->getValue(idvec[0],&row);
+        llong rid;
+        if ( (rid = thread->ctx->upsertRow(row)) < 0) { // unique index
+            printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+            return false;
+        }
+        assert(VerifyOneKey(rid,row,thread->ctx) == true);
+        return true;
     }
 
     bool InsertOneKey(ThreadState *thread){
@@ -314,8 +311,8 @@ private:
             std::cerr << "InsertOneKey error:" << str << std::endl;
             return false;
         }
-        if (ctx->upsertRow(row) < 0) { // unique index
-            printf("Insert failed: %s\n", ctx->errMsg.c_str());
+        if (thread->ctx->upsertRow(row) < 0) { // unique index
+            printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
         }
         return true;
     }
