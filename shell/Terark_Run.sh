@@ -1,6 +1,6 @@
 
 keys_file=~/Documents/data/wiki_keys
-insert_file=/mnt/hdd/data/xaa
+insert_file=/mnt/hdd/data/xab
 dirname=./experiment/new_wiki/
 cd ../
 cmake CMakeLists.txt
