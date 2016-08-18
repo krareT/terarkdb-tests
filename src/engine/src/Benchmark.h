@@ -197,12 +197,10 @@ private:
 
         DoWrite(true);
         tab->compact();
-        std::vector<std::string> old_key;
     }
     std::string getKey(std::string &str){
         std::vector<std::string> strvec;
         boost::split(strvec,str,boost::is_any_of("\t"));
-        assert(strvec.size() == 15);
         return strvec[2] + '\0' + strvec[7];
     }
     void Open() {
@@ -236,7 +234,7 @@ private:
             assert( VerifyOneKey(rid,row,ctx) == true);
 
             recordnumber++;
-            if ( recordnumber % 10000 == 0)
+            if ( recordnumber % 100000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber/10000 << "w" << std::endl;
         }
         time_t now;
