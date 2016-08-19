@@ -11,10 +11,6 @@ include_directories(./include)
 
 include_directories(${TERARKDB_PATH}/include)
 link_directories(${TERARKDB_PATH}/lib)
-
-# include_directories(../../snappy)
-# link_directories(../../snappy)
-
 link_directories(/usr/local/mysql/lib)
 link_directories(/usr/local/lib)
 
@@ -36,8 +32,8 @@ target_link_libraries(Terark_Engine_Test
                         tbb
                         boost_system
                         boost_filesystem
-                        terark-fsa_all-r
-                        terark-db-r
+                        terark-fsa_all-d
+                        terark-db-d
                         wiredtiger
                         pthread
                         snappy

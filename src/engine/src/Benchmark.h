@@ -41,7 +41,7 @@
 #include <tbb/concurrent_vector.h>
 #include <stdint.h>
 #include <stdint-gcc.h>
-//terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
+//terarkdb -insert_data_path=/mnt/hdd/data/xab --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 
 using namespace terark;
 using namespace db;
@@ -119,10 +119,12 @@ public:
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
 
         if (setting.ifRunOrLoad() == "run") {
-            keysFile.open(setting.getKeysDataPath());
-            assert(keysFile.is_open());
+//            keysFile.open(setting.getKeysDataPath());
+//            assert(keysFile.is_open());
             insertFile.open(setting.getInsertDataPath());
             assert(insertFile.is_open());
+            loadFile.open(setting.getLoadDataPath());
+            assert(loadFile.is_open());
         }
         else {
             loadFile.open(setting.getLoadDataPath());
@@ -139,7 +141,9 @@ public:
             backupKeys();
         }
         else {
-            std::cout << "allKeys size:" <<updateKeys() << std::endl;
+            //std::cout << "allKeys size:" <<updateKeys() << std::endl;
+            std::cout << "Load and run" << std::endl;
+            Load();
             RunBenchmark();
         }
         Close();
@@ -237,7 +241,8 @@ private:
         std::vector<size_t> idvec;
         idvec.push_back(titleColId);
         idvec.push_back(timestampColId);
-        while(getline(loadFile, str)) {
+        int temp = 10000;
+        while(getline(loadFile, str) && temp--) {
             if ( rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)){
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
@@ -246,7 +251,7 @@ private:
             if ( rid < 0) { // unique index
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
-            allkeys.push_back(getKey(rid,ctx,idvec));
+            allkeys.push_back(getKey(str));
             assert( VerifyOneKey(rid,row,ctx) == true);
 
             recordnumber++;
@@ -286,7 +291,9 @@ private:
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
-        assert(idvec.size() == 1);
+        assert(idvec.size() <= 1);
+        if ( idvec.size() == 0)
+            return false;
         valvec<byte > row;
         thread->ctx->getValue(idvec[0],&row);
         return true;
@@ -301,14 +308,15 @@ private:
         fstring key(allkeys.at(rand() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
         assert(idvec.size() == 1);
-        valvec<byte > row;
+        valvec<byte> row;
         thread->ctx->getValue(idvec[0],&row);
-        llong rid;
-        if ( (rid = thread->ctx->upsertRow(row)) < 0) { // unique index
+        llong rid = thread->ctx->upsertRow(row);
+        if (rid < 0) { // unique index
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
+        } else {
+            assert(VerifyOneKey(rid, row, thread->ctx) == true);
         }
-        assert(VerifyOneKey(rid,row,thread->ctx) == true);
         return true;
     }
 

@@ -30,7 +30,7 @@
 			"useFastZip": true
 		}
 	},
-	"MaxWrSegSize" 		: "3G",
+	"MaxWrSegSize" 		: "1M",
 	"MinMergeSegNum"	: 3,
 	"TableIndex" : [
 		{
