@@ -71,6 +71,6 @@ int main(int argc, char **argv) {
         w->run();
     }, worker);
     if (nullptr != bm) bm->Run();
-
+    delete bm;
     exit(1);
 }

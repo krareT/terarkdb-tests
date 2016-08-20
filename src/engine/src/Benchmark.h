@@ -91,7 +91,7 @@ private:
     void backupKeys(void);
 
 public:
-    static const uint32_t FILE_BLOCK = 1024*1024*100;
+    static const uint32_t FILE_BLOCK = 0;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
@@ -468,54 +468,37 @@ private:
         cursor->close(cursor);
         return found > 0;
     }
-    bool ReadOneKey(ThreadState *thread,std::string &key,std::string &value){
-        WT_CURSOR *cursor;
-        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
-        if (ret != 0) {
-            fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-            exit(1);
-        }
-        int found = 0;
 
-        cursor->set_key(cursor, key.c_str());
-        if (cursor->search(cursor) == 0) {
-            found++;
-            const char* val;
-            ret = cursor->get_value(cursor, &val);
-            assert(ret == 0);
-            value.assign(val);
-        }
-        cursor->close(cursor);
-        return found > 0;
-    }
     bool UpdateOneKey(ThreadState *thread) {
 
         if (allkeys.size() == 0)
             return false;
-        std::string value;
-        std::string &key = allkeys.at(rand() % allkeys.size());
-        bool ret = ReadOneKey(thread,key,value);
-        if (!ret)
-            return false;
 
-        return InsertOneKey(thread,key,value);
-    }
-    bool InsertOneKey(ThreadState *thread,std::string &key,std::string &value){
         WT_CURSOR *cursor;
-        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
-        if (ret != 0) {
+        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
+        if (ret != 0){
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-            exit(1);
-        }
-        cursor->set_key(cursor,key.c_str());
-        cursor->set_value(cursor,value.c_str());
-        ret = cursor->insert(cursor);
-        if (ret != 0) {
-            fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
             return false;
         }
+        std::string key = allkeys.at(rand() % allkeys.size());
+        cursor->set_key(cursor, key.c_str());
+        if (cursor->search(cursor) != 0){
+            std::cerr << "cursor search error :" << key << std::endl;
+            cursor->close(cursor);
+            return false;
+        }
+        const char *val;
+        ret = cursor->get_value(cursor,&val);
+        assert(ret == 0);
+        cursor->set_value(cursor,val);
+        ret = cursor->insert(cursor);
+        if (ret != 0){
+            std::cerr << "cursor insert error :" << key << std::endl;
+            cursor->close(cursor);
+            return false;
+        }
+        cursor->close(cursor);
         return true;
-
     }
     bool InsertOneKey(ThreadState *thread){
         WT_CURSOR *cursor;
@@ -526,22 +509,25 @@ private:
         }
         std::string str;
         if ( !updateDataCq.try_pop(str)) {
+            cursor->close(cursor);
             return false;
         }
         std::string key;
         std::string val;
-        key.clear();
-        val.clear();
+
         ret = getKeyAndValue(str,key,val);
-        if (ret == 0)
+        if (ret == 0) {
+            cursor->close(cursor);
             return false;
-        allkeys.push_back(key);
+        }
+        //allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
         cursor->set_value(cursor,val.c_str());
 
         ret = cursor->insert(cursor);
         if (ret != 0) {
             fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
+            cursor->close(cursor);
             return false;
         }
         cursor->close(cursor);
