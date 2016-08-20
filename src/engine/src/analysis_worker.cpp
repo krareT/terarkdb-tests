@@ -95,7 +95,8 @@ public:
         // when meet the next bucket, upload previous one first, default step is 10 seconds
         int next_bucket = findTimeBucket(start);
         if(next_bucket > current_bucket) {
-            int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
+//            int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
+            int ops = operation_count * 5 / 10; // multiple 5 for sample rate.
             try {
                 upload(current_bucket, ops, type);
             }catch (std::exception& e){
