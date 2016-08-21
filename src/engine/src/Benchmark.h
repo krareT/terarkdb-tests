@@ -41,7 +41,11 @@
 #include <tbb/concurrent_vector.h>
 #include <stdint.h>
 #include <stdint-gcc.h>
+
 //terarkdb -insert_data_path=/mnt/hdd/data/xab --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
+#include <fcntl.h>
+#include <unistd.h>
+//terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 
 using namespace terark;
 using namespace db;
@@ -86,29 +90,37 @@ private:
     std::vector<uint8_t > samplingPlan[2];
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
-    std::ifstream keysFile;
-    std::ifstream insertFile;
     size_t updateKeys(void);
     void backupKeys(void);
+
 public:
-    std::ifstream loadFile;
+    static const uint32_t FILE_BLOCK = 0;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
     static tbb::concurrent_vector<std::string> allkeys;
-    static void loadInsertData(std::ifstream *ifs,Setting *setting){
-        assert(ifs->is_open());
+    static void loadInsertData(Setting *setting){
+        FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
+        assert(ifs != NULL);
+        posix_fadvise(fileno(ifs),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
         std::string str;
         std::cout << "loadInsertData start" << std::endl;
-        while( setting->ifStop() == false && !ifs->eof()){
+        char buf[1024*1024];
+        int count = 0;
+        while( setting->ifStop() == false && !feof(ifs)){
             while( updateDataCq.unsafe_size() < 200000){
-                if (ifs->eof())
+                if (feof(ifs))
                     break;
-                getline(*ifs,str);
+                fgets(buf,1024,ifs);
+                str = buf;
                 updateDataCq.push(str);
+                count ++;
             }
+            std::cout << "insert : " << count << std::endl;
+            count = 0;
             sleep(3);
         }
+        fclose(ifs);
         std::cout << "loadInsertData stop" << std::endl;
     }
     Benchmark(Setting &s):setting(s){
@@ -117,19 +129,6 @@ public:
         executeFuncMap[2] = &Benchmark::InsertOneKey;
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
-
-        if (setting.ifRunOrLoad() == "run") {
-//            keysFile.open(setting.getKeysDataPath());
-//            assert(keysFile.is_open());
-            insertFile.open(setting.getInsertDataPath());
-            assert(insertFile.is_open());
-            loadFile.open(setting.getLoadDataPath());
-            assert(loadFile.is_open());
-        }
-        else {
-            loadFile.open(setting.getLoadDataPath());
-            assert(loadFile.is_open());
-        }
     };
     virtual void  Run(void) final {
         Open();
@@ -141,9 +140,7 @@ public:
             backupKeys();
         }
         else {
-            //std::cout << "allKeys size:" <<updateKeys() << std::endl;
-            std::cout << "Load and run" << std::endl;
-            Load();
+            std::cout << "allKeys size:" <<updateKeys() << std::endl;
             RunBenchmark();
         }
         Close();
@@ -228,50 +225,38 @@ private:
     }
     void DoWrite( bool seq) {
         std::cout << "Write the data to terark : " << setting.getLoadDataPath() << std::endl;
-        assert(loadFile.is_open());
         std::string str;
         long long recordnumber = 0;
-        const Schema& rowSchema = tab->rowSchema();
-        valvec<byte_t> row;
+        const Schema &rowSchema = tab->rowSchema();
+        valvec <byte_t> row;
         DbContextPtr ctx = tab->createDbContext();
         ctx->syncIndex = setting.FLAGS_sync_index;
-
-        auto titleColId = tab->getColumnId("cur_title");
-        auto timestampColId = tab->getColumnId("cur_timestamp");
-        std::vector<size_t> idvec;
-        idvec.push_back(titleColId);
-        idvec.push_back(timestampColId);
-        int temp = 10000;
-        while(getline(loadFile, str) && temp--) {
-            if ( rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)){
+        FILE *loadFile = fopen(setting.getLoadDataPath().c_str(),"r");
+        assert(loadFile != NULL);
+        posix_fadvise(fileno(loadFile),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
+        int temp = 200000;
+        char buf[1024*1024];
+        while (fgets(buf,1024*1024,loadFile) && temp--) {
+            if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
             }
             llong rid = ctx->upsertRow(row);
-            if ( rid < 0) { // unique index
+            if (rid < 0) { // unique index
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
             allkeys.push_back(getKey(str));
-            assert( VerifyOneKey(rid,row,ctx) == true);
-
+            assert(VerifyOneKey(rid, row, ctx) == true);
             recordnumber++;
-            if ( recordnumber % 100000 == 0)
-                std::cout << "Insert reocord number: " << recordnumber/10000 << "w" << std::endl;
+            if (recordnumber % 100000 == 0)
+                std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
         }
         time_t now;
         struct tm *timenow;
         time(&now);
         timenow = localtime(&now);
-        printf("recordnumber %lld, time %s\n",recordnumber, asctime(timenow));
+        printf("recordnumber %lld, time %s\n", recordnumber, asctime(timenow));
     }
-//    bool VerifyOneKey(const std::string &k,DbContextPtr &ctx){
-//
-//        valvec<llong> idvec;
-//        size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-//        fstring oneKey(k);
-//        tab->indexSearchExact(indexId, oneKey, &idvec,ctx.get());
-//        return idvec.size() == 1;
-//    }
     bool VerifyOneKey(llong rid,valvec<byte> &outside,DbContextPtr &ctx){
         valvec<byte > inside;
         ctx->getValue(rid,&inside);
@@ -434,12 +419,15 @@ private:
         std::vector<std::string> strvec;
         boost::split(strvec,str,boost::is_any_of("\t"));
         assert(key.size() + val.size() == 0);
+        if ( strvec.size() < 8)
+            return 0;
         key = strvec[2] + strvec[7];
         for(int i = 0; i < strvec.size(); i ++){
             if (i == 2 || i == 7)
                 continue;
-            val += strvec[i];
+            val.append(strvec[i]);
         }
+        val = str;
         return strvec.size();
     }
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
@@ -456,6 +444,9 @@ private:
     bool ReadOneKey(ThreadState *thread) {
 
         WT_CURSOR *cursor;
+        if ( allkeys.size() == 0){
+            return false;
+        }
         int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
         if (ret != 0) {
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
@@ -473,52 +464,37 @@ private:
         cursor->close(cursor);
         return found > 0;
     }
-    bool ReadOneKey(ThreadState *thread,std::string &key,std::string &value){
-        WT_CURSOR *cursor;
-        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
-        if (ret != 0) {
-            fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-            exit(1);
-        }
-        int found = 0;
 
-        cursor->set_key(cursor, key.c_str());
-        if (cursor->search(cursor) == 0) {
-            found++;
-            const char* val;
-            ret = cursor->get_value(cursor, &val);
-            assert(ret == 0);
-            value.assign(val);
-        }
-        cursor->close(cursor);
-        return found > 0;
-    }
     bool UpdateOneKey(ThreadState *thread) {
 
-        std::string value;
-        std::string &key = allkeys.at(rand() % allkeys.size());
-        bool ret = ReadOneKey(thread,key,value);
-        if (!ret)
+        if (allkeys.size() == 0)
             return false;
 
-        return InsertOneKey(thread,key,value);
-    }
-    bool InsertOneKey(ThreadState *thread,std::string &key,std::string &value){
         WT_CURSOR *cursor;
-        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
-        if (ret != 0) {
+        int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
+        if (ret != 0){
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-            exit(1);
-        }
-        cursor->set_key(cursor,key.c_str());
-        cursor->set_value(cursor,value.c_str());
-        ret = cursor->insert(cursor);
-        if (ret != 0) {
-            fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
             return false;
         }
+        std::string key = allkeys.at(rand() % allkeys.size());
+        cursor->set_key(cursor, key.c_str());
+        if (cursor->search(cursor) != 0){
+            std::cerr << "cursor search error :" << key << std::endl;
+            cursor->close(cursor);
+            return false;
+        }
+        const char *val;
+        ret = cursor->get_value(cursor,&val);
+        assert(ret == 0);
+        cursor->set_value(cursor,val);
+        ret = cursor->insert(cursor);
+        if (ret != 0){
+            std::cerr << "cursor insert error :" << key << std::endl;
+            cursor->close(cursor);
+            return false;
+        }
+        cursor->close(cursor);
         return true;
-
     }
     bool InsertOneKey(ThreadState *thread){
         WT_CURSOR *cursor;
@@ -529,19 +505,25 @@ private:
         }
         std::string str;
         if ( !updateDataCq.try_pop(str)) {
+            cursor->close(cursor);
             return false;
         }
         std::string key;
         std::string val;
+
         ret = getKeyAndValue(str,key,val);
-        assert(ret > 0);
-        allkeys.push_back(key);
+        if (ret == 0) {
+            cursor->close(cursor);
+            return false;
+        }
+        //allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
         cursor->set_value(cursor,val.c_str());
 
         ret = cursor->insert(cursor);
         if (ret != 0) {
             fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
+            cursor->close(cursor);
             return false;
         }
         cursor->close(cursor);
@@ -648,10 +630,15 @@ private:
 
         std::string str;
         long long recordnumber = 0;
-        while(getline(loadFile, str)) {
+        int temp = 200000;
+        FILE *file = fopen(setting.getLoadDataPath().c_str(),"r");
+        posix_fadvise(fileno(file),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
+        char buf[1024*1024];
+        while(fgets(buf,1024*1024,file) && temp --) {
             //寻找第二个和第三个\t
             std::string key;
             std::string val;
+            str = buf;
             ret = getKeyAndValue(str,key,val);
             assert(ret > 0);
             allkeys.push_back(key);
@@ -667,7 +654,8 @@ private:
             if (recordnumber % 100000 == 0)
                 std::cout << "Record number: " << recordnumber << std::endl;
         }
-        cursor->close(cursor);
+
+            cursor->close(cursor);
         time_t now;
         struct tm *timenow;
         time(&now);

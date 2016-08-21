@@ -61,7 +61,7 @@ void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
     int old_insertPercent = -1;
 
-    std::thread loadInsertDataThread(Benchmark::loadInsertData,&insertFile,&setting);
+    std::thread loadInsertDataThread(Benchmark::loadInsertData,&setting);
     while( !setting.ifStop()){
 
         int readPercent = setting.getReadPercent();
@@ -142,17 +142,19 @@ std::string Benchmark::GatherTimeData(){
 
 size_t Benchmark::updateKeys(void) {
 
+    std::cout << "Update Keys:" << setting.getKeysDataPath() << std::endl;
+    std::ifstream keysFile(setting.getKeysDataPath());
+    assert(keysFile.is_open());
     std::string str;
     while( getline(keysFile,str)){
-        assert(str.find('\0') != std::string::npos);
         allkeys.push_back(str);
     }
+    keysFile.close();
     return allkeys.size();
 }
 
 void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys" << std::endl;
-    keysFile.close();
     std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
     for(auto& eachKey : allkeys){
         keyFile_bkup << eachKey << std::endl;
