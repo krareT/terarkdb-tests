@@ -280,7 +280,7 @@ private:
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
-        assert(idvec.size() <= 1);
+        //assert(idvec.size() <= 1);
         if ( idvec.size() == 0)
             return false;
         valvec<byte > row;
@@ -296,7 +296,7 @@ private:
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
-        assert(idvec.size() <= 1);
+        //assert(idvec.size() <= 1);
         if (idvec.size() == 0){
             return false;
         }
@@ -329,6 +329,7 @@ private:
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
+        allkeys.push_back(getKey(str));
         return true;
     }
 };
