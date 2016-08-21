@@ -639,12 +639,12 @@ private:
         int temp = 200000;
         FILE *file = fopen(setting.getLoadDataPath().c_str(),"r");
         posix_fadvise(fileno(file),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
-        char buf[1024*1024];
-        while(fgets(buf,1024*1024,file) && temp --) {
+        LineBuf line;
+        std::string key;
+        std::string val;
+        while(line.getline(file)&& temp --) {
             //寻找第二个和第三个\t
-            std::string key;
-            std::string val;
-            str = buf;
+            str = line.p;
             ret = getKeyAndValue(str,key,val);
             assert(ret > 0);
             allkeys.push_back(key);
