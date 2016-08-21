@@ -237,6 +237,7 @@ private:
         int temp = 200000;
         char buf[1024*1024];
         while (fgets(buf,1024*1024,loadFile) && temp--) {
+            str = buf;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
