@@ -34,6 +34,7 @@
 #include <terark/lcast.hpp>
 #include <terark/util/autofree.hpp>
 #include <terark/util/fstrvec.hpp>
+#include "terark/util/linebuf.hpp"
 #include <port/port_posix.h>
 #include <src/Setting.h>
 #include <thread>
@@ -105,14 +106,15 @@ public:
         posix_fadvise(fileno(ifs),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
         std::string str;
         std::cout << "loadInsertData start" << std::endl;
-        char buf[1024*1024];
         int count = 0;
+        LineBuf line;
         while( setting->ifStop() == false && !feof(ifs)){
             while( updateDataCq.unsafe_size() < 200000){
                 if (feof(ifs))
                     break;
-                fgets(buf,1024,ifs);
-                str = buf;
+                //fgets(buf,1024*1024,ifs);
+                line.getline(ifs);
+                str = line.p;
                 updateDataCq.push(str);
                 count ++;
             }
@@ -195,7 +197,7 @@ private:
     void Load(void){
 
         DoWrite(true);
-        tab->compact();
+        //tab->compact();
     }
     std::string getKey(std::string &str){
         std::vector<std::string> strvec;
@@ -235,9 +237,9 @@ private:
         assert(loadFile != NULL);
         posix_fadvise(fileno(loadFile),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
         int temp = 200000;
-        char buf[1024*1024];
-        while (fgets(buf,1024*1024,loadFile) && temp--) {
-            str = buf;
+        LineBuf line;
+        while (line.getline(loadFile) && temp--) {
+            str = line.p;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
@@ -293,7 +295,10 @@ private:
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(allkeys.at(rand() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
-        assert(idvec.size() == 1);
+        assert(idvec.size() <= 1);
+        if (idvec.size() == 0){
+            return false;
+        }
         valvec<byte> row;
         thread->ctx->getValue(idvec[0],&row);
         llong rid = thread->ctx->upsertRow(row);
