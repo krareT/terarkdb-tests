@@ -42,7 +42,8 @@
 #include <tbb/concurrent_vector.h>
 #include <stdint.h>
 #include <stdint-gcc.h>
-
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 //terarkdb -insert_data_path=/mnt/hdd/data/xab --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 #include <fcntl.h>
 #include <unistd.h>
@@ -59,6 +60,8 @@ struct ThreadState {
     std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
     std::atomic<std::vector<uint8_t >*> *whichSamplingPlan;
     DbContextPtr ctx;
+    unsigned int seed;
+    std::mt19937 randGenerator;
     ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
                 std::atomic<std::vector<uint8_t >*>* wsp,DbTablePtr *tab)
             :   tid(index),
@@ -68,6 +71,8 @@ struct ThreadState {
         STOP.store(false);
         ctx = (*tab)->createDbContext();
         ctx->syncIndex = true;
+        seed = tid;
+        randGenerator.seed(seed);
     }
     ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
                 std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
@@ -77,6 +82,8 @@ struct ThreadState {
         conn->open_session(conn, NULL, NULL, &session);
         STOP.store(false);
         assert(session != NULL);
+        seed = tid;
+        randGenerator.seed(seed);
     }
     ~ThreadState(){
     }
@@ -278,7 +285,7 @@ private:
         }
         valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-        fstring key(allkeys.at(rand() % allkeys.size()));
+        fstring key(allkeys.at(thread->randGenerator() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
         //assert(idvec.size() <= 1);
         if ( idvec.size() == 0)
@@ -294,7 +301,7 @@ private:
         }
         valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-        fstring key(allkeys.at(rand() % allkeys.size()));
+        fstring key(allkeys.at(thread->randGenerator() % allkeys.size()));
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
         //assert(idvec.size() <= 1);
         if (idvec.size() == 0){
@@ -470,7 +477,7 @@ private:
             exit(1);
         }
         int found = 0;
-        std::string key(allkeys.at(rand() % allkeys.size()));
+        std::string key(allkeys.at(thread->randGenerator() % allkeys.size()));
         cursor->set_key(cursor, key.c_str());
         if (cursor->search(cursor) == 0) {
             found++;
@@ -493,7 +500,7 @@ private:
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
             return false;
         }
-        std::string key = allkeys.at(rand() % allkeys.size());
+        std::string key = allkeys.at(thread->randGenerator() % allkeys.size());
         cursor->set_key(cursor, key.c_str());
         if (cursor->search(cursor) != 0){
             std::cerr << "cursor search error :" << key << std::endl;
