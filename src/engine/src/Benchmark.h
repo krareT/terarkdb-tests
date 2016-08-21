@@ -302,13 +302,20 @@ private:
         }
         valvec<byte> row;
         thread->ctx->getValue(idvec[0],&row);
-        llong rid = thread->ctx->upsertRow(row);
-        if (rid < 0) { // unique index
-            printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+        try {
+
+            llong rid = thread->ctx->upsertRow(row);
+            if (rid < 0) { // unique index
+                printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+                return false;
+            } else {
+                assert(VerifyOneKey(rid, row, thread->ctx) == true);
+            }
+        }catch (NeedRetryException e){
+            std::cerr << e.what() << std::endl;
             return false;
-        } else {
-            assert(VerifyOneKey(rid, row, thread->ctx) == true);
         }
+
         return true;
     }
 
