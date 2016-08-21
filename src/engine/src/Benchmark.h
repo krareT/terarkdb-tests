@@ -46,6 +46,7 @@
 //terarkdb -insert_data_path=/mnt/hdd/data/xab --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 #include <fcntl.h>
 #include <unistd.h>
+#include <boost/algorithm/string.hpp>
 //terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 
 using namespace terark;
@@ -424,6 +425,8 @@ private:
     size_t getKeyAndValue(std::string &str,std::string &key,std::string &val){
         std::vector<std::string> strvec;
         boost::split(strvec,str,boost::is_any_of("\t"));
+        key.clear();
+        val.clear();
         assert(key.size() + val.size() == 0);
         if ( strvec.size() < 8)
             return 0;
