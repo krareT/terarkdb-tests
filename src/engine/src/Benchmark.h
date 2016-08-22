@@ -34,7 +34,7 @@
 #include <terark/lcast.hpp>
 #include <terark/util/autofree.hpp>
 #include <terark/util/fstrvec.hpp>
-#include "terark/util/linebuf.hpp"
+//#include "terark/util/linebuf.hpp"
 #include <port/port_posix.h>
 #include <src/Setting.h>
 #include <thread>
@@ -324,7 +324,6 @@ private:
             std::cerr << e.what() << std::endl;
             return false;
         }
-
         return true;
     }
 
@@ -557,6 +556,7 @@ private:
             return false;
         }
         cursor->close(cursor);
+        allkeys.push_back(key);
         return true;
     }
     void Open() {
