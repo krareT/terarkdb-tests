@@ -114,16 +114,22 @@ public:
         std::cout << "loadInsertData start" << std::endl;
         int count = 0;
         //LineBuf line;
-        char buf[1024*1024];
+        char *buf = NULL;
+        size_t n = 0;
         while( setting->ifStop() == false && !feof(ifs)){
             while( updateDataCq.unsafe_size() < 200000){
                 if (feof(ifs))
                     break;
-                fgets(buf,1024*1024,ifs);
-                //line.getline(ifs);
+                getline(&buf,&n,ifs);
                 str = buf;
                 updateDataCq.push(str);
                 count ++;
+            }
+            if ( n > 1024*1024)
+            {
+                n = 0;
+                free(buf);
+                buf = NULL;
             }
             std::cout << "insert : " << count << std::endl;
             count = 0;
@@ -131,6 +137,10 @@ public:
         }
         fclose(ifs);
         std::cout << "loadInsertData stop" << std::endl;
+        if ( NULL != buf){
+            free(buf);
+            buf = NULL;
+        }
     }
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
@@ -180,7 +190,6 @@ public:
     bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
     bool executeOneOperation(ThreadState* state,uint8_t type);
     void ReadWhileWriting(ThreadState *thread);
-
     std::string GatherTimeData();
 };
 class TerarkBenchmark : public Benchmark{
@@ -231,8 +240,10 @@ private:
         posix_fadvise(fileno(loadFile),0,0,POSIX_FADV_SEQUENTIAL);
         int temp = 2000;
 //        LineBuf line;
-        char buf[1024*1024];
-        while (fgets(buf,1024*1024,loadFile) && temp--) {
+        char *buf;
+        size_t n = 0;
+        buf = NULL;
+        while (getline(&buf,&n,loadFile) && temp--) {
             str = buf;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
@@ -247,7 +258,14 @@ private:
             recordnumber++;
             if (recordnumber % 100000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
+            if (n > 1024*1024){
+                free(buf);
+                buf = NULL;
+                n = 0;
+            }
         }
+        if (buf == NULL)
+            free(buf);
         time_t now;
         struct tm *timenow;
         time(&now);
@@ -668,7 +686,7 @@ private:
                 std::cout << "Record number: " << recordnumber << std::endl;
         }
 
-            cursor->close(cursor);
+        cursor->close(cursor);
         time_t now;
         struct tm *timenow;
         time(&now);
