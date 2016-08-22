@@ -159,6 +159,7 @@ void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys" << std::endl;
     std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
     for(auto& eachKey : allkeys){
+        
         keyFile_bkup << eachKey << std::endl;
     }
     keyFile_bkup.close();

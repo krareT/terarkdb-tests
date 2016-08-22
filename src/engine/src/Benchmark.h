@@ -259,7 +259,7 @@ private:
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
             allkeys.push_back(getKey(str));
-            assert(VerifyOneKey(rid, row, ctx) == true);
+     //       assert(VerifyOneKey(rid, row, ctx) == true);
             recordnumber++;
             if (recordnumber % 100000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
@@ -317,8 +317,6 @@ private:
             if (rid < 0) { // unique index
                 printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
                 return false;
-            } else {
-                assert(VerifyOneKey(rid, row, thread->ctx) == true);
             }
         }catch (NeedRetryException e){
             std::cerr << e.what() << std::endl;
