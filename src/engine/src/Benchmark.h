@@ -205,7 +205,7 @@ private:
     void Load(void){
 
         DoWrite(true);
-        tab->compact();
+        //tab->compact();
     }
     std::string getKey(std::string &str){
         std::vector<std::string> strvec;
