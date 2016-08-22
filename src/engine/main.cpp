@@ -55,11 +55,11 @@ int main(int argc, char **argv) {
 
     if (strcmp(argv[1], "terarkdb") == 0) {
         bm = new TerarkBenchmark(setting);
-        worker = new AnalysisWorker("terarkdb");
+        worker = new AnalysisWorker("terarkdb",&setting);
     }
     else if (strcmp(argv[1], "wiredtiger") == 0) {
         bm = new WiredTigerBenchmark(setting);
-        worker = new AnalysisWorker("wiredtiger");
+        worker = new AnalysisWorker("wiredtiger",&setting);
     }
     else if (strcmp(argv[1], "compact") == 0) {
         compact(setting);
