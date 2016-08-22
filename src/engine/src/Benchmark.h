@@ -41,7 +41,6 @@
 #include "src/leveldb.h"
 #include <tbb/concurrent_vector.h>
 #include <stdint.h>
-#include <stdint-gcc.h>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 //terarkdb -insert_data_path=/mnt/hdd/data/xab --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
