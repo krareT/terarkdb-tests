@@ -60,22 +60,23 @@ namespace benchmark {
      * @return
      */
     std::vector<int> getPhysicalMemoryUsage(){
-        long long totalPhysMem, physMemFree, physMemBuffer, physMemCached;
+        int totalPhysMem, physMemFree, physMemAvaliable, physMemBuffer, physMemCached;
         FILE* file = fopen("/proc/meminfo", "r");
-        fscanf(file, "MemTotal: %llu kB\nMemFree: %llu kB\nBuffers: %llu kB\nCached: %llu\n",
-               &totalPhysMem, &physMemFree,&physMemBuffer, &physMemCached);
+        fscanf(file, "MemTotal: %d kB MemFree: %d kB MemAvailable: %d kB Buffers: %d kB Cached: %d kB",
+               &totalPhysMem, &physMemFree, &physMemAvaliable, &physMemBuffer, &physMemCached);
         fclose(file);
+
+//        printf("%d %d %d %d %d\n", totalPhysMem, physMemAvaliable, physMemFree, physMemBuffer, physMemCached);
 
         std::vector<int> arr;
         // KB
-        long long physMemUsed = totalPhysMem - physMemFree - physMemBuffer - physMemCached;
+        int physMemUsed = totalPhysMem - physMemFree - physMemBuffer - physMemCached;
 
         // MB, total,free,cached,used
-        arr.push_back(int(totalPhysMem/1024));
-        arr.push_back(int(physMemFree/1024));
-        arr.push_back(int((physMemBuffer + physMemCached)/1024));
-        arr.push_back(int(physMemUsed/1024));
-//        printf("%d %d %d %d\n", arr[0], arr[1], arr[2], arr[3]);
+        arr.push_back(totalPhysMem/1024);
+        arr.push_back(physMemFree/1024);
+        arr.push_back((physMemBuffer + physMemCached)/1024);
+        arr.push_back(physMemUsed/1024);
         return arr;
     }
 }
