@@ -205,26 +205,12 @@ private:
     void Load(void){
 
         DoWrite(true);
-        //tab->compact();
+        tab->compact();
     }
     std::string getKey(std::string &str){
         std::vector<std::string> strvec;
         boost::split(strvec,str,boost::is_any_of("\t"));
         return strvec[2] + '\0' + strvec[7];
-    }
-    std::string getKey(llong rid,const DbContextPtr &ctx,const std::vector<size_t> &idvec){
-        std::string key;
-        valvec<byte> row;
-        for(auto eachId:idvec){
-            row.clear();
-            ctx->selectOneColumn(rid,eachId,&row);
-            key += fstring(row).c_str();
-            key += '\0';
-        }
-        //删除最后一个'\0'
-        key.pop_back();
-        std::cout << key << std::endl;
-        return key;
     }
     void Open() {
         PrintHeader();
