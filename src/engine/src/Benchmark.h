@@ -115,14 +115,15 @@ public:
         std::string str;
         std::cout << "loadInsertData start" << std::endl;
         int count = 0;
-        LineBuf line;
+        //LineBuf line;
+        char buf[1024*1024];
         while( setting->ifStop() == false && !feof(ifs)){
             while( updateDataCq.unsafe_size() < 200000){
                 if (feof(ifs))
                     break;
-                //fgets(buf,1024*1024,ifs);
-                line.getline(ifs);
-                str = line.p;
+                fgets(buf,1024*1024,ifs);
+                //line.getline(ifs);
+                str = buf;
                 updateDataCq.push(str);
                 count ++;
             }
@@ -244,10 +245,11 @@ private:
         FILE *loadFile = fopen(setting.getLoadDataPath().c_str(),"r");
         assert(loadFile != NULL);
         posix_fadvise(fileno(loadFile),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
-        int temp = 200000;
-        LineBuf line;
-        while (line.getline(loadFile) && temp--) {
-            str = line.p;
+        int temp = 2000;
+//        LineBuf line;
+        char buf[1024*1024];
+        while (fgets(buf,1024*1024,loadFile) && temp--) {
+            str = buf;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
                 continue;
@@ -654,15 +656,16 @@ private:
 
         std::string str;
         long long recordnumber = 0;
-        int temp = 200000;
+        int temp = 2000;
         FILE *file = fopen(setting.getLoadDataPath().c_str(),"r");
         posix_fadvise(fileno(file),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
-        LineBuf line;
+//        LineBuf line;
         std::string key;
         std::string val;
-        while(line.getline(file)&& temp --) {
+        char buf[1024*1024];
+        while(fgets(buf,1024*1024,file)&& temp --) {
             //寻找第二个和第三个\t
-            str = line.p;
+            str = buf;
             ret = getKeyAndValue(str,key,val);
             assert(ret > 0);
             allkeys.push_back(key);
