@@ -666,12 +666,18 @@ private:
 //        LineBuf line;
         std::string key;
         std::string val;
-        char buf[1024*1024];
-        while(fgets(buf,1024*1024,file)&& temp --) {
-            //寻找第二个和第三个\t
+        char *buf = NULL;
+        size_t n = 0;
+        while(getline(&buf,&n,file)&& temp --) {
             str = buf;
+            if ( n > 1024 * 1024){
+                free(buf);
+                buf = NULL;
+                n = 0;
+            }
             ret = getKeyAndValue(str,key,val);
-            assert(ret > 0);
+            if (ret == 0)
+                continue;
             allkeys.push_back(key);
             cursor->set_key(cursor, key.c_str());
             cursor->set_value(cursor,val.c_str());
@@ -684,8 +690,12 @@ private:
             recordnumber++;
             if (recordnumber % 100000 == 0)
                 std::cout << "Record number: " << recordnumber << std::endl;
-        }
 
+        }
+        if ( buf != NULL){
+            free(buf);
+            buf = NULL;
+        }
         cursor->close(cursor);
         time_t now;
         struct tm *timenow;
