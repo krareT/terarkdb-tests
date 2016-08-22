@@ -102,7 +102,6 @@ private:
     void backupKeys(void);
 
 public:
-    static const uint32_t FILE_BLOCK = 0;
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
@@ -110,7 +109,7 @@ public:
     static void loadInsertData(Setting *setting){
         FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
         assert(ifs != NULL);
-        posix_fadvise(fileno(ifs),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
+        posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
         std::string str;
         std::cout << "loadInsertData start" << std::endl;
         int count = 0;
@@ -229,7 +228,7 @@ private:
         ctx->syncIndex = setting.FLAGS_sync_index;
         FILE *loadFile = fopen(setting.getLoadDataPath().c_str(),"r");
         assert(loadFile != NULL);
-        posix_fadvise(fileno(loadFile),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
+        posix_fadvise(fileno(loadFile),0,0,POSIX_FADV_SEQUENTIAL);
         int temp = 2000;
 //        LineBuf line;
         char buf[1024*1024];
@@ -645,7 +644,7 @@ private:
         long long recordnumber = 0;
         int temp = 2000;
         FILE *file = fopen(setting.getLoadDataPath().c_str(),"r");
-        posix_fadvise(fileno(file),0,FILE_BLOCK,POSIX_FADV_SEQUENTIAL);
+        posix_fadvise(fileno(file),0,0,POSIX_FADV_SEQUENTIAL);
 //        LineBuf line;
         std::string key;
         std::string val;
