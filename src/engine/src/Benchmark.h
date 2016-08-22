@@ -239,7 +239,6 @@ private:
         assert(loadFile != NULL);
         posix_fadvise(fileno(loadFile),0,0,POSIX_FADV_SEQUENTIAL);
         int temp = 2000;
-//        LineBuf line;
         char *buf;
         size_t n = 0;
         buf = NULL;
@@ -264,8 +263,9 @@ private:
                 n = 0;
             }
         }
-        if (buf == NULL)
+        if (buf != NULL) {
             free(buf);
+        }
         time_t now;
         struct tm *timenow;
         time(&now);
