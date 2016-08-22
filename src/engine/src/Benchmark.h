@@ -330,7 +330,6 @@ private:
         std::string str;
 
         if (updateDataCq.try_pop(str) == false) {
-            std::cerr << "cp empty!" << std::endl;
             return false;
         }
         const Schema &rowSchema = tab->rowSchema();
@@ -339,8 +338,13 @@ private:
             std::cerr << "InsertOneKey error:" << str << std::endl;
             return false;
         }
-        if (thread->ctx->upsertRow(row) < 0) { // unique index
-            printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+        try{
+            if (thread->ctx->upsertRow(row) < 0) { // unique index
+                printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+                return false;
+            }
+        }catch (NeedRetryException e){
+            std::cerr << e.what() << std::endl;
             return false;
         }
         allkeys.push_back(getKey(str));
