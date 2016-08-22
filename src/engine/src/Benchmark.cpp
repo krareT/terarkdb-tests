@@ -147,6 +147,8 @@ size_t Benchmark::updateKeys(void) {
     assert(keysFile.is_open());
     std::string str;
     while( getline(keysFile,str)){
+        if (str.size() == 0)
+            continue;
         allkeys.push_back(str);
     }
     keysFile.close();

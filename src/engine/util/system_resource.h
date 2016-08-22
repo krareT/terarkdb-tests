@@ -60,22 +60,23 @@ namespace benchmark {
      * @return
      */
     std::vector<int> getPhysicalMemoryUsage(){
-        sysinfo (&memInfo);
+        long long totalPhysMem, physMemFree, physMemBuffer, physMemCached;
+        FILE* file = fopen("/proc/meminfo", "r");
+        fscanf(file, "MemTotal: %llu kB\nMemFree: %llu kB\nBuffers: %llu kB\nCached: %llu\n",
+               &totalPhysMem, &physMemFree,&physMemBuffer, &physMemCached);
+        fclose(file);
+
         std::vector<int> arr;
         // KB
-        long long totalPhysMem = memInfo.totalram;
-        long long physMemFree = memInfo.freeram;
-        long long physMemBuffer = memInfo.bufferram;
-        long long physMemUsed = memInfo.totalram - memInfo.freeram;
+        long long physMemUsed = totalPhysMem - physMemFree - physMemBuffer - physMemCached;
 
-        // MB
+        // MB, total,free,cached,used
         arr.push_back(int(totalPhysMem/1024));
         arr.push_back(int(physMemFree/1024));
-        arr.push_back(int(physMemBuffer/1024));
+        arr.push_back(int((physMemBuffer + physMemCached)/1024));
         arr.push_back(int(physMemUsed/1024));
 //        printf("%d %d %d %d\n", arr[0], arr[1], arr[2], arr[3]);
         return arr;
     }
-
 }
 #endif //TERARKDB_TEST_FRAMEWORK_SYSTEM_RESOURCE_H
