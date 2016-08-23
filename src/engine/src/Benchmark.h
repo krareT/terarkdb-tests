@@ -239,7 +239,6 @@ private:
         assert(loadFile != NULL);
         posix_fadvise(fileno(loadFile),0,0,POSIX_FADV_SEQUENTIAL);
         int temp = 2000;
-//        LineBuf line;
         char *buf;
         size_t n = 0;
         buf = NULL;
@@ -264,8 +263,9 @@ private:
                 n = 0;
             }
         }
-        if (buf == NULL)
+        if (buf != NULL) {
             free(buf);
+        }
         time_t now;
         struct tm *timenow;
         time(&now);
@@ -581,6 +581,7 @@ private:
 #endif
         //config << ",verbose=[lsm]";
         Env::Default()->CreateDir(setting.FLAGS_db);
+        printf("WT config : %s\n",config.str().c_str());
         wiredtiger_open(setting.FLAGS_db, NULL, config.str().c_str(), &conn_);
         assert(conn_ != NULL);
 
@@ -660,7 +661,6 @@ private:
 
         std::string str;
         long long recordnumber = 0;
-        int temp = 2000;
         FILE *file = fopen(setting.getLoadDataPath().c_str(),"r");
         posix_fadvise(fileno(file),0,0,POSIX_FADV_SEQUENTIAL);
 //        LineBuf line;
@@ -668,7 +668,7 @@ private:
         std::string val;
         char *buf = NULL;
         size_t n = 0;
-        while(getline(&buf,&n,file)&& temp --) {
+        while(getline(&buf,&n,file)) {
             str = buf;
             if ( n > 1024 * 1024){
                 free(buf);
