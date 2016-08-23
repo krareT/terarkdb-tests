@@ -667,7 +667,7 @@ private:
         std::string val;
         char *buf = NULL;
         size_t n = 0;
-        while( -1 ！= getline(&buf,&n,file)) {
+        while( -1 != getline(&buf,&n,file)) {
             str = buf;
             if ( n > 1024 * 1024){
                 free(buf);
