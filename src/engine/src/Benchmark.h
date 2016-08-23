@@ -241,7 +241,7 @@ private:
         char *buf;
         size_t n = 0;
         buf = NULL;
-        while (getline(&buf,&n,loadFile)) {
+        while (getline(&buf,&n,loadFile) != -1) {
             str = buf;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
