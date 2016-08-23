@@ -63,6 +63,8 @@ int main(int argc, char **argv) {
     }
     else if (strcmp(argv[1], "compact") == 0) {
         compact(setting);
+        puts("Compact Finish.Exit the program.");
+        exit(1);
     }
     std::thread tcpServerThread(tcpServer, &setting, bm);
 
