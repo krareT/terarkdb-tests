@@ -45,8 +45,9 @@ void Setting::wiredTigerSetting(int argc, char **argv){
         } else if (sscanf(argv[i], "--write_buffer_size=%d%c", &n, &junk) == 1) {
             FLAGS_write_buffer_size = n;
         } else if (sscanf(argv[i], "--cache_size=%ld%c", &size, &junk) == 1) {
-            std::cout << "cache_size " << size << std::endl;
+
             FLAGS_cache_size = size;
+            std::cout << "cache_size " << FLAGS_cache_size << std::endl;
         } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
             FLAGS_bloom_bits = n;
         } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
