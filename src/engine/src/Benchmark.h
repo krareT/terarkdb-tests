@@ -238,11 +238,10 @@ private:
         FILE *loadFile = fopen(setting.getLoadDataPath().c_str(),"r");
         assert(loadFile != NULL);
         posix_fadvise(fileno(loadFile),0,0,POSIX_FADV_SEQUENTIAL);
-        int temp = 2000;
         char *buf;
         size_t n = 0;
         buf = NULL;
-        while (getline(&buf,&n,loadFile) && temp--) {
+        while (getline(&buf,&n,loadFile)) {
             str = buf;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
                 std::cerr << "ERROR STR:" << str << std::endl;
