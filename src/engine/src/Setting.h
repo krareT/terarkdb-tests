@@ -104,7 +104,7 @@ public:
 
 // Number of bytes to use as a cache of uncompressed data.
 // Negative means use default settings.
-     int FLAGS_cache_size = -1;
+    long FLAGS_cache_size = -1;
 
 // Maximum number of files to keep open at the same time (use default if == 0)
      int FLAGS_open_files = 0;
