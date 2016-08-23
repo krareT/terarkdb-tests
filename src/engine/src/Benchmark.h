@@ -581,6 +581,7 @@ private:
 #endif
         //config << ",verbose=[lsm]";
         Env::Default()->CreateDir(setting.FLAGS_db);
+        puts(config.str().c_str());
         wiredtiger_open(setting.FLAGS_db, NULL, config.str().c_str(), &conn_);
         assert(conn_ != NULL);
 
