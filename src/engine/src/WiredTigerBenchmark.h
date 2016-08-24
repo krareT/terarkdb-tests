@@ -4,7 +4,6 @@
 
 #ifndef TERARKDB_TEST_FRAMEWORK_WIREDTIGERBENCHMARK_H
 #define TERARKDB_TEST_FRAMEWORK_WIREDTIGERBENCHMARK_H
-
 #include "Benchmark.h"
 
 using namespace leveldb;
@@ -92,7 +91,6 @@ private:
     }
 public:
     WiredTigerBenchmark(Setting &setting1) : Benchmark(setting1) {
-
     }
     ~WiredTigerBenchmark() {
     }
@@ -115,17 +113,17 @@ private:
         return strvec.size();
     }
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
-    std::atomic<std::vector<uint8_t >*>* whichSPlan){
+    std::atomic<std::vector<uint8_t >*>* whichSPlan) override {
         return new ThreadState(threads.size(),conn_,whichEPlan,whichSPlan);
     }
-    void Load(void){
+    void Load(void) override{
         DoWrite(true);
     }
-    void Close(void){
+    void Close(void) override{
         conn_->close(conn_, NULL);
         conn_ = NULL;
     }
-    bool ReadOneKey(ThreadState *thread) {
+    bool ReadOneKey(ThreadState *thread) override {
         std::string str;
         if ( getRandomKey(str,thread->randGenerator) == false){
             return false;
@@ -149,8 +147,7 @@ private:
         cursor->close(cursor);
         return found > 0;
     }
-
-    bool UpdateOneKey(ThreadState *thread) {
+    bool UpdateOneKey(ThreadState *thread) override {
 
         std::string key;
         if ( getRandomKey(key,thread->randGenerator) == false){
@@ -182,7 +179,7 @@ private:
         cursor->close(cursor);
         return true;
     }
-    bool InsertOneKey(ThreadState *thread){
+    bool InsertOneKey(ThreadState *thread) override{
         WT_CURSOR *cursor;
         int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
         if (ret != 0) {
@@ -215,7 +212,7 @@ private:
         pushKey(key);
         return true;
     }
-    void Open() {
+    void Open() override{
         PrintHeader();
         PrintEnvironment();
         PrintWarnings();

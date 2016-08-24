@@ -15,19 +15,20 @@ private:
 public:
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
     ~TerarkBenchmark() {
-        tab->safeStopAndWaitForCompress();
+        if (NULL != tab)
+            tab->safeStopAndWaitForCompress();
         tab = NULL;
     }
 private:
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
-    std::atomic<std::vector<uint8_t >*>* whichSPlan){
+    std::atomic<std::vector<uint8_t >*>* whichSPlan) override{
         return new ThreadState(threads.size(),whichEPlan,whichSPlan,&tab);
     }
     void PrintHeader() {
         fprintf(stdout, "NarkDB Test Begins!");
     }
-    void Close(){tab->safeStopAndWaitForFlush();tab = NULL;};
-    void Load(void){
+    void Close() override {tab->safeStopAndWaitForFlush();tab = NULL;};
+    void Load(void) override{
 
         DoWrite(true);
         //tab->compact();
@@ -37,7 +38,7 @@ private:
         boost::split(strvec,str,boost::is_any_of("\t"));
         return strvec[2] + '\0' + strvec[7];
     }
-    void Open() {
+    void Open() override {
         PrintHeader();
         assert(tab == NULL);
         std::cout << "Open database " << setting.FLAGS_db<< std::endl;
@@ -100,7 +101,7 @@ private:
         }
         return true;
     }
-    bool ReadOneKey(ThreadState *thread) {
+    bool ReadOneKey(ThreadState *thread) override{
         std::string keyStr;
         if (false == getRandomKey(keyStr,thread->randGenerator)) {
             std::cout << "allkeys empty" << std::endl;
@@ -118,7 +119,7 @@ private:
         thread->ctx->getValue(idvec[0],&row);
         return true;
     }
-    bool UpdateOneKey(ThreadState *thread) {
+    bool UpdateOneKey(ThreadState *thread) override {
         std::string keyStr;
         if (false == getRandomKey(keyStr,thread->randGenerator)) {
             std::cout << "allkeys empty" << std::endl;
@@ -146,8 +147,7 @@ private:
         }
         return true;
     }
-
-    bool InsertOneKey(ThreadState *thread){
+    bool InsertOneKey(ThreadState *thread) override {
         std::string str;
 
         if (updateDataCq.try_pop(str) == false) {
