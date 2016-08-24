@@ -87,6 +87,10 @@ void Benchmark::RunBenchmark(void){
         }
         int threadNum = setting.getThreadNums();
         adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
+        if (setting.getCompactTimes() > compactTimes){
+            compactTimes++;
+            std::thread compactThread(Benchmark::CompactThreadBody,this);
+        }
         sleep(5);
     }
     adjustThreadNum(0, nullptr, nullptr);
@@ -228,4 +232,12 @@ void  Benchmark::Run(void){
         RunBenchmark();
     }
     Close();
+};
+Benchmark::Benchmark(const Setting &s):setting(s){
+        compactTimes = 0;
+        executeFuncMap[1] = &Benchmark::ReadOneKey;
+        executeFuncMap[0] = &Benchmark::UpdateOneKey;
+        executeFuncMap[2] = &Benchmark::InsertOneKey;
+        samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
+        samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
 };

@@ -172,6 +172,9 @@ private:
         pushKey(key);
         return true;
     }
+    bool Compact() override {
+
+    };
 };
 
 #endif //TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H

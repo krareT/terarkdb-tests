@@ -63,11 +63,17 @@ private:
     std::vector<uint8_t > samplingPlan[2];
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
+    uint8_t compactTimes;
     size_t updateKeys(void);
     void backupKeys(void);
     static void loadInsertData(const Setting *setting);
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
+    }
+    static void CompactThreadBody(Benchmark *bm){
+        static std::mutex mtx;
+        std::lock_guard<std::mutex> lock(mtx);
+        bm->Compact();
     }
     void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal);
     void shufflePlan(std::vector<uint8_t > &plan);
@@ -83,17 +89,13 @@ private:
     static terark::fstrvec allkeys;
     static tbb::spin_rw_mutex allkeysRwMutex;
 public:
+    void  Run(void);
+    bool getRandomKey(std::string &key,std::mt19937 &rg);
+    bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     const Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
-    Benchmark(Setting &s):setting(s){
-        executeFuncMap[1] = &Benchmark::ReadOneKey;
-        executeFuncMap[0] = &Benchmark::UpdateOneKey;
-        executeFuncMap[2] = &Benchmark::InsertOneKey;
-        samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
-        samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
-    };
-    void  Run(void);
+    Benchmark(const Setting &s);
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;
@@ -102,8 +104,7 @@ public:
     virtual bool InsertOneKey(ThreadState *) = 0;
     virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
                                         std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
-    bool getRandomKey(std::string &key,std::mt19937 &rg);
-    bool pushKey(std::string &key);
+    virtual bool Compact(void) = 0;
 };
 
 
