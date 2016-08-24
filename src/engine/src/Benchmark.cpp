@@ -132,14 +132,6 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
     std::cout << "Thread " << thread->tid << " stop!" << std::endl;
 }
 
-std::string Benchmark::GatherTimeData(){
-    std::stringstream ret;
-    for( auto& eachThread : threads){
-        ret << "Thread " << Stats::readTimeDataCq.unsafe_size() << std::endl;
-    }
-    return ret.str();
-}
-
 size_t Benchmark::updateKeys(void) {
 
     std::cout << "Update Keys:" << setting.getKeysDataPath() << std::endl;

@@ -100,12 +100,6 @@ private:
     bool whichSPlan = false;
     size_t updateKeys(void);
     void backupKeys(void);
-
-public:
-    std::vector<std::pair<std::thread,ThreadState*>> threads;
-    Setting &setting;
-    static tbb::concurrent_queue<std::string> updateDataCq;
-    static tbb::concurrent_vector<std::string> allkeys;
     static void loadInsertData(Setting *setting){
         FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
         assert(ifs != NULL);
@@ -142,6 +136,29 @@ public:
             buf = NULL;
         }
     }
+    static void ThreadBody(Benchmark *bm,ThreadState* state){
+        bm->ReadWhileWriting(state);
+    }
+    void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal);
+
+    void shufflePlan(std::vector<uint8_t > &plan);
+
+    void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
+                         std::atomic<std::vector<uint8_t >*>* whichSPlan);
+    void adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent);
+    void adjustSamplingPlan(uint8_t samplingRate);
+    void RunBenchmark(void);
+    bool executeOneOperationWithSampling(ThreadState* state,uint8_t type);
+    bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
+    bool executeOneOperation(ThreadState* state,uint8_t type);
+    void ReadWhileWriting(ThreadState *thread);
+
+public:
+    std::vector<std::pair<std::thread,ThreadState*>> threads;
+    Setting &setting;
+    static tbb::concurrent_queue<std::string> updateDataCq;
+    static tbb::concurrent_vector<std::string> allkeys;
+
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
         executeFuncMap[0] = &Benchmark::UpdateOneKey;
@@ -149,9 +166,9 @@ public:
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
     };
-    virtual void  Run(void) final {
-        Open();
 
+    void  Run(void){
+        Open();
         std::cout << setting.ifRunOrLoad() << std::endl;
         if (setting.ifRunOrLoad() == "load") {
             allkeys.clear();
@@ -173,24 +190,6 @@ public:
     virtual bool InsertOneKey(ThreadState *) = 0;
     virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
                                         std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
-
-    static void ThreadBody(Benchmark *bm,ThreadState* state){
-        bm->ReadWhileWriting(state);
-    }
-    void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal);
-
-    void shufflePlan(std::vector<uint8_t > &plan);
-
-    void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
-                         std::atomic<std::vector<uint8_t >*>* whichSPlan);
-    void adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent);
-    void adjustSamplingPlan(uint8_t samplingRate);
-    void RunBenchmark(void);
-    bool executeOneOperationWithSampling(ThreadState* state,uint8_t type);
-    bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
-    bool executeOneOperation(ThreadState* state,uint8_t type);
-    void ReadWhileWriting(ThreadState *thread);
-    std::string GatherTimeData();
 };
 class TerarkBenchmark : public Benchmark{
 private:
