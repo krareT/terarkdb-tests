@@ -152,8 +152,8 @@ private:
 
     bool UpdateOneKey(ThreadState *thread) {
 
-        std::string str;
-        if ( getRandomKey(str,thread->randGenerator) == false){
+        std::string key;
+        if ( getRandomKey(key,thread->randGenerator) == false){
             return false;
         }
         WT_CURSOR *cursor;
@@ -162,16 +162,14 @@ private:
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
             return false;
         }
-        std::string key;
-        std::string val;
-        getKeyAndValue(str,key,val);
+
         cursor->set_key(cursor, key.c_str());
         if (cursor->search(cursor) != 0){
             std::cerr << "cursor search error :" << key << std::endl;
             cursor->close(cursor);
             return false;
         }
-        const char *value;
+        const char *val;
         ret = cursor->get_value(cursor,&val);
         assert(ret == 0);
         cursor->set_value(cursor,val);

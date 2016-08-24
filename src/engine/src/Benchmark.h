@@ -80,7 +80,6 @@ private:
     bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
     bool executeOneOperation(ThreadState* state,uint8_t type);
     void ReadWhileWriting(ThreadState *thread);
-    //static tbb::concurrent_vector<std::string> allkeys;
     static terark::fstrvec allkeys;
     static tbb::spin_rw_mutex allkeysRwMutex;
 public:
