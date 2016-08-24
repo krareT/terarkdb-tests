@@ -106,6 +106,7 @@ private:
             std::cout << "allkeys empty" << std::endl;
             return false;
         }
+        thread->ctx;
         valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
         fstring key(keyStr);
