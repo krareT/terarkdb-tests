@@ -157,3 +157,23 @@ void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys finish" << std::endl;
 
 }
+
+bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
+
+    if (allkeys.empty()){
+        return false;
+    }
+    key = allkeys.at(rg() % allkeys.size());
+    return true;
+}
+
+bool Benchmark::pushKey(std::string &key) {
+
+    try {
+        allkeys.push_back(key);
+    }catch (std::exception e){
+        fprintf(stderr,"%s\n",e);
+        return false;
+    }
+    return true;
+}
