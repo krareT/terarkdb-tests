@@ -176,7 +176,7 @@ bool Benchmark::pushKey(std::string &key) {
     try {
         allkeys.push_back(key);
     }catch (std::exception e){
-        fprintf(stderr,"%s\n",e);
+        fprintf(stderr,"%s\n",e.what());
         return false;
     }
     return true;
