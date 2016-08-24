@@ -165,7 +165,7 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
     if (allkeys.empty()){
         return false;
     }
-    key = allkeys.str(rg() % allkeys.size());
+    key.assign(allkeys.str(rg() % allkeys.size()));
     return true;
 }
 
