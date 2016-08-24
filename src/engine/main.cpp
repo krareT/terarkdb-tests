@@ -11,6 +11,8 @@
 #include "src/Benchmark.h"
 #include "src/TcpServer.h"
 #include <signal.h>
+#include <src/TerarkBenchmark.h>
+#include <src/WiredTigerBenchmark.h>
 #include "src/Stats.h"
 #include "src/analysis_worker.h"
 
@@ -66,8 +68,8 @@ int main(int argc, char **argv) {
         puts("Compact Finish.Exit the program.");
         exit(1);
     }
+    //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);
-
     // start a thread for analysis and data upload
     std::thread workerThrad([](AnalysisWorker* w) {
         w->run();
