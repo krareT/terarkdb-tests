@@ -22,11 +22,7 @@ void Session::read_line_handler(const boost::system::error_code& ec,std::size_t 
     std::getline(is, line);
     std::cout << "Get:" << line << std::endl;
     std::string message;
-    if (line == "query ops"){
-        message = benchmark->GatherTimeData();
-    }else {
-        message = setting->setBaseSetting(line);
-    }
+    message = setting->setBaseSetting(line);
     message += "\nEND\r\n";
     do_write(message);
 }

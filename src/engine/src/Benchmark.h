@@ -100,12 +100,6 @@ private:
     bool whichSPlan = false;
     size_t updateKeys(void);
     void backupKeys(void);
-
-public:
-    std::vector<std::pair<std::thread,ThreadState*>> threads;
-    Setting &setting;
-    static tbb::concurrent_queue<std::string> updateDataCq;
-    static tbb::concurrent_vector<std::string> allkeys;
     static void loadInsertData(Setting *setting){
         FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
         assert(ifs != NULL);
@@ -142,45 +136,11 @@ public:
             buf = NULL;
         }
     }
-    Benchmark(Setting &s):setting(s){
-        executeFuncMap[1] = &Benchmark::ReadOneKey;
-        executeFuncMap[0] = &Benchmark::UpdateOneKey;
-        executeFuncMap[2] = &Benchmark::InsertOneKey;
-        samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
-        samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
-    };
-    virtual void  Run(void) final {
-        Open();
-
-        std::cout << setting.ifRunOrLoad() << std::endl;
-        if (setting.ifRunOrLoad() == "load") {
-            allkeys.clear();
-            Load();
-            backupKeys();
-        }
-        else {
-            std::cout << "allKeys size:" <<updateKeys() << std::endl;
-            RunBenchmark();
-        }
-        Close();
-    };
-
-    virtual void Open(void) = 0;
-    virtual void Load(void) = 0;
-    virtual void Close(void) = 0;
-    virtual bool ReadOneKey(ThreadState*) = 0;
-    virtual bool UpdateOneKey(ThreadState *) = 0;
-    virtual bool InsertOneKey(ThreadState *) = 0;
-    virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
-                                        std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
-
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
     void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal);
-
     void shufflePlan(std::vector<uint8_t > &plan);
-
     void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
                          std::atomic<std::vector<uint8_t >*>* whichSPlan);
     void adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent);
@@ -190,7 +150,44 @@ public:
     bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
     bool executeOneOperation(ThreadState* state,uint8_t type);
     void ReadWhileWriting(ThreadState *thread);
-    std::string GatherTimeData();
+    //static tbb::concurrent_vector<std::string> allkeys;
+    static terark::fstrvec allkeys;
+    static tbb::spin_rw_mutex allkeysRwMutex;
+public:
+    std::vector<std::pair<std::thread,ThreadState*>> threads;
+    Setting &setting;
+    static tbb::concurrent_queue<std::string> updateDataCq;
+    Benchmark(Setting &s):setting(s){
+        executeFuncMap[1] = &Benchmark::ReadOneKey;
+        executeFuncMap[0] = &Benchmark::UpdateOneKey;
+        executeFuncMap[2] = &Benchmark::InsertOneKey;
+        samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
+        samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
+    };
+    void  Run(void){
+        Open();
+        std::cout << setting.ifRunOrLoad() << std::endl;
+        if (setting.ifRunOrLoad() == "load") {
+            allkeys.erase_all();
+            Load();
+            backupKeys();
+        }
+        else {
+            std::cout << "allKeys size:" <<updateKeys() << std::endl;
+            RunBenchmark();
+        }
+        Close();
+    };
+    virtual void Open(void) = 0;
+    virtual void Load(void) = 0;
+    virtual void Close(void) = 0;
+    virtual bool ReadOneKey(ThreadState*) = 0;
+    virtual bool UpdateOneKey(ThreadState *) = 0;
+    virtual bool InsertOneKey(ThreadState *) = 0;
+    virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
+                                        std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
+    bool getRandomKey(std::string &key,std::mt19937 &rg);
+    bool pushKey(std::string &key);
 };
 class TerarkBenchmark : public Benchmark{
 private:
@@ -241,6 +238,7 @@ private:
         char *buf;
         size_t n = 0;
         buf = NULL;
+        std::string key;
         while (getline(&buf,&n,loadFile) != -1) {
             str = buf;
             if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
@@ -251,8 +249,9 @@ private:
             if (rid < 0) { // unique index
                 printf("Insert failed: %s\n", ctx->errMsg.c_str());
             }
-            allkeys.push_back(getKey(str));
-     //       assert(VerifyOneKey(rid, row, ctx) == true);
+            assert(VerifyOneKey(rid, row, ctx) == true);
+            key = getKey(str);
+            pushKey( key);
             recordnumber++;
             if (recordnumber % 100000 == 0)
                 std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
@@ -282,13 +281,14 @@ private:
         return true;
     }
     bool ReadOneKey(ThreadState *thread) {
-        if (allkeys.size() == 0) {
+        static std::string keyStr;
+        if (false == getRandomKey(keyStr,thread->randGenerator)) {
             std::cout << "allkeys empty" << std::endl;
             return false;
         }
         valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-        fstring key(allkeys.at(thread->randGenerator() % allkeys.size()));
+        fstring key(keyStr);
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
         //assert(idvec.size() <= 1);
         if ( idvec.size() == 0)
@@ -298,13 +298,14 @@ private:
         return true;
     }
     bool UpdateOneKey(ThreadState *thread) {
-        if (allkeys.size() == 0) {
+        static std::string keyStr;
+        if (false == getRandomKey(keyStr,thread->randGenerator)) {
             std::cout << "allkeys empty" << std::endl;
             return false;
         }
         valvec<llong> idvec;
         size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-        fstring key(allkeys.at(thread->randGenerator() % allkeys.size()));
+        fstring key(keyStr);
         tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
         //assert(idvec.size() <= 1);
         if (idvec.size() == 0){
@@ -347,7 +348,8 @@ private:
             std::cerr << e.what() << std::endl;
             return false;
         }
-        allkeys.push_back(getKey(str));
+        std::string key = getKey(str);
+        pushKey(key);
         return true;
     }
 };
@@ -470,18 +472,19 @@ private:
         conn_ = NULL;
     }
     bool ReadOneKey(ThreadState *thread) {
-
-        WT_CURSOR *cursor;
-        if ( allkeys.size() == 0){
+        std::string str;
+        if ( getRandomKey(str,thread->randGenerator) == false){
             return false;
         }
+        WT_CURSOR *cursor;
+
         int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
         if (ret != 0) {
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
             exit(1);
         }
         int found = 0;
-        std::string key(allkeys.at(thread->randGenerator() % allkeys.size()));
+        std::string key(str);
         cursor->set_key(cursor, key.c_str());
         if (cursor->search(cursor) == 0) {
             found++;
@@ -495,23 +498,26 @@ private:
 
     bool UpdateOneKey(ThreadState *thread) {
 
-        if (allkeys.size() == 0)
+        std::string str;
+        if ( getRandomKey(str,thread->randGenerator) == false){
             return false;
-
+        }
         WT_CURSOR *cursor;
         int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
         if (ret != 0){
             fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
             return false;
         }
-        std::string key = allkeys.at(thread->randGenerator() % allkeys.size());
+        std::string key;
+        std::string val;
+        getKeyAndValue(str,key,val);
         cursor->set_key(cursor, key.c_str());
         if (cursor->search(cursor) != 0){
             std::cerr << "cursor search error :" << key << std::endl;
             cursor->close(cursor);
             return false;
         }
-        const char *val;
+        const char *value;
         ret = cursor->get_value(cursor,&val);
         assert(ret == 0);
         cursor->set_value(cursor,val);
@@ -544,7 +550,6 @@ private:
             cursor->close(cursor);
             return false;
         }
-        //allkeys.push_back(key);
         cursor->set_key(cursor, key.c_str());
         cursor->set_value(cursor,val.c_str());
 
@@ -555,7 +560,7 @@ private:
             return false;
         }
         cursor->close(cursor);
-        allkeys.push_back(key);
+        pushKey(key);
         return true;
     }
     void Open() {
@@ -667,7 +672,7 @@ private:
         std::string val;
         char *buf = NULL;
         size_t n = 0;
-        while( -1 ！= getline(&buf,&n,file)) {
+        while( -1 != getline(&buf,&n,file)) {
             str = buf;
             if ( n > 1024 * 1024){
                 free(buf);
@@ -677,7 +682,7 @@ private:
             ret = getKeyAndValue(str,key,val);
             if (ret == 0)
                 continue;
-            allkeys.push_back(key);
+
             cursor->set_key(cursor, key.c_str());
             cursor->set_value(cursor,val.c_str());
             //std::cout << "key:" << key << std::endl;
@@ -686,6 +691,7 @@ private:
                 fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
                 exit(1);
             }
+            pushKey(key);
             recordnumber++;
             if (recordnumber % 100000 == 0)
                 std::cout << "Record number: " << recordnumber << std::endl;
