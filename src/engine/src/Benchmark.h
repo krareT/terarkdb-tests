@@ -152,7 +152,7 @@ private:
     void ReadWhileWriting(ThreadState *thread);
     //static tbb::concurrent_vector<std::string> allkeys;
     static terark::fstrvec allkeys;
-    static tbb::spin_mutex smtx;
+    static tbb::spin_rw_mutex allkeysRwMutex;
 public:
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;

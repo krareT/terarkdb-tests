@@ -4,7 +4,7 @@
 #include "Benchmark.h"
 tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
 fstrvec Benchmark::allkeys;
-tbb::spin_mutex Benchmark::smtx;
+tbb::spin_rw_mutex Benchmark::allkeysRwMutex;
 void Benchmark::updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
 
     if (plan.size() < 100)
@@ -162,7 +162,7 @@ void Benchmark::backupKeys(void) {
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
-
+    tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, false);//read lock
     if (allkeys.empty()){
         return false;
     }
@@ -172,7 +172,7 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
 
 bool Benchmark::pushKey(std::string &key) {
 
-    tbb::spin_mutex::scoped_lock _smtx(smtx);
+    tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, true);//write lock
     try {
         allkeys.push_back(key);
     }catch (std::exception e){
