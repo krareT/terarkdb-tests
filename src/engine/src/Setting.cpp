@@ -171,6 +171,7 @@ BaseSetting::BaseSetting(){
     setFuncMap["-load_data_path"]   = &BaseSetting::strSetLoadDataPath;
     setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
     setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
+    setFuncMap["-compact"]          = &BaseSetting::strSetCompactTimes;
 }
 uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
@@ -240,16 +241,17 @@ void BaseSetting::setStop(void){
 std::string BaseSetting::toString() {
 
     std::stringstream ret;
-    ret << "benchmark name:\t" << BaseSetting::BenchmarkName << std::endl;
-    ret << "read percent:\t" << static_cast<int >(getReadPercent()) << std::endl;
-    ret << "sampling rate:\t" << static_cast<int >(getSamplingRate()) << std::endl;
-    ret << "thread nums:\t" << getThreadNums() << std::endl;
-    ret << "stop:\t" << ifStop() << std::endl;
-    ret << "insert percent:\t" << static_cast<int >(getInsertPercent()) << std::endl;
-    ret << "load_or_run:\t" << (run == true ? "run":"load") << std::endl;
-    ret << "keys_data_path:\t" << getKeysDataPath() << std::endl;
-    ret << "insert_data_path:\t" << getInsertDataPath() << std::endl;
-    ret << "load_data_path:\t" << getLoadDataPath() << std::endl;
+    ret << "benchmark name:\t"  << BaseSetting::BenchmarkName << std::endl;
+    ret << "read percent:\t"    << static_cast<int >(getReadPercent()) << std::endl;
+    ret << "sampling rate:\t"   << static_cast<int >(getSamplingRate()) << std::endl;
+    ret << "thread nums:\t"     << getThreadNums() << std::endl;
+    ret << "stop:\t"            << ifStop() << std::endl;
+    ret << "insert percent:\t"  << static_cast<int >(getInsertPercent()) << std::endl;
+    ret << "load_or_run:\t"     << (run == true ? "run":"load") << std::endl;
+    ret << "keys_data_path:\t"  << getKeysDataPath() << std::endl;
+    ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
+    ret << "load_data_path:\t"  << getLoadDataPath() << std::endl;
+    ret << "compact times:\t"   << static_cast<int >(getCompactTimes()) << std::endl;
     return ret.str();
 }
 std::string BaseSetting::setBaseSetting(std::string &line){
@@ -368,6 +370,16 @@ bool BaseSetting::strSetKeysDataPath(std::string &value) {
     if(value.empty())
         return false;
     keysDataPath = value;
+    return true;
+}
+
+uint8_t BaseSetting::getCompactTimes(void) const {
+    return compactTimes.load();
+}
+
+bool BaseSetting::strSetCompactTimes(std::string &val) {
+
+    compactTimes++;
     return true;
 }
 

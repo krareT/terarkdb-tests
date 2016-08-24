@@ -15,6 +15,7 @@ private:
     std::atomic<uint8_t > readPercent;
     std::atomic<uint8_t > insertPercent;
     std::atomic<uint8_t > stop;
+    std::atomic<uint8_t > compactTimes;
     std::atomic<uint32_t> threadNums;
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
@@ -30,6 +31,7 @@ public:
     uint8_t getReadPercent(void) const ;
     uint8_t getSamplingRate(void) const ;
     uint8_t getInsertPercent(void) const ;
+    uint8_t getCompactTimes(void) const ;
     uint32_t getThreadNums(void) const ;
     const std::string &getInsertDataPath(void) const ;
     const std::string &getLoadDataPath(void) const ;
@@ -51,6 +53,7 @@ public:
     bool strSetLoadDataPath(std::string&);
     bool strSetLoadOrRun(std::string&);
     bool strSetKeysDataPath(std::string&);
+    bool strSetCompactTimes(std::string&);
     std::string toString();
 
 };
