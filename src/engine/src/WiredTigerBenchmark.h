@@ -291,7 +291,8 @@ private:
             session->close(session, NULL);
         }
     }
-    bool Compact( ) override{};
+    bool Compact( ) override{
+    };
     void DoWrite(bool seq) {
         std::cout << "DoWrite!" << std::endl;
         std::stringstream txn_config;

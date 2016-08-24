@@ -173,7 +173,7 @@ private:
         return true;
     }
     bool Compact() override {
-
+        tab->compact();
     };
 };
 
