@@ -1,0 +1,14 @@
+//
+// Created by terark on 8/24/16.
+//
+
+#ifndef TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H
+#define TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H
+
+
+class TerarkBenchmark {
+
+};
+
+
+#endif //TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H

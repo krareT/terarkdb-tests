@@ -34,6 +34,7 @@
 #include <terark/lcast.hpp>
 #include <terark/util/autofree.hpp>
 #include <terark/util/fstrvec.hpp>
+#include "ThreadState.h"
 //#include "terark/util/linebuf.hpp"
 #include <port/port_posix.h>
 #include <src/Setting.h>
@@ -51,42 +52,7 @@
 
 using namespace terark;
 using namespace db;
-struct ThreadState {
-    int tid;             // 0..n-1 when running in n threads
-    Stats stats;
-    std::atomic<uint8_t> STOP;
-    WT_SESSION *session;
-    std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
-    std::atomic<std::vector<uint8_t >*> *whichSamplingPlan;
-    DbContextPtr ctx;
-    unsigned int seed;
-    std::mt19937 randGenerator;
-    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
-                std::atomic<std::vector<uint8_t >*>* wsp,DbTablePtr *tab)
-            :   tid(index),
-                whichExecutePlan(wep),
-                whichSamplingPlan(wsp)
-    {
-        STOP.store(false);
-        ctx = (*tab)->createDbContext();
-        ctx->syncIndex = true;
-        seed = tid;
-        randGenerator.seed(seed);
-    }
-    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
-                std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
-            :tid(index),
-             whichExecutePlan(wep),
-             whichSamplingPlan(wsp){
-        conn->open_session(conn, NULL, NULL, &session);
-        STOP.store(false);
-        assert(session != NULL);
-        seed = tid;
-        randGenerator.seed(seed);
-    }
-    ~ThreadState(){
-    }
-};
+
 class Benchmark{
 private:
     std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *)> executeFuncMap;
@@ -314,7 +280,6 @@ private:
         valvec<byte> row;
         thread->ctx->getValue(idvec[0],&row);
         try {
-
             llong rid = thread->ctx->upsertRow(row);
             if (rid < 0) { // unique index
                 printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
