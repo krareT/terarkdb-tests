@@ -281,7 +281,7 @@ private:
         return true;
     }
     bool ReadOneKey(ThreadState *thread) {
-        static std::string keyStr;
+        std::string keyStr;
         if (false == getRandomKey(keyStr,thread->randGenerator)) {
             std::cout << "allkeys empty" << std::endl;
             return false;
@@ -298,7 +298,7 @@ private:
         return true;
     }
     bool UpdateOneKey(ThreadState *thread) {
-        static std::string keyStr;
+        std::string keyStr;
         if (false == getRandomKey(keyStr,thread->randGenerator)) {
             std::cout << "allkeys empty" << std::endl;
             return false;
