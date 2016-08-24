@@ -21,7 +21,7 @@ public:
 private:
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
     std::atomic<std::vector<uint8_t >*>* whichSPlan){
-        return new ThreadState(threads.size(),setting,whichEPlan,whichSPlan,&tab);
+        return new ThreadState(threads.size(),whichEPlan,whichSPlan,&tab);
     }
     void PrintHeader() {
         fprintf(stdout, "NarkDB Test Begins!");

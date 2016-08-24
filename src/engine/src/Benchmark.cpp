@@ -180,3 +180,53 @@ bool Benchmark::pushKey(std::string &key) {
     }
     return true;
 }
+void Benchmark::loadInsertData(const Setting *setting){
+    FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
+    assert(ifs != NULL);
+    posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
+    std::string str;
+    std::cout << "loadInsertData start" << std::endl;
+    int count = 0;
+    //LineBuf line;
+    char *buf = NULL;
+    size_t n = 0;
+    while( setting->ifStop() == false && !feof(ifs)){
+        while( updateDataCq.unsafe_size() < 200000){
+            if (feof(ifs))
+                break;
+            getline(&buf,&n,ifs);
+            str = buf;
+            updateDataCq.push(str);
+            count ++;
+        }
+        if ( n > 1024*1024)
+        {
+            n = 0;
+            free(buf);
+            buf = NULL;
+        }
+        std::cout << "insert : " << count << std::endl;
+        count = 0;
+        sleep(3);
+    }
+    fclose(ifs);
+    std::cout << "loadInsertData stop" << std::endl;
+    if ( NULL != buf){
+        free(buf);
+        buf = NULL;
+    }
+}
+void  Benchmark::Run(void){
+    Open();
+    std::cout << setting.ifRunOrLoad() << std::endl;
+    if (setting.ifRunOrLoad() == "load") {
+        allkeys.erase_all();
+        Load();
+        backupKeys();
+    }
+    else {
+        std::cout << "allKeys size:" <<updateKeys() << std::endl;
+        RunBenchmark();
+    }
+    Close();
+};

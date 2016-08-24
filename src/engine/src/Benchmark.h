@@ -65,42 +65,7 @@ private:
     bool whichSPlan = false;
     size_t updateKeys(void);
     void backupKeys(void);
-    static void loadInsertData(Setting *setting){
-        FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
-        assert(ifs != NULL);
-        posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
-        std::string str;
-        std::cout << "loadInsertData start" << std::endl;
-        int count = 0;
-        //LineBuf line;
-        char *buf = NULL;
-        size_t n = 0;
-        while( setting->ifStop() == false && !feof(ifs)){
-            while( updateDataCq.unsafe_size() < 200000){
-                if (feof(ifs))
-                    break;
-                getline(&buf,&n,ifs);
-                str = buf;
-                updateDataCq.push(str);
-                count ++;
-            }
-            if ( n > 1024*1024)
-            {
-                n = 0;
-                free(buf);
-                buf = NULL;
-            }
-            std::cout << "insert : " << count << std::endl;
-            count = 0;
-            sleep(3);
-        }
-        fclose(ifs);
-        std::cout << "loadInsertData stop" << std::endl;
-        if ( NULL != buf){
-            free(buf);
-            buf = NULL;
-        }
-    }
+    static void loadInsertData(const Setting *setting);
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
@@ -120,7 +85,7 @@ private:
     static tbb::spin_rw_mutex allkeysRwMutex;
 public:
     std::vector<std::pair<std::thread,ThreadState*>> threads;
-    Setting &setting;
+    const Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
     Benchmark(Setting &s):setting(s){
         executeFuncMap[1] = &Benchmark::ReadOneKey;
@@ -129,20 +94,7 @@ public:
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
     };
-    void  Run(void){
-        Open();
-        std::cout << setting.ifRunOrLoad() << std::endl;
-        if (setting.ifRunOrLoad() == "load") {
-            allkeys.erase_all();
-            Load();
-            backupKeys();
-        }
-        else {
-            std::cout << "allKeys size:" <<updateKeys() << std::endl;
-            RunBenchmark();
-        }
-        Close();
-    };
+    void  Run(void);
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;

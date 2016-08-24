@@ -172,7 +172,7 @@ BaseSetting::BaseSetting(){
     setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
     setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
 }
-uint8_t BaseSetting::getSamplingRate(void){
+uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
 }
 bool BaseSetting::strSetSamplingRate(std::string &value) {
@@ -212,7 +212,7 @@ bool BaseSetting::strSetThreadNums(std::string &value) {
     setThreadNums(threadNums);
     return true;
 }
-bool BaseSetting::ifStop()
+bool BaseSetting::ifStop() const
 {
     return stop.load();
 }
@@ -223,7 +223,7 @@ void BaseSetting::setReadPercent(uint8_t rp) {
     readPercent.store(rp);
 }
 
-uint8_t BaseSetting::getReadPercent(void) {
+uint8_t BaseSetting::getReadPercent(void) const {
 
     return readPercent.load();
 }
@@ -231,7 +231,7 @@ void BaseSetting::setThreadNums(uint32_t num)
 {
     threadNums.store(num);
 }
-uint32_t BaseSetting::getThreadNums(void) {
+uint32_t BaseSetting::getThreadNums(void) const {
     return threadNums.load();
 }
 void BaseSetting::setStop(void){
@@ -312,7 +312,7 @@ bool BaseSetting::strSetInsertDataPath(std::string &value) {
     return true;
 }
 
-uint8_t BaseSetting::getInsertPercent(void) {
+uint8_t BaseSetting::getInsertPercent(void) const {
     return insertPercent.load();
 }
 
@@ -324,11 +324,11 @@ bool BaseSetting::strSetInsertPercent(std::string &value) {
     return true;
 }
 
-const std::string &BaseSetting::getInsertDataPath(void) {
+const std::string &BaseSetting::getInsertDataPath(void) const {
     return insertDataPath;
 }
 
-const std::string &BaseSetting::getLoadDataPath(void) {
+const std::string &BaseSetting::getLoadDataPath(void) const {
     return loadDataPath;
 }
 
@@ -339,7 +339,7 @@ bool BaseSetting::strSetLoadDataPath(std::string& value) {
     return true;
 }
 
-std::string BaseSetting::ifRunOrLoad(void) {
+std::string BaseSetting::ifRunOrLoad(void) const {
 
     std::string ret;
     if (run == false)
@@ -360,7 +360,7 @@ bool BaseSetting::strSetLoadOrRun(std::string &value){
     return true;
 }
 
-const std::string &BaseSetting::getKeysDataPath(void) {
+const std::string &BaseSetting::getKeysDataPath(void) const {
     return keysDataPath;
 }
 

@@ -116,7 +116,7 @@ private:
     }
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
     std::atomic<std::vector<uint8_t >*>* whichSPlan){
-        return new ThreadState(threads.size(),setting,conn_,whichEPlan,whichSPlan);
+        return new ThreadState(threads.size(),conn_,whichEPlan,whichSPlan);
     }
     void Load(void){
         DoWrite(true);

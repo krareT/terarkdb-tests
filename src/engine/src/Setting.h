@@ -27,17 +27,17 @@ public:
     static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
-    uint8_t getReadPercent(void);
-    uint8_t getSamplingRate(void);
-    uint8_t getInsertPercent(void);
-    uint32_t getThreadNums(void);
-    const std::string &getInsertDataPath(void);
-    const std::string &getLoadDataPath(void);
-    const std::string &getKeysDataPath(void);
-    bool ifStop(void);
-    std::string ifRunOrLoad(void);
-    void setStop(void);
+    uint8_t getReadPercent(void) const ;
+    uint8_t getSamplingRate(void) const ;
+    uint8_t getInsertPercent(void) const ;
+    uint32_t getThreadNums(void) const ;
+    const std::string &getInsertDataPath(void) const ;
+    const std::string &getLoadDataPath(void) const ;
+    const std::string &getKeysDataPath(void) const ;
+    bool ifStop(void) const ;
+    std::string ifRunOrLoad(void) const ;
 
+    void setStop(void);
     void setReadPercent(uint8_t);
     void setThreadNums(uint32_t);
     std::string setBaseSetting(std::string &line);

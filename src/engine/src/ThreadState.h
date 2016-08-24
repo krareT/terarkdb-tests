@@ -20,7 +20,8 @@ struct ThreadState {
     terark::db::DbContextPtr ctx;
     unsigned int seed;
     std::mt19937 randGenerator;
-    ThreadState(int index,Setting &setting1,std::atomic<std::vector<uint8_t >*>* wep,
+
+    ThreadState(int index,std::atomic<std::vector<uint8_t >*>* wep,
     std::atomic<std::vector<uint8_t >*>* wsp,terark::db::DbTablePtr *tab)
     :   tid(index),
     whichExecutePlan(wep),
@@ -32,7 +33,7 @@ struct ThreadState {
         seed = tid;
         randGenerator.seed(seed);
     }
-    ThreadState(int index,Setting &setting1,WT_CONNECTION *conn,
+    ThreadState(int index,WT_CONNECTION *conn,
                 std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<uint8_t >*>* wsp)
     :tid(index),
     whichExecutePlan(wep),
