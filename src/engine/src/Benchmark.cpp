@@ -3,7 +3,8 @@
 //
 #include "Benchmark.h"
 tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
-tbb::concurrent_vector<std::string> Benchmark::allkeys;
+fstrvec Benchmark::allkeys;
+tbb::spin_mutex Benchmark::smtx;
 void Benchmark::updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
 
     if (plan.size() < 100)
@@ -150,8 +151,10 @@ size_t Benchmark::updateKeys(void) {
 void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys" << std::endl;
     std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
-    for(auto& eachKey : allkeys){
-        keyFile_bkup << eachKey << std::endl;
+
+    for( size_t i = 0; i < allkeys.size();++i){
+
+        keyFile_bkup << allkeys.str(i) <<std::endl;
     }
     keyFile_bkup.close();
     std::cout <<"backupKeys finish" << std::endl;
@@ -163,12 +166,13 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
     if (allkeys.empty()){
         return false;
     }
-    key = allkeys.at(rg() % allkeys.size());
+    key = allkeys.str(rg() % allkeys.size());
     return true;
 }
 
 bool Benchmark::pushKey(std::string &key) {
 
+    tbb::spin_mutex::scoped_lock _smtx(smtx);
     try {
         allkeys.push_back(key);
     }catch (std::exception e){
