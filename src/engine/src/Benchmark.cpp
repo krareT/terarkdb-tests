@@ -10,12 +10,13 @@ void Benchmark::updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uin
     if (plan.size() < 100)
         plan.resize(100);
     uint8_t pos = 0;
+
     for(auto& eachPercent : percent){
-        assert(pos <= 100);
+        if (pos >= plan.size())
+            break;
         std::fill_n(plan.begin() + pos,eachPercent.second,eachPercent.first);
         pos += eachPercent.second;
     }
-    assert(pos <= 100);
     std::fill_n(plan.begin()+pos,100-pos,defaultVal);
     shufflePlan(plan);
 }
