@@ -30,9 +30,13 @@ namespace benchmark {
         unsigned long long totalUser, totalUserLow, totalSys, totalIdle, totalIOWait, total_used, total_all;
         FILE* file;
         file = fopen("/proc/stat", "r");
-        fscanf(file, "cpu %llu %llu %llu %llu", &totalUser, &totalUserLow,
+        int count = fscanf(file, "cpu %llu %llu %llu %llu %llu", &totalUser, &totalUserLow,
                &totalSys, &totalIdle, &totalIOWait);
         fclose(file);
+
+        if(count < 5) {
+            return;
+        }
 
         double usage, iowait;
         if (totalUser < lastTotalUser || totalUserLow < lastTotalUserLow ||
@@ -58,6 +62,7 @@ namespace benchmark {
         lastTotalUserLow = totalUserLow;
         lastTotalSys = totalSys;
         lastTotalIdle = totalIdle;
+        lastTotalIOWait = totalIOWait;
     }
 
     /**
