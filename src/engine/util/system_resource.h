@@ -15,11 +15,11 @@ struct sysinfo memInfo;
 
 namespace benchmark {
 
-    static unsigned long long lastTotalUser, lastTotalUserLow, lastTotalSys, lastTotalIdle;
+    static unsigned long long lastTotalUser, lastTotalUserLow, lastTotalSys, lastTotalIdle, lastTotalIOWait;
     void firstInit(){
         FILE* file = fopen("/proc/stat", "r");
         fscanf(file, "cpu %llu %llu %llu %llu", &lastTotalUser, &lastTotalUserLow,
-               &lastTotalSys, &lastTotalIdle);
+               &lastTotalSys, &lastTotalIdle, &lastTotalIOWait);
         fclose(file);
     }
     double getCPUPercentage(){
@@ -27,16 +27,16 @@ namespace benchmark {
             firstInit();
         }
 
-        unsigned long long totalUser, totalUserLow, totalSys, totalIdle, total;
+        unsigned long long totalUser, totalUserLow, totalSys, totalIdle, totalIOWait, total;
         FILE* file;
         file = fopen("/proc/stat", "r");
         fscanf(file, "cpu %llu %llu %llu %llu", &totalUser, &totalUserLow,
-               &totalSys, &totalIdle);
+               &totalSys, &totalIdle, &totalIOWait);
         fclose(file);
 
         double percent;
         if (totalUser < lastTotalUser || totalUserLow < lastTotalUserLow ||
-            totalSys < lastTotalSys || totalIdle < lastTotalIdle){
+            totalSys < lastTotalSys || totalIdle < lastTotalIdle || totalIOWait < lastTotalIOWait){
             //Overflow detection. Just skip this value.
             percent = -1.0;
         } else{
