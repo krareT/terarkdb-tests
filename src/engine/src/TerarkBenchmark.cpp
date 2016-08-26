@@ -6,9 +6,11 @@
 void TerarkBenchmark::PrintHeader() {
     fprintf(stdout, "NarkDB Test Begins!");
 }
-void TerarkBenchmark::Close()  {tab->safeStopAndWaitForFlush();tab = NULL;};
+void TerarkBenchmark::Close()  {
+	tab->safeStopAndWaitForFlush();
+	tab = NULL;
+}
 void TerarkBenchmark::Load(void) {
-
     DoWrite(true);
     //tab->compact();
 }
@@ -155,7 +157,9 @@ bool TerarkBenchmark::Compact()  {
     tab->compact();
 }
 
-ThreadState* TerarkBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichEPlan,
-                                             std::atomic<std::vector<uint8_t> *> *whichSPlan) {
+ThreadState*
+TerarkBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichEPlan,
+                                std::atomic<std::vector<uint8_t> *> *whichSPlan) {
     return new ThreadState(threads.size(),whichEPlan,whichSPlan,&tab);
-};
+}
+

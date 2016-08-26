@@ -6,11 +6,9 @@ tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
 fstrvec Benchmark::allkeys;
 tbb::spin_rw_mutex Benchmark::allkeysRwMutex;
 void Benchmark::updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
-
     if (plan.size() < 100)
         plan.resize(100);
     uint8_t pos = 0;
-
     for(auto& eachPercent : percent){
         if (pos >= plan.size())
             break;
@@ -51,7 +49,6 @@ void Benchmark::adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent){
     whichEPlan = !whichEPlan;
 }
 void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
-
     std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
     planDetails.push_back(std::make_pair(1,samplingRate));
     updatePlan(samplingPlan[whichSPlan],planDetails,0);
@@ -64,8 +61,7 @@ void Benchmark::RunBenchmark(void){
     int old_insertPercent = -1;
 
     std::thread loadInsertDataThread(Benchmark::loadInsertData,&setting);
-    while( !setting.ifStop()){
-
+    while (!setting.ifStop()){
         int readPercent = setting.getReadPercent();
         int insertPercent = setting.getInsertPercent();
         if (readPercent != old_readPercent || old_insertPercent != insertPercent){
@@ -98,8 +94,6 @@ void Benchmark::RunBenchmark(void){
     loadInsertDataThread.join();
 }
 bool Benchmark::executeOneOperationWithSampling(ThreadState* state,uint8_t type){
-
-
     struct timespec start,end;
     bool ret;
     clock_gettime(CLOCK_REALTIME,&start);
@@ -115,7 +109,6 @@ bool Benchmark::executeOneOperationWithoutSampling(ThreadState* state,uint8_t ty
 bool Benchmark::executeOneOperation(ThreadState* state,uint8_t type){
     assert(executeFuncMap.count(type) > 0);
     std::vector<uint8_t > *samplingPlan = (*(state->whichSamplingPlan)).load();
-
     samplingRecord[type] ++;
     if (samplingRecord[type] > 100){
         samplingRecord[type] = 0;
@@ -123,11 +116,9 @@ bool Benchmark::executeOneOperation(ThreadState* state,uint8_t type){
     return (this->*samplingFuncMap[( (*samplingPlan)[(samplingRecord[type]-1) % samplingPlan->size()])])(state,type);
 }
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
-
     std::cout << "Thread " << thread->tid << " start!" << std::endl;
     struct timespec start,end;
     while (thread->STOP.load() == false) {
-
         std::vector<uint8_t > *executePlan = (*(thread->whichExecutePlan)).load();
         for (auto type : *executePlan) {
 
@@ -138,7 +129,6 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
 }
 
 size_t Benchmark::updateKeys(void) {
-
     std::cout << "Update Keys:" << setting.getKeysDataPath() << std::endl;
     std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
@@ -156,7 +146,6 @@ void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys" << std::endl;
     std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
     for( size_t i = 0; i < allkeys.size();++i){
-
         keyFile_bkup << allkeys.str(i) <<std::endl;
     }
     keyFile_bkup.close();
@@ -174,7 +163,6 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
 }
 
 bool Benchmark::pushKey(std::string &key) {
-
     tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, true);//write lock
     try {
         allkeys.push_back(key);
@@ -194,7 +182,7 @@ void Benchmark::loadInsertData(const Setting *setting){
     //LineBuf line;
     char *buf = NULL;
     size_t n = 0;
-    while( setting->ifStop() == false && !feof(ifs)){
+    while (setting->ifStop() == false && !feof(ifs)) {
         while( updateDataCq.unsafe_size() < 200000){
             if (feof(ifs))
                 break;
@@ -203,8 +191,7 @@ void Benchmark::loadInsertData(const Setting *setting){
             updateDataCq.push(str);
             count ++;
         }
-        if ( n > 1024*1024)
-        {
+        if (n > 1024*1024) {
             n = 0;
             free(buf);
             buf = NULL;
@@ -215,7 +202,7 @@ void Benchmark::loadInsertData(const Setting *setting){
     }
     fclose(ifs);
     std::cout << "loadInsertData stop" << std::endl;
-    if ( NULL != buf){
+    if (NULL != buf){
         free(buf);
         buf = NULL;
     }
