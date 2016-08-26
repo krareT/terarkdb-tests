@@ -18,41 +18,46 @@ namespace benchmark {
     static unsigned long long lastTotalUser, lastTotalUserLow, lastTotalSys, lastTotalIdle, lastTotalIOWait;
     void firstInit(){
         FILE* file = fopen("/proc/stat", "r");
-        fscanf(file, "cpu %llu %llu %llu %llu", &lastTotalUser, &lastTotalUserLow,
+        fscanf(file, "cpu %llu %llu %llu %llu %llu", &lastTotalUser, &lastTotalUserLow,
                &lastTotalSys, &lastTotalIdle, &lastTotalIOWait);
         fclose(file);
     }
-    double getCPUPercentage(){
+    void getCPUPercentage(double* const cpu){
         if(lastTotalUser == 0){
             firstInit();
         }
 
-        unsigned long long totalUser, totalUserLow, totalSys, totalIdle, totalIOWait, total;
+        unsigned long long totalUser, totalUserLow, totalSys, totalIdle, totalIOWait, total_used, total_all;
         FILE* file;
         file = fopen("/proc/stat", "r");
         fscanf(file, "cpu %llu %llu %llu %llu", &totalUser, &totalUserLow,
                &totalSys, &totalIdle, &totalIOWait);
         fclose(file);
 
-        double percent;
+        double usage, iowait;
         if (totalUser < lastTotalUser || totalUserLow < lastTotalUserLow ||
             totalSys < lastTotalSys || totalIdle < lastTotalIdle || totalIOWait < lastTotalIOWait){
             //Overflow detection. Just skip this value.
-            percent = -1.0;
+            usage = -1.0;
+            iowait = -1.0;
         } else{
-            total = (totalUser - lastTotalUser) + (totalUserLow - lastTotalUserLow) + (totalSys - lastTotalSys);
-            percent = total;
-            total += (totalIdle - lastTotalIdle);
-            percent /= total;
-            percent *= 100;
+            // cpu usage
+            total_used = (totalUser - lastTotalUser) + (totalUserLow - lastTotalUserLow) + (totalSys - lastTotalSys);
+            total_all = total_used + totalIdle - lastTotalIdle + totalIOWait - lastTotalIOWait;
+            usage = double(total_used) / total_all;
+            usage *= 100;
+            // cpu iowait
+            iowait = double(totalIOWait - lastTotalIOWait) / total_all;
+            iowait *= 100;
+
         }
+        cpu[0] = usage;
+        cpu[1] = iowait;
 
         lastTotalUser = totalUser;
         lastTotalUserLow = totalUserLow;
         lastTotalSys = totalSys;
         lastTotalIdle = totalIdle;
-
-        return percent;
     }
 
     /**

@@ -47,14 +47,17 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
         printf("total memory = %d\n", arr[0]);
 
         // 上传CPU数据
-        sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, engine_name) VALUES(?, ?, ?)");
-        double cpu = benchmark::getCPUPercentage();
+        sql::PreparedStatement* ps_cpu = conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, `iowait`, engine_name) VALUES(?, ?, ?, ?)");
+        double* cpu = new double[2];
+        benchmark::getCPUPercentage(cpu);
         if(cpu > 0){
             ps_cpu->setInt(1, bucket);
-            ps_cpu->setDouble(2, cpu);
-            ps_cpu->setString(3, engine_name);
+            ps_cpu->setDouble(2, cpu[0]);
+            ps_cpu->setDouble(3, cpu[1]);
+            ps_cpu->setString(4, engine_name);
             ps_cpu->executeUpdate();
         }
+        delete[] cpu;
         delete ps_cpu;
         printf("cpu usage = %f\n", cpu);
 
