@@ -32,6 +32,7 @@
 	},
 	"MaxWrSegSize" 		: "3G",
 	"MinMergeSegNum"	: 3,
+	"PurgeDeleteThreshold"	: 0.30,
 	"TableIndex" : [
 		{
 			"fields": "cur_title,cur_timestamp",
