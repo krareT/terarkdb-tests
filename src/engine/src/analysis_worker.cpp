@@ -21,20 +21,20 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
     assert(conn != nullptr);
 
     // 上传ops数据
-    sql::PreparedStatement* ps_ops = conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
+    std::unique_ptr<sql::PreparedStatement> ps_ops(conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)"));
     ps_ops->setInt(1, bucket);
     ps_ops->setInt(2, ops);
     ps_ops->setInt(3, type);
     ps_ops->setString(4, engine_name);
     ps_ops->executeUpdate();
-    delete ps_ops;
     printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
 
     // 顺便把CPU等数据也上传, 相同时间片只需要上传一次即可
     if(uploadExtraData) {
         // 上传内存数据
-        sql::PreparedStatement* ps_memory = conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
-        std::vector<int> arr = benchmark::getPhysicalMemoryUsage();
+        std::unique_ptr<sql::PreparedStatement> ps_memory(conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)"));
+        std::vector<int> arr;
+        benchmark::getPhysicalMemoryUsage(arr);
         ps_memory->setInt(1, bucket);
         ps_memory->setInt(2, arr[0]);
         ps_memory->setInt(3, arr[1]);
@@ -43,7 +43,6 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
         ps_memory->setString(6, engine_name);
         ps_memory->executeUpdate();
         arr.clear();
-        delete ps_memory;
         printf("total memory = %d\n", arr[0]);
 
         // 上传CPU数据
@@ -86,14 +85,16 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
 AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
     this->engine_name = engine_name;
     this->setting = setting;
+
     // init mysql connection
-    sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
-    const char* passwd = getenv("MYSQL_PASSWD");
+    std::unique_ptr<sql::mysql::MySQL_Driver> driver(sql::mysql::get_mysql_driver_instance());
+    char* passwd = getenv("MYSQL_PASSWD");
     if(passwd == NULL || strlen(passwd) == 0) {
         printf("no MYSQL_PASSWD set, exit analysis thread!\n");
         shoud_stop = true;
         return;
     }
+
     conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", std::string(passwd));
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");

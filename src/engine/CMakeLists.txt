@@ -8,8 +8,8 @@ aux_source_directory(./ SRC_LIST)
 
 include_directories(./)
 include_directories(./include)
-
 include_directories(${TERARKDB_PATH}/include)
+
 link_directories(${TERARKDB_PATH}/lib)
 link_directories(/usr/local/mysql/lib)
 link_directories(/usr/local/lib)
