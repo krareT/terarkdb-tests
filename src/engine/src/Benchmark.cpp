@@ -84,9 +84,11 @@ void Benchmark::RunBenchmark(void){
         }
         int threadNum = setting.getThreadNums();
         adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
-        if (setting.getCompactTimes() > compactTimes){
-            compactTimes++;
+        auto ct = setting.getCompactTimes();
+        if ( ct != compactTimes){
+            compactTimes = ct;
             std::thread compactThread(Benchmark::CompactThreadBody,this);
+            compactThread.detach();
         }
         sleep(5);
     }
