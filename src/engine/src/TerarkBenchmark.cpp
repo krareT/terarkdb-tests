@@ -83,41 +83,41 @@ bool TerarkBenchmark::VerifyOneKey(llong rid,valvec<byte> &outside,DbContextPtr 
     return true;
 }
 bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
-    std::string keyStr;
-    if (false == getRandomKey(keyStr,thread->randGenerator)) {
+    std::string &rkey = thread->key;
+
+    if (false == getRandomKey(rkey,thread->randGenerator)) {
         std::cout << "allkeys empty" << std::endl;
         return false;
     }
     thread->ctx;
     valvec<llong> idvec;
     size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-    fstring key(keyStr);
+    fstring key(rkey);
     tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
     //assert(idvec.size() <= 1);
     if ( idvec.size() == 0)
         return false;
-    valvec<byte > row;
-    thread->ctx->getValue(idvec[0],&row);
+    thread->ctx->getValue(idvec[0],&(thread->row));
     return true;
 }
 bool TerarkBenchmark::UpdateOneKey(ThreadState *thread)  {
-    std::string keyStr;
-    if (false == getRandomKey(keyStr,thread->randGenerator)) {
+    std::string &rkey = thread->key;
+
+    if (false == getRandomKey(rkey,thread->randGenerator)) {
         std::cout << "allkeys empty" << std::endl;
         return false;
     }
     valvec<llong> idvec;
     size_t indexId = tab->getIndexId("cur_title,cur_timestamp");
-    fstring key(keyStr);
+    fstring key(rkey);
     tab->indexSearchExact(indexId, key, &idvec,thread->ctx.get());
     //assert(idvec.size() <= 1);
     if (idvec.size() == 0){
         return false;
     }
-    valvec<byte> row;
-    thread->ctx->getValue(idvec[0],&row);
+    thread->ctx->getValue(idvec[0],& (thread->row));
     try {
-        llong rid = thread->ctx->upsertRow(row);
+        llong rid = thread->ctx->upsertRow(thread->row);
         if (rid < 0) { // unique index
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
@@ -129,19 +129,18 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread)  {
     return true;
 }
 bool TerarkBenchmark::InsertOneKey(ThreadState *thread)  {
-    std::string str;
-
-    if (updateDataCq.try_pop(str) == false) {
+    std::string &rstr = thread->str;
+    if (updateDataCq.try_pop(rstr) == false) {
         return false;
     }
     const Schema &rowSchema = tab->rowSchema();
-    valvec<byte_t> row;
-    if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
-        std::cerr << "InsertOneKey error:" << str << std::endl;
+
+    if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', rstr, &(thread->row))) {
+        std::cerr << "InsertOneKey error:" << rstr << std::endl;
         return false;
     }
     try{
-        if (thread->ctx->upsertRow(row) < 0) { // unique index
+        if (thread->ctx->upsertRow(thread->row) < 0) { // unique index
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
@@ -149,8 +148,8 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread)  {
         std::cerr << e.what() << std::endl;
         return false;
     }
-    std::string key = getKey(str);
-    pushKey(key);
+    thread->key = getKey(rstr);
+    pushKey(thread->key);
     return true;
 }
 bool TerarkBenchmark::Compact()  {

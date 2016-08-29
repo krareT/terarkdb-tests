@@ -21,8 +21,10 @@ size_t WiredTigerBenchmark::getKeyAndValue(std::string &str,std::string &key,std
     return strvec.size();
 }
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
-    std::string str;
-    if ( getRandomKey(str,thread->randGenerator) == false){
+
+    std::string &rkey = thread->key;
+    std::string &rstr = thread->str;
+    if ( getRandomKey(rstr,thread->randGenerator) == false){
         return false;
     }
     WT_CURSOR *cursor;
@@ -33,8 +35,8 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
         exit(1);
     }
     int found = 0;
-    std::string key(str);
-    cursor->set_key(cursor, key.c_str());
+    rkey= rstr;
+    cursor->set_key(cursor, rkey.c_str());
     if (cursor->search(cursor) == 0) {
         found++;
         const char* val;
@@ -46,8 +48,11 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
 }
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
 
-    std::string key;
-    if ( getRandomKey(key,thread->randGenerator) == false){
+    std::string &rkey = thread->key;
+    std::string &rval = thread->value;
+    std::string &rstr = thread->str;
+
+    if ( getRandomKey(rkey,thread->randGenerator) == false){
         return false;
     }
     WT_CURSOR *cursor;
@@ -57,9 +62,9 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
         return false;
     }
 
-    cursor->set_key(cursor, key.c_str());
+    cursor->set_key(cursor, rkey.c_str());
     if (cursor->search(cursor) != 0){
-        std::cerr << "cursor search error :" << key << std::endl;
+        std::cerr << "cursor search error :" << rkey << std::endl;
         cursor->close(cursor);
         return false;
     }
@@ -69,7 +74,7 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     cursor->set_value(cursor,val);
     ret = cursor->insert(cursor);
     if (ret != 0){
-        std::cerr << "cursor insert error :" << key << std::endl;
+        std::cerr << "cursor insert error :" << rkey << std::endl;
         cursor->close(cursor);
         return false;
     }
@@ -77,27 +82,27 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     return true;
 }
 bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
+    std::string &rkey = thread->key;
+    std::string &rval = thread->value;
+    std::string &rstr = thread->str;
+
     WT_CURSOR *cursor;
     int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
     if (ret != 0) {
         fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
         exit(1);
     }
-    std::string str;
-    if ( !updateDataCq.try_pop(str)) {
+    if ( !updateDataCq.try_pop(rstr)) {
         cursor->close(cursor);
         return false;
     }
-    std::string key;
-    std::string val;
-
-    ret = getKeyAndValue(str,key,val);
+    ret = getKeyAndValue(rstr,rkey,rval);
     if (ret == 0) {
         cursor->close(cursor);
         return false;
     }
-    cursor->set_key(cursor, key.c_str());
-    cursor->set_value(cursor,val.c_str());
+    cursor->set_key(cursor, rkey.c_str());
+    cursor->set_value(cursor,rval.c_str());
 
     ret = cursor->insert(cursor);
     if (ret != 0) {
@@ -106,7 +111,7 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
         return false;
     }
     cursor->close(cursor);
-    pushKey(key);
+    pushKey(rkey);
     return true;
 }
 void WiredTigerBenchmark::Open(){

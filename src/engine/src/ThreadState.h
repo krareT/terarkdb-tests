@@ -20,7 +20,10 @@ struct ThreadState {
     terark::db::DbContextPtr ctx;
     unsigned int seed;
     std::mt19937 randGenerator;
-
+    std::string key;
+    std::string value;
+    std::string str;
+    terark::valvec<terark::byte > row;
     ThreadState(int index,std::atomic<std::vector<uint8_t >*>* wep,
     std::atomic<std::vector<uint8_t >*>* wsp,terark::db::DbTablePtr *tab)
     :   tid(index),
