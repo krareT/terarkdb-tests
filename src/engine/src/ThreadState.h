@@ -24,6 +24,7 @@ struct ThreadState {
     std::string value;
     std::string str;
     terark::valvec<terark::byte > row;
+    terark::valvec<terark::llong> idvec;
     ThreadState(int index,std::atomic<std::vector<uint8_t >*>* wep,
     std::atomic<std::vector<uint8_t >*>* wsp,terark::db::DbTablePtr *tab)
     :   tid(index),

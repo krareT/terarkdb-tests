@@ -12,6 +12,7 @@ using namespace db;
 class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
+    size_t indexId;
 public:
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
     ~TerarkBenchmark() {
