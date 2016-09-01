@@ -65,6 +65,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
             ps_dbsize->setInt(1, bucket);
             ps_dbsize->setInt(2, dbsize);
             ps_dbsize->setString(3, engine_name);
+            ps_dbsize->executeUpdate();
         }
         printf("dbsize = %d KB\n", dbsize);
     }
