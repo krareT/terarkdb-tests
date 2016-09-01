@@ -27,12 +27,14 @@
 			"dictZipSampleRatio": 0.02,
 			"dictZipLocalMatch": true,
 			"mmapPopulate" : true,
-			"useFastZip": true
+			"useFastZip": true,
+			"checkumLevel":1,
+			"checksumLevel":1
 		}
 	},
 	"MaxWrSegSize" 		: "3G",
 	"MinMergeSegNum"	: 3,
-	"PurgeDeleteThreshold"	: 0.30,
+	"PurgeDeleteThreshold"	: 0.20,
 	"TableIndex" : [
 		{
 			"fields": "cur_title,cur_timestamp",
