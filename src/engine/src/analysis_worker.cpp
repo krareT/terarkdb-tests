@@ -60,7 +60,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
 
         // 上传文件夹尺寸
         int dbsize = benchmark::getDiskUsageByKB(dbpath);
-        std::unique_ptr<sql::PreparedStatement> ps_dbsize(conn->prepareStatement("INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?))"));
+        std::unique_ptr<sql::PreparedStatement> ps_dbsize(conn->prepareStatement("INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)"));
         if(dbsize > 0) {
             ps_dbsize->setInt(1, bucket);
             ps_dbsize->setInt(2, dbsize);
