@@ -24,7 +24,7 @@
 			"inplaceUpdatable": false,
 			"nltDelims": " \\t,.:?<",
 			"minFragLen": 8, "maxFragLen": 100,
-			"dictZipSampleRatio": 0.02,
+			"dictZipSampleRatio": 0.01,
 			"dictZipLocalMatch": true,
 			"mmapPopulate" : false,
 			"useFastZip": true,
