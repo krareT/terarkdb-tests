@@ -87,6 +87,7 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
             if(!conn->isValid()){
                 try {
                     conn->reconnect();
+                    conn->setSchema("benchmark");
                 }catch (std::exception& f){
                     printf("%s\n", f.what());
                 }
