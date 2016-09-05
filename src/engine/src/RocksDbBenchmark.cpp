@@ -3,9 +3,8 @@
 //
 
 #include "RocksDbBenchmark.h"
-
+#include <string>
 void RocksDbBenchmark::Open() {
-
 
     std::cout << "Create database " << setting.FLAGS_db << std::endl;
     rocksdb::Status s = rocksdb::DB::Open(options, setting.FLAGS_db, &db);
@@ -19,8 +18,7 @@ void RocksDbBenchmark::Open() {
 RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
 
     db = nullptr;
-    options.create_if_missing = !set.FLAGS_use_existing_db;
-    options.write_buffer_size = set.FLAGS_write_buffer_size;
+    options.create_if_missing = true;
 // new features to add
 
     options.allow_concurrent_memtable_write = true;
@@ -41,23 +39,6 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
     block_based_options.filter_policy = filter_policy_;
     options.table_factory.reset(
             NewBlockBasedTableFactory(block_based_options));
-
-    options.compression = set.FLAGS_compression_type;
-
-    if (set.FLAGS_min_level_to_compress >= 0) {
-        assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
-        options.compression_per_level.resize(set.FLAGS_num_levels);
-        for (int i = 0; i < set.FLAGS_min_level_to_compress; i++) {
-            options.compression_per_level[i] = set.FLAGS_compression_type;
-            //options.compression_per_level[i] = rocksdb::kNoCompression;//
-        }
-        for (int i = set.FLAGS_min_level_to_compress;
-             i < set.FLAGS_num_levels; i++) {
-            options.compression_per_level[i] = set.FLAGS_compression_type;
-            //options.compression_per_level[i] = rocksdb::kNoCompression;
-        }
-    }
-
     write_options = rocksdb::WriteOptions();
 }
 
@@ -77,14 +58,14 @@ void RocksDbBenchmark::Load() {
     std::string value;
     std::string str;
     rocksdb::Status s;
-    while (getline(&buf, &n, loadFile)) {
-
+	uint32_t lines_num = 0;
+    while (-1 != getline(&buf, &n, loadFile)) {
+        str = buf;
         if (n > 1024 * 1024) {
             free(buf);
             buf = NULL;
             n = 0;
         }
-        str = buf;
         auto ret = getKeyAndValue(str, key, value);
         if (ret == 0)
             continue;
@@ -93,6 +74,9 @@ void RocksDbBenchmark::Load() {
             fprintf(stderr, "put error: %s\n", s.ToString().c_str());
         }
         pushKey(key);
+	lines_num++;
+	if (lines_num % 10000 == 0)
+		printf("load:%uw\n",lines_num/10000);
     }
 
 }
