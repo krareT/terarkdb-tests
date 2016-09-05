@@ -17,9 +17,8 @@ void RocksDbBenchmark::Open() {
 }
 
 RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
-    assert(db == nullptr);
-    rocksdb::Options options;
 
+    db = nullptr;
     options.create_if_missing = !set.FLAGS_use_existing_db;
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 // new features to add
