@@ -26,7 +26,7 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         src/Benchmark.h
         src/TcpServer.cpp src/TcpServer.h
         src/Stats.cpp src/Stats.h src/Benchmark.cpp
-        src/analysis_worker.cpp util/system_resource.h src/TerarkBenchmark.cpp src/TerarkBenchmark.h src/ThreadState.cpp src/ThreadState.h src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h)
+        src/analysis_worker.cpp util/system_resource.h src/TerarkBenchmark.cpp src/TerarkBenchmark.h src/ThreadState.cpp src/ThreadState.h src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h)
 
 target_link_libraries(Terark_Engine_Test
                         tbb
@@ -38,4 +38,5 @@ target_link_libraries(Terark_Engine_Test
                         pthread
                         snappy
                         mysqlclient
-                        mysqlcppconn)
+        mysqlcppconn
+        rocksdb)

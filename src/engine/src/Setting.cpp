@@ -7,6 +7,8 @@
 #include <iostream>
 #include <include/leveldb/options.h>
 #include <sstream>
+#include <rocksdb/env.h>
+
 std::string BaseSetting::BenchmarkName;
 void Setting::wiredTigerSetting(int argc, char **argv){
     std::string default_db_path;
@@ -144,17 +146,64 @@ Setting::Setting(int argc,char **argv,char *name){
         terarkSetting(argc,argv);
     }else if (strcmp(name,"compact") == 0){
         terarkSetting(argc,argv);
-    }else{
+    } else if (strcmp(name, "rocksdb") == 0)
+        rocksdbSetting(argc, argv);
+    else {
         fprintf(stderr,"error:argv[1]:%s",argv[1]);
         exit(1);
     }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
     BaseSetting::BenchmarkName.assign(name);
+    assert(FLAGS_db != nullptr);
     std::cout << toString() << std::endl;
     std::cout << "wait" << std::endl;
+}
+
+void Setting::rocksdbSetting(int argc, char **argv) {
+
+    for (int i = 2; i < argc; i++) {
+        double d;
+        // int n;
+        long n;
+        char junk;
+        if (rocksdb::Slice(argv[i]).starts_with("--benchmarks=")) {
+            FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
+        } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
+            FLAGS_compression_ratio = d;
+        } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
+                   (n == 0 || n == 1)) {
+            FLAGS_histogram = n;
+        } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
+                   (n == 0 || n == 1)) {
+            FLAGS_use_existing_db = n;
+        } else if (sscanf(argv[i], "--num=%d%c", &n, &junk) == 1) {
+            FLAGS_num = n;
+        } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
+            FLAGS_reads = n;
+        } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
+            FLAGS_threads = n;
+        } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
+            FLAGS_value_size = n;
+        } else if (sscanf(argv[i], "--write_buffer_size=%ld%c", &n, &junk) == 1) {
+            FLAGS_write_buffer_size = n;
+            std::cout << "FLAGS_write_buffer_size " << FLAGS_write_buffer_size << std::endl;
+        } else if (sscanf(argv[i], "--cache_size=%ld%c", &n, &junk) == 1) {
+            FLAGS_cache_size = n;
+            std::cout << " cache size " << FLAGS_cache_size << std::endl;
+        } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
+            FLAGS_bloom_bits = n;
+        } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
+            FLAGS_open_files = n;
+        } else if (strncmp(argv[i], "--db=", 5) == 0) {
+            FLAGS_db = argv[i] + 5;
+        } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
+            FLAGS_resource_data = argv[i] + 16;
+        }
+    }
 
 }
+
 BaseSetting::BaseSetting(){
 
     readPercent.store(80);

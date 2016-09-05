@@ -48,6 +48,15 @@ struct ThreadState {
         seed = tid;
         randGenerator.seed(seed);
     }
+
+    ThreadState(int index, std::atomic<std::vector<uint8_t> *> *wep, std::atomic<std::vector<uint8_t> *> *wsp)
+            : tid(index),
+              whichExecutePlan(wep),
+              whichSamplingPlan(wsp) {
+        STOP.store(false);
+        seed = tid;
+        randGenerator.seed(seed);
+    }
     ~ThreadState(){
     }
 };
