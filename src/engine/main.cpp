@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <src/TerarkBenchmark.h>
 #include <src/WiredTigerBenchmark.h>
+#include <src/RocksDbBenchmark.h>
 #include "src/Stats.h"
 #include "src/analysis_worker.h"
 
@@ -65,6 +66,9 @@ int main(int argc, char **argv) {
         compact(setting);
         puts("Compact Finish.Exit the program.");
         exit(1);
+    } else if (strcmp(argv[1], "rocksdb") == 0) {
+        bm = new RocksDbBenchmark(setting);
+        worker = new AnalysisWorker("rocksdb", &setting);
     }
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);

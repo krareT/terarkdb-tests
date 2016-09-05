@@ -9,6 +9,7 @@
 #include <atomic>
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
+#include <rocksdb/options.h>
 
 class BaseSetting{
 private:
@@ -60,6 +61,10 @@ public:
 class Setting : public BaseSetting{
 
 public:
+    uint64_t FLAGS_block_size;
+    enum rocksdb::CompressionType FLAGS_compression_type = rocksdb::kSnappyCompression;
+    uint32_t FLAGS_min_level_to_compress;
+    uint64_t FLAGS_num_levels = 7;
     //BaseSetting baseSetting;
     const char* FLAGS_benchmarks =
             "fillseq,"
@@ -143,6 +148,8 @@ public:
 // Use the db with the following name.
     void terarkSetting(int argc,char **argv);
     void wiredTigerSetting(int argc,char **argv);
+
+    void rocksdbSetting(int argc, char **argv);
     Setting(int argc,char **argv,char *name);
 };
 class TerarkSetting : private Setting{
