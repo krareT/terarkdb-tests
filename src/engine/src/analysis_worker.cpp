@@ -3,6 +3,7 @@
 //
 #include "stdlib.h"
 #include "inttypes.h"
+#include "time.h"
 #include "cppconn/prepared_statement.h"
 
 #include "analysis_worker.h"
@@ -117,7 +118,13 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
     conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", std::string(passwd));
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");
-        sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_ops_10s WHERE time_bucket = 0");
+        
+        // Delete data from 5 days ago
+        struct timespec t;
+        clock_gettime(CLOCK_REALTIME, &t);
+        int filter_time = t - 60*60*24*7;
+        sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_ops_10s WHERE time_bucket < `?`");
+        pstmt->setInt(1, filter_time);
         pstmt->executeUpdate();
         std::cout<<"database connected!"<<std::endl;
         delete pstmt;
