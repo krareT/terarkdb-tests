@@ -16,7 +16,7 @@ int TimeBucket::findTimeBucket(uint64_t time) {
     return t*10;
 }
 void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
-    if(bucket == 0) {
+    if(bucket == 0 || !conn->isValid()) {
         return;
     }
     assert(conn != nullptr);
@@ -69,6 +69,17 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
             ps_dbsize->executeUpdate();
         }
         printf("dbsize = %d KB\n", dbsize);
+
+        // Disk file infomation
+        std::string diskinfo;
+        std::unique_ptr<sql::PreparedStatement> ps_diskinfo(conn->prepareStatement("INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)"));
+        benchmark::getDiskFileInfo(dbpath, diskinfo);
+        if(diskinfo.length() > 0) {
+            ps_diskinfo->setInt(1, bucket);
+            ps_diskinfo->setString(2, diskinfo);
+            ps_diskinfo->setString(3, engine_name);
+            ps_diskinfo->executeUpdate();
+        }
     }
 }
 
@@ -110,8 +121,8 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
     std::unique_ptr<sql::mysql::MySQL_Driver> driver(sql::mysql::get_mysql_driver_instance());
     char* passwd = getenv("MYSQL_PASSWD");
     if(passwd == NULL || strlen(passwd) == 0) {
-        printf("no MYSQL_PASSWD set, exit analysis thread!\n");
-        shoud_stop = true;
+        printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
+        //shoud_stop = true;
         return;
     }
 
@@ -119,17 +130,17 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
     if(conn != nullptr && conn->isValid()) {
         conn->setSchema("benchmark");
         
-        // Delete data from 5 days ago
+        // Delete data from 7 days ago.
         struct timespec t;
         clock_gettime(CLOCK_REALTIME, &t);
-        int filter_time = t - 60*60*24*7;
-        sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_ops_10s WHERE time_bucket < `?`");
+        int filter_time = t.tv_sec - 60*60*24*7;
+        sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_ops_10s WHERE time_bucket < ?");
         pstmt->setInt(1, filter_time);
         pstmt->executeUpdate();
         std::cout<<"database connected!"<<std::endl;
         delete pstmt;
     }else{
-        std::cout<<"database connection fault"<<std::endl;
+        std::cout<<"database connection fault, data will not upload"<<std::endl;
         shoud_stop = true;
     }
 }

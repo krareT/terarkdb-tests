@@ -107,5 +107,20 @@ namespace benchmark {
         }
         return result;
     }
+
+    void getDiskFileInfo(const char* path, std::string& info) {
+        char buffer[128];
+
+        snprintf(buffer, sizeof(buffer), "du -h %s | sort -k2", path);
+        FILE *fp = popen(buffer, "r");
+        while(!feof(fp)) {
+            if(fp!=NULL && fgets(buffer, 128, fp)) {
+                info += buffer;
+            }
+        }
+        if(pclose(fp)){
+            printf("exit popen(`du -sk`) with errors\n");
+        }
+    }
 }
 #endif //TERARKDB_TEST_FRAMEWORK_SYSTEM_RESOURCE_H
