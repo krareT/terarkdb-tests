@@ -100,8 +100,10 @@ bool Benchmark::executeOneOperationWithSampling(ThreadState* state,uint8_t type)
     bool ret;
     clock_gettime(CLOCK_REALTIME,&start);
     ret = (this->*executeFuncMap[type])(state);
-    clock_gettime(CLOCK_REALTIME,&end);
-    state->stats.FinishedSingleOp(type, &start, &end);
+    if (ret == true || type == 1) {
+        clock_gettime(CLOCK_REALTIME, &end);
+        state->stats.FinishedSingleOp(type, &start, &end);
+    }
     return ret;
 }
 bool Benchmark::executeOneOperationWithoutSampling(ThreadState* state,uint8_t type){
