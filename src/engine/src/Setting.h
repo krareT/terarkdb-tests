@@ -61,9 +61,9 @@ public:
 class Setting : public BaseSetting{
 
 public:
-    uint64_t FLAGS_block_size;
+    uint64_t FLAGS_block_size = 4;
     enum rocksdb::CompressionType FLAGS_compression_type = rocksdb::kSnappyCompression;
-    uint32_t FLAGS_min_level_to_compress;
+    uint32_t FLAGS_min_level_to_compress = 2;
     uint64_t FLAGS_num_levels = 7;
     //BaseSetting baseSetting;
     const char* FLAGS_benchmarks =

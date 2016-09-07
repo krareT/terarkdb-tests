@@ -40,6 +40,21 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
     options.table_factory.reset(
             NewBlockBasedTableFactory(block_based_options));
     write_options = rocksdb::WriteOptions();
+    read_options = rocksdb::ReadOptions();
+
+    options.compression = set.FLAGS_compression_type;
+    if (set.FLAGS_min_level_to_compress >= 0) {
+        assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
+        options.compression_per_level.resize(set.FLAGS_num_levels);
+        for (int i = 0; i < set.FLAGS_min_level_to_compress; i++) {
+            options.compression_per_level[i] = rocksdb::kNoCompression;
+        }
+        for (int i = set.FLAGS_min_level_to_compress;
+             i < set.FLAGS_num_levels; i++) {
+            options.compression_per_level[i] = set.FLAGS_compression_type;
+        }
+    }
+
 }
 
 void RocksDbBenchmark::Close() {
