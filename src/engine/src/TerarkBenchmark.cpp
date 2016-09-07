@@ -27,6 +27,7 @@ void TerarkBenchmark::Open()  {
     assert(tab != NULL);
     indexId = tab->getIndexId("cur_title,cur_timestamp");
     assert(indexId < tab->getIndexNum());
+    tab->setThrowOnThrottle(true);
 }
 void TerarkBenchmark::DoWrite( bool seq) {
     std::cout << "Write the data to terark : " << setting.getLoadDataPath() << std::endl;
@@ -123,6 +124,8 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread)  {
     }catch (NeedRetryException e){
         std::cerr << e.what() << std::endl;
         return false;
+    } catch (...) {
+
     }
     return true;
 }
@@ -145,6 +148,8 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread)  {
     }catch (NeedRetryException e){
         std::cerr << e.what() << std::endl;
         return false;
+    } catch (...) {
+
     }
     thread->key = getKey(rstr);
     pushKey(thread->key);
