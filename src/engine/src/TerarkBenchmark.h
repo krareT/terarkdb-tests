@@ -17,7 +17,7 @@ public:
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
     ~TerarkBenchmark() {
         if (NULL != tab)
-            tab->safeStopAndWaitForCompress();
+            tab->safeStopAndWaitForFlush();
         tab = NULL;
     }
 private:
