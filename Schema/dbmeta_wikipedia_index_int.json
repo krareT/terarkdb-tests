@@ -35,6 +35,7 @@
 	"MaxWrSegSize" 		: "3G",
 	"MinMergeSegNum"	: 3,
 	"PurgeDeleteThreshold"	: 0.20,
+	"WriteThrottleBytesPerSecond": "2MB",
 	"TableIndex" : [
 		{
 			"fields": "cur_title,cur_timestamp",
