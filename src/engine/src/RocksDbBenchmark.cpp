@@ -54,7 +54,9 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
             options.compression_per_level[i] = set.FLAGS_compression_type;
         }
     }
-
+    for (int i = 0; i < options.compression_per_level.size(); i++) {
+        printf("options.compression_per_level[%d]=%d", i, options.compression_per_level[i]);
+    }
 }
 
 void RocksDbBenchmark::Close() {
