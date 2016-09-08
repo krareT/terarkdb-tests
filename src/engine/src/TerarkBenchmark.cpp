@@ -131,7 +131,6 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
             return false;
         }
     } catch (const std::exception &e) {
-        std::cerr << e.what() << std::endl;
         return false;
     }
     return true;
@@ -151,6 +150,7 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
 
     try {
         if (thread->ctx->upsertRow(thread->row) < 0) { // unique index
+
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
@@ -161,7 +161,6 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
         updateDataCq.push(rstr);
         return false;
     } catch (const std::exception &e) {
-        std::cerr << e.what() << std::endl;
         return false;
     }
     thread->key = getKey(rstr);
