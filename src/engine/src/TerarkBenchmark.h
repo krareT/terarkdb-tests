@@ -16,9 +16,7 @@ private:
 public:
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
     ~TerarkBenchmark() {
-        if (NULL != tab)
-            tab->safeStopAndWaitForFlush();
-        tab = NULL;
+        assert(tab == NULL);
     }
 private:
     ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,

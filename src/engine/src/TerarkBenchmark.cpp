@@ -9,7 +9,7 @@ void TerarkBenchmark::PrintHeader() {
 }
 
 void TerarkBenchmark::Close() {
-    tab->safeStopAndWaitForFlush();
+    tab->safeStopAndWaitForCompress();
     tab = NULL;
 }
 
