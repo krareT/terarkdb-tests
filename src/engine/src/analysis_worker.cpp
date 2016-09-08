@@ -134,11 +134,20 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
         struct timespec t;
         clock_gettime(CLOCK_REALTIME, &t);
         int filter_time = t.tv_sec - 60*60*24*7;
-        sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM engine_test_ops_10s WHERE time_bucket < ?");
-        pstmt->setInt(1, filter_time);
-        pstmt->executeUpdate();
+        std::string tables[] = {"engine_test_ops_10s", 
+                                "engine_test_memory_10s", 
+                                "engine_test_cpu_10s", 
+                                "engine_test_dbsize_10s", 
+                                "engine_test_diskinfo_10s"
+                                };
+        for(std::string& table: tables){
+            sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM `?` WHERE time_bucket < ?");
+            pstmt->setString(1, table);
+            pstmt->setInt(2, filter_time);
+            pstmt->executeUpdate();
+            delete pstmt;
+        }
         std::cout<<"database connected!"<<std::endl;
-        delete pstmt;
     }else{
         std::cout<<"database connection fault, data will not upload"<<std::endl;
         shoud_stop = true;
