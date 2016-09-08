@@ -141,9 +141,9 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
                                 "engine_test_diskinfo_10s"
                                 };
         for(std::string& table: tables){
-            sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM `?` WHERE time_bucket < ?");
-            pstmt->setString(1, table);
-            pstmt->setInt(2, filter_time);
+            std::string sql = "DELETE FROM " + table + " WHERE time_bucket < ?";
+            sql::PreparedStatement* pstmt = conn->prepareStatement(sql);
+            pstmt->setInt(1, filter_time);
             pstmt->executeUpdate();
             delete pstmt;
         }
