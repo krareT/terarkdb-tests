@@ -131,7 +131,6 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
             return false;
         }
     } catch (const std::exception &e) {
-        std::cerr << e.what() << std::endl;
         return false;
     }
     return true;
@@ -161,7 +160,6 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
         updateDataCq.push(rstr);
         return false;
     } catch (const std::exception &e) {
-        std::cerr << e.what() << std::endl;
         return false;
     }
     thread->key = getKey(rstr);
