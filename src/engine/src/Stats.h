@@ -22,7 +22,6 @@ public:
     static tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> readTimeDataCq;
     static tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> createTimeDataCq;
     static tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> updateTimeDataCq;
-
     Stats(){
         timeDataFuncMap[0] = &Stats::updatePlusOne;
         timeDataFuncMap[1] = &Stats::readPlusOne;
