@@ -221,6 +221,7 @@ BaseSetting::BaseSetting(){
     setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
     setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
     setFuncMap["-compact"]          = &BaseSetting::strSetCompactTimes;
+    setFuncMap["-message"] = &BaseSetting::strSetMessage;
 }
 uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
@@ -430,6 +431,20 @@ bool BaseSetting::strSetCompactTimes(std::string &val) {
 
     compactTimes++;
     return true;
+}
+
+bool BaseSetting::strSetMessage(std::string &msg) {
+
+    message_cq.push(msg);
+    return true;
+}
+
+std::string BaseSetting::getMessage(void) {
+
+    std::string str;
+    if (message_cq.try_pop(str) == true)
+        return str;
+    return str;
 }
 
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {

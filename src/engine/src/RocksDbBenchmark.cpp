@@ -15,7 +15,7 @@ void RocksDbBenchmark::Open() {
 
 }
 
-RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
+RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
 
     db = nullptr;
     options.create_if_missing = true;

@@ -25,7 +25,7 @@ private:
     size_t getKeyAndValue(std::string &str, std::string &key, std::string &val);
 
 public:
-    RocksDbBenchmark(const Setting &set);
+    RocksDbBenchmark(Setting &set);
 
     void Open() override;
 

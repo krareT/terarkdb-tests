@@ -93,9 +93,10 @@ public:
     bool getRandomKey(std::string &key,std::mt19937 &rg);
     bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
-    const Setting &setting;
+    Setting &setting;
     static tbb::concurrent_queue<std::string> updateDataCq;
-    Benchmark(const Setting &s);
+
+    Benchmark(Setting &s);
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;
@@ -105,6 +106,8 @@ public:
     virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
                                         std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
     virtual bool Compact(void) = 0;
+
+    virtual void HandleMessage(const std::string &msg);
 };
 
 

@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include <rocksdb/options.h>
+#include <tbb/concurrent_queue.h>
 
 class BaseSetting{
 private:
@@ -25,6 +26,37 @@ private:
     std::string loadDataPath;
     std::string keysDataPath;
     bool run = true;
+    tbb::concurrent_queue<std::string> message_cq;
+
+    bool strSetInsertDataPath(std::string &);
+
+    bool strSetSamplingRate(std::string &);
+
+    bool strSetStop(std::string &);
+
+    bool strSetReadPercent(std::string &);
+
+    bool strSetThreadNums(std::string &);
+
+    bool strSetInsertPercent(std::string &);
+
+    bool strSetLoadDataPath(std::string &);
+
+    bool strSetLoadOrRun(std::string &);
+
+    bool strSetKeysDataPath(std::string &);
+
+    bool strSetCompactTimes(std::string &);
+
+    bool strSetMessage(std::string &);
+
+protected:
+    void setReadPercent(uint8_t);
+
+    void setThreadNums(uint32_t);
+
+    std::string toString();
+
 public:
     static std::string BenchmarkName;
     BaseSetting();
@@ -37,25 +69,13 @@ public:
     const std::string &getInsertDataPath(void) const ;
     const std::string &getLoadDataPath(void) const ;
     const std::string &getKeysDataPath(void) const ;
+
+    std::string getMessage(void);
     bool ifStop(void) const ;
     std::string ifRunOrLoad(void) const ;
-
     void setStop(void);
-    void setReadPercent(uint8_t);
-    void setThreadNums(uint32_t);
     std::string setBaseSetting(std::string &line);
     std::string setBaseSetting(int argc,char **argv);
-    bool strSetInsertDataPath(std::string &);
-    bool strSetSamplingRate(std::string&);
-    bool strSetStop(std::string&);
-    bool strSetReadPercent(std::string&);
-    bool strSetThreadNums(std::string&);
-    bool strSetInsertPercent(std::string&);
-    bool strSetLoadDataPath(std::string&);
-    bool strSetLoadOrRun(std::string&);
-    bool strSetKeysDataPath(std::string&);
-    bool strSetCompactTimes(std::string&);
-    std::string toString();
 
 };
 class Setting : public BaseSetting{
