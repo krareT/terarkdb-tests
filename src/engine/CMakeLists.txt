@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
+#cmake -DCMAKE_VERBOSE_MAKEFILE=ON
+
 project(Terark_Engine_Test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -8,9 +10,11 @@ aux_source_directory(./ SRC_LIST)
 
 include_directories(./)
 include_directories(./include)
+include_directories(/usr/local/include)
 include_directories(${TERARKDB_PATH}/include)
 
 link_directories(${TERARKDB_PATH}/lib)
+
 link_directories(/usr/local/mysql/lib)
 link_directories(/usr/local/lib)
 
@@ -26,17 +30,22 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         src/Benchmark.h
         src/TcpServer.cpp src/TcpServer.h
         src/Stats.cpp src/Stats.h src/Benchmark.cpp
-        src/analysis_worker.cpp util/system_resource.h src/TerarkBenchmark.cpp src/TerarkBenchmark.h src/ThreadState.cpp src/ThreadState.h src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h)
+        src/analysis_worker.cpp util/system_resource.h src/TerarkBenchmark.cpp src/TerarkBenchmark.h src/ThreadState.cpp src/ThreadState.h src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h src/TerarkRocksDbBenchmark.cpp src/TerarkRocksDbBenchmark.h)
 
 target_link_libraries(Terark_Engine_Test
-                        tbb
-                        boost_system
-                        boost_filesystem
+                        terark-zip-rocksdb-r
+        terark-db-r
                         terark-fsa_all-r
-                        terark-db-r
+                        rocksdb
                         wiredtiger
-                        pthread
                         snappy
                         mysqlclient
-        mysqlcppconn
-        rocksdb)
+                        mysqlcppconn
+        boost_system
+        boost_filesystem
+        tbb
+                        z
+                        bz2
+                        stdc++
+        pthread
+        )
