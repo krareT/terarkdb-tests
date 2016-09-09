@@ -95,13 +95,13 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
         try {
             upload(current_bucket, ops, type, uploadExtraData);
         }catch (std::exception& e){
-            printf("%s\n", e.what());
+            printf("line-98 exception : %s\n", e.what());
             if(!conn->isValid()){
                 try {
                     conn->reconnect();
                     conn->setSchema("benchmark");
                 }catch (std::exception& f){
-                    printf("%s\n", f.what());
+                    printf("line-104 exception : %s\n", f.what());
                 }
             }
         }
@@ -141,9 +141,9 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
                                 "engine_test_diskinfo_10s"
                                 };
         for(std::string& table: tables){
-            sql::PreparedStatement* pstmt = conn->prepareStatement("DELETE FROM `?` WHERE time_bucket < ?");
-            pstmt->setString(1, table);
-            pstmt->setInt(2, filter_time);
+            std::string sql = "DELETE FROM " + table + " WHERE time_bucket < ?";
+            sql::PreparedStatement* pstmt = conn->prepareStatement(sql);
+            pstmt->setInt(1, filter_time);
             pstmt->executeUpdate();
             delete pstmt;
         }

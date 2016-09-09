@@ -17,13 +17,14 @@
 class RocksDbBenchmark : public Benchmark {
 private:
     rocksdb::DB *db;
-    rocksdb::Options options;
     std::shared_ptr<const rocksdb::FilterPolicy> filter_policy_;
     rocksdb::WriteOptions write_options;
     rocksdb::ReadOptions read_options;
 
     size_t getKeyAndValue(std::string &str, std::string &key, std::string &val);
 
+protected:
+    rocksdb::Options options;
 public:
     RocksDbBenchmark(Setting &set);
 

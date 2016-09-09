@@ -129,7 +129,7 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     try {
         llong rid = thread->ctx->upsertRow(thread->row);
         if (rid < 0) { // unique index
-            printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+            printf("Update failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
     } catch (const std::exception &e) {
