@@ -88,6 +88,8 @@ private:
     void ReadWhileWriting(ThreadState *thread);
     static terark::fstrvec allkeys;
     static tbb::spin_rw_mutex allkeysRwMutex;
+
+    void reportMessage(const std::string &);
 public:
     void  Run(void);
     bool getRandomKey(std::string &key,std::mt19937 &rg);
@@ -107,7 +109,7 @@ public:
                                         std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
     virtual bool Compact(void) = 0;
 
-    virtual void HandleMessage(const std::string &msg);
+    virtual std::string HandleMessage(const std::string &msg);
 };
 
 

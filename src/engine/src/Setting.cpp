@@ -447,6 +447,10 @@ std::string BaseSetting::getMessage(void) {
     return str;
 }
 
+void BaseSetting::sendMessageToSetting(const std::string &str) {
+    response_message_cq.push(str);
+}
+
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {
 
     funcMap["--compress_ratio"] = std::make_pair(&TerarkSetting::strSetCompressionRatio,

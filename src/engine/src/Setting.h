@@ -27,7 +27,7 @@ private:
     std::string keysDataPath;
     bool run = true;
     tbb::concurrent_queue<std::string> message_cq;
-
+    tbb::concurrent_queue<std::string> response_message_cq;
     bool strSetInsertDataPath(std::string &);
 
     bool strSetSamplingRate(std::string &);
@@ -77,6 +77,7 @@ public:
     std::string setBaseSetting(std::string &line);
     std::string setBaseSetting(int argc,char **argv);
 
+    void sendMessageToSetting(const std::string &);
 };
 class Setting : public BaseSetting{
 

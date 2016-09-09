@@ -180,18 +180,29 @@ TerarkBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichEPlan,
     return new ThreadState(threads.size(), whichEPlan, whichSPlan, &tab);
 }
 
-void TerarkBenchmark::HandleMessage(const std::string &msg) {
-    static std::unordered_map<std::string, bool (TerarkBenchmark::*)(const std::string &)> handleFuncMap;
-    handleFuncMap["write_throttle"] = &TerarkBenchmark::updateWriteThrottle;
-    handleFuncMap["colgroup_mmapPopulate"] = &TerarkBenchmark::updateColGroupMmapPopulate;
-    handleFuncMap["index_mmappopulate"] = &TerarkBenchmark::updateIndexMmapPopulate;
-    handleFuncMap["checksumLevel"] = &TerarkBenchmark::updateCheckSumLevel;
-    handleFuncMap["dictziosampleratio"] = &TerarkBenchmark::updateDictZipSampleRatio;
+std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
+    static std::unordered_map<std::string, std::pair<bool (TerarkBenchmark::*)(const std::string &),
+            std::string (TerarkBenchmark::*)(void)>> handleFuncMap;
+    handleFuncMap["write_throttle"] = std::make_pair(&TerarkBenchmark::updateWriteThrottle,
+                                                     &TerarkBenchmark::getWriteThrottle);
+    handleFuncMap["colgroup_mmapPopulate"] = std::make_pair(&TerarkBenchmark::updateColGroupMmapPopulate,
+                                                            &TerarkBenchmark::getColGroupMmapPopulate);
+    handleFuncMap["index_mmappopulate"] = std::make_pair(&TerarkBenchmark::updateIndexMmapPopulate,
+                                                         &TerarkBenchmark::getIndexMmapPopulate);
+    handleFuncMap["checksumLevel"] = std::make_pair(&TerarkBenchmark::updateCheckSumLevel,
+                                                    &TerarkBenchmark::getCheckSumLevel);
+    handleFuncMap["dictziosampleratio"] = std::make_pair(&TerarkBenchmark::updateDictZipSampleRatio,
+                                                         &TerarkBenchmark::getDictZipSampleRatio);
 
     size_t div = msg.find(':');
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
-    (this->*handleFuncMap[key])(value);
+    (this->*handleFuncMap[key].first)(value);
+
+    std::stringstream ss;
+    for (auto each : handleFuncMap) {
+        ss << each.first << ":" << (this->*each.second.second)() << std::endl;
+    }
 }
 
 bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
@@ -210,14 +221,15 @@ bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
         }
     }
     tab->getSchemaConfig().m_writeThrottleBytesPerSecond = bytes;
+
     return true;
 }
 
 bool TerarkBenchmark::updateColGroupMmapPopulate(const std::string &val) {
     if (val == "true")
-        tab->getColgroupSchemaForChange(0).m_mmapPopulate = true;
+        tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate = true;
     else if (val == "false")
-        tab->getColgroupSchemaForChange(0).m_mmapPopulate = true;
+        tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate = true;
     else
         return false;
     return true;
@@ -237,11 +249,45 @@ bool TerarkBenchmark::updateDictZipSampleRatio(const std::string &val) {
 
 bool TerarkBenchmark::updateIndexMmapPopulate(const std::string &val) {
     if (val == "true")
-        tab->getIndexSchemaForChange(colgroupId).m_mmapPopulate = true;
+        tab->getIndexSchemaForChange(indexId).m_mmapPopulate = true;
     else if (val == "false")
-        tab->getIndexSchemaForChange(colgroupId).m_mmapPopulate = false;
+        tab->getIndexSchemaForChange(indexId).m_mmapPopulate = false;
     else
         return false;
     return true;
+}
+
+std::string TerarkBenchmark::getWriteThrottle(void) {
+
+    std::stringstream ss;
+    ss << tab->getSchemaConfig().m_writeThrottleBytesPerSecond;
+    return ss.str();
+}
+
+std::string TerarkBenchmark::getColGroupMmapPopulate(void) {
+
+    std::stringstream ss;
+    ss << tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate;
+    return ss.str();
+}
+
+std::string TerarkBenchmark::getIndexMmapPopulate(void) {
+
+    std::stringstream ss;
+    ss << tab->getIndexSchemaForChange(colgroupId).m_mmapPopulate;
+    return ss.str();
+}
+
+std::string TerarkBenchmark::getCheckSumLevel(void) {
+    std::stringstream ss;
+    ss << tab->getColgroupSchemaForChange(colgroupId).m_checksumLevel;
+    return ss.str();
+}
+
+std::string TerarkBenchmark::getDictZipSampleRatio(void) {
+    std::stringstream ss;
+    ss << tab->getColgroupSchemaForChange(colgroupId).m_dictZipSampleRatio;
+    return ss.str();
+
 }
 

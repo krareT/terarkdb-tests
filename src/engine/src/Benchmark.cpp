@@ -90,7 +90,7 @@ void Benchmark::RunBenchmark(void){
             std::thread compactThread(Benchmark::CompactThreadBody,this);
             compactThread.detach();
         }
-        HandleMessage(setting.getMessage());
+        reportMessage(HandleMessage(setting.getMessage()));
         sleep(5);
     }
     adjustThreadNum(0, nullptr, nullptr);
@@ -235,6 +235,10 @@ Benchmark::Benchmark(Setting &s) : setting(s) {
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
 }
 
-void Benchmark::HandleMessage(const std::string &msg) {
+std::string Benchmark::HandleMessage(const std::string &msg) {
 
+}
+
+void Benchmark::reportMessage(const std::string &msg) {
+    setting.sendMessageToSetting(msg);
 };
