@@ -65,6 +65,7 @@ void RocksDbBenchmark::Close() {
 
 void RocksDbBenchmark::Load() {
 
+    std::cout << "RocksDbBenchmark Load" << std::endl;
     FILE *loadFile = fopen(setting.getLoadDataPath().c_str(), "r");
     assert(loadFile != NULL);
     posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);

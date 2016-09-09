@@ -10,6 +10,7 @@
 class TerarkRocksDbBenchmark : public RocksDbBenchmark{
 public:
     TerarkRocksDbBenchmark(const Setting &set):RocksDbBenchmark(set){
+        std::cout <<"TR Benchmark" << std::endl;
         rocksdb::TerarkZipTableOptions opt;
         if ( opt.localTempDir != "/tmp")
             opt.localTempDir = "/tmp";

@@ -70,16 +70,16 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[1], "rocksdb") == 0) {
         bm = new RocksDbBenchmark(setting);
         worker = new AnalysisWorker("rocksdb", &setting);
-    } else if (strcmp(argv[1],"terark_rocksdb")){
+    } else if (strcmp(argv[1],"terark_rocksdb") == 0){
         bm = new TerarkRocksDbBenchmark(setting);
         worker = new AnalysisWorker("rocksdb", &setting);
     }
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);
     // start a thread for analysis and data upload
-    std::thread workerThrad([](AnalysisWorker* w) {
-        w->run();
-    }, worker);
+//    std::thread workerThrad([](AnalysisWorker* w) {
+//        w->run();
+//    }, worker);
     if (nullptr != bm) bm->Run();
     delete bm;
     exit(1);
