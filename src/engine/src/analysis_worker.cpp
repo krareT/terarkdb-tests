@@ -95,13 +95,13 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
         try {
             upload(current_bucket, ops, type, uploadExtraData);
         }catch (std::exception& e){
-            printf("%s\n", e.what());
+            printf("line-98 exception : %s\n", e.what());
             if(!conn->isValid()){
                 try {
                     conn->reconnect();
                     conn->setSchema("benchmark");
                 }catch (std::exception& f){
-                    printf("%s\n", f.what());
+                    printf("line-104 exception : %s\n", f.what());
                 }
             }
         }
