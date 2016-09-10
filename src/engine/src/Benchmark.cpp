@@ -90,6 +90,7 @@ void Benchmark::RunBenchmark(void){
             std::thread compactThread(Benchmark::CompactThreadBody,this);
             compactThread.detach();
         }
+        reportMessage(HandleMessage(setting.getMessage()));
         sleep(5);
     }
     adjustThreadNum(0, nullptr, nullptr);
@@ -224,11 +225,20 @@ void  Benchmark::Run(void){
     }
     Close();
 };
-Benchmark::Benchmark(const Setting &s):setting(s){
+
+Benchmark::Benchmark(Setting &s) : setting(s) {
         compactTimes = 0;
         executeFuncMap[1] = &Benchmark::ReadOneKey;
         executeFuncMap[0] = &Benchmark::UpdateOneKey;
         executeFuncMap[2] = &Benchmark::InsertOneKey;
         samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
         samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
+}
+
+std::string Benchmark::HandleMessage(const std::string &msg) {
+
+}
+
+void Benchmark::reportMessage(const std::string &msg) {
+    setting.sendMessageToSetting(msg);
 };

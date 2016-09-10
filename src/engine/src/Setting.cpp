@@ -146,7 +146,7 @@ Setting::Setting(int argc,char **argv,char *name){
         terarkSetting(argc,argv);
     }else if (strcmp(name,"compact") == 0){
         terarkSetting(argc,argv);
-    } else if (strcmp(name, "rocksdb") == 0)
+    } else if (strcmp(name, "rocksdb") == 0 || strcmp(name, "terark_rocksdb") == 0)
         rocksdbSetting(argc, argv);
     else {
         fprintf(stderr,"error:argv[1]:%s",argv[1]);
@@ -171,19 +171,19 @@ void Setting::rocksdbSetting(int argc, char **argv) {
             FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
         } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
             FLAGS_compression_ratio = d;
-        } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
+        } else if (sscanf(argv[i], "--histogram=%ld%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
             FLAGS_histogram = n;
-        } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
+        } else if (sscanf(argv[i], "--use_existing_db=%ld%c", &n, &junk) == 1 &&
                    (n == 0 || n == 1)) {
             FLAGS_use_existing_db = n;
-        } else if (sscanf(argv[i], "--num=%d%c", &n, &junk) == 1) {
+        } else if (sscanf(argv[i], "--num=%ld%c", &n, &junk) == 1) {
             FLAGS_num = n;
-        } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
+        } else if (sscanf(argv[i], "--reads=%ld%c", &n, &junk) == 1) {
             FLAGS_reads = n;
-        } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
+        } else if (sscanf(argv[i], "--threads=%ld%c", &n, &junk) == 1) {
             FLAGS_threads = n;
-        } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
+        } else if (sscanf(argv[i], "--value_size=%ld%c", &n, &junk) == 1) {
             FLAGS_value_size = n;
         } else if (sscanf(argv[i], "--write_buffer_size=%ld%c", &n, &junk) == 1) {
             FLAGS_write_buffer_size = n;
@@ -191,9 +191,9 @@ void Setting::rocksdbSetting(int argc, char **argv) {
         } else if (sscanf(argv[i], "--cache_size=%ld%c", &n, &junk) == 1) {
             FLAGS_cache_size = n;
             std::cout << " cache size " << FLAGS_cache_size << std::endl;
-        } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
+        } else if (sscanf(argv[i], "--bloom_bits=%ld%c", &n, &junk) == 1) {
             FLAGS_bloom_bits = n;
-        } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
+        } else if (sscanf(argv[i], "--open_files=%ld%c", &n, &junk) == 1) {
             FLAGS_open_files = n;
         } else if (strncmp(argv[i], "--db=", 5) == 0) {
             FLAGS_db = argv[i] + 5;
@@ -221,6 +221,7 @@ BaseSetting::BaseSetting(){
     setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
     setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
     setFuncMap["-compact"]          = &BaseSetting::strSetCompactTimes;
+    setFuncMap["-message"] = &BaseSetting::strSetMessage;
 }
 uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
@@ -430,6 +431,24 @@ bool BaseSetting::strSetCompactTimes(std::string &val) {
 
     compactTimes++;
     return true;
+}
+
+bool BaseSetting::strSetMessage(std::string &msg) {
+
+    message_cq.push(msg);
+    return true;
+}
+
+std::string BaseSetting::getMessage(void) {
+
+    std::string str;
+    if (message_cq.try_pop(str) == true)
+        return str;
+    return str;
+}
+
+void BaseSetting::sendMessageToSetting(const std::string &str) {
+    response_message_cq.push(str);
 }
 
 TerarkSetting::TerarkSetting(int argc, char **argv, char *name):Setting(argc,argv,name) {

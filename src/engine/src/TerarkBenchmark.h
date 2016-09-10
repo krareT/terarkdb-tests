@@ -13,6 +13,7 @@ class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
     size_t indexId;
+    size_t colgroupId;
 public:
     TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
     ~TerarkBenchmark() {
@@ -32,6 +33,25 @@ private:
     bool UpdateOneKey(ThreadState *thread) override ;
     bool InsertOneKey(ThreadState *thread) override ;
     bool Compact() override ;
+
+    std::string HandleMessage(const std::string &msg) override;
+
+    bool updateWriteThrottle(const std::string &val);
+
+    std::string getWriteThrottle(void);
+    bool updateColGroupMmapPopulate(const std::string &val);
+
+    std::string getColGroupMmapPopulate(void);
+    bool updateIndexMmapPopulate(const std::string &val);
+
+    std::string getIndexMmapPopulate(void);
+    bool updateCheckSumLevel(const std::string &val);
+
+    std::string getCheckSumLevel(void);
+    bool updateDictZipSampleRatio(const std::string &val);
+
+    std::string getDictZipSampleRatio(void);
+
 };
 
 #endif //TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H
