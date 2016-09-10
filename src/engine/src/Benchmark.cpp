@@ -241,5 +241,7 @@ std::string Benchmark::HandleMessage(const std::string &msg) {
 }
 
 void Benchmark::reportMessage(const std::string &msg) {
+    if (msg.empty())
+        return;
     setting.sendMessageToSetting(msg);
 };

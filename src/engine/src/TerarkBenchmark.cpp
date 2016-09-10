@@ -181,7 +181,9 @@ TerarkBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichEPlan,
 }
 
 std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
-
+    std::stringstream ss;
+    if (msg.empty())
+        return ss.str();
     static std::unordered_map<std::string, std::pair<bool (TerarkBenchmark::*)(const std::string &),
             std::string (TerarkBenchmark::*)(void)>> handleFuncMap;
     handleFuncMap["write_throttle"] = std::make_pair(&TerarkBenchmark::updateWriteThrottle,
@@ -200,13 +202,12 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
                                                            &TerarkBenchmark::getPurgeDeleteThreshold);
     handleFuncMap["maxwritingsegmentsize"] = std::make_pair(&TerarkBenchmark::updateMaxWritingSegmentSize,
                                                             &TerarkBenchmark::getMaxWritingSegmentSize);
-    if (msg.size() != 0) {
-        size_t div = msg.find(':');
-        std::string key = msg.substr(0, div);
-        std::string value = msg.substr(div + 1);
-        (this->*handleFuncMap[key].first)(value);
-    }
-    std::stringstream ss;
+    size_t div = msg.find(':');
+    std::string key = msg.substr(0, div);
+    std::string value = msg.substr(div + 1);
+    (this->*handleFuncMap[key].first)(value);
+
+
     for (auto each : handleFuncMap) {
         ss << each.first << ":" << (this->*each.second.second)() << std::endl;
     }
