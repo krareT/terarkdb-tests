@@ -218,7 +218,7 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
 
 bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
 
-    size_t bytes;
+    size_t bytes = 0;
     for (auto ch : val) {
 
         if (isdigit(ch)) {
