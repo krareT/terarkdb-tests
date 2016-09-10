@@ -284,7 +284,7 @@ std::string TerarkBenchmark::getColGroupMmapPopulate(void) {
 std::string TerarkBenchmark::getIndexMmapPopulate(void) {
 
     std::stringstream ss;
-    ss << tab->getIndexSchemaForChange(colgroupId).m_mmapPopulate;
+    ss << tab->getIndexSchemaForChange(indexId).m_mmapPopulate;
     return ss.str();
 }
 
