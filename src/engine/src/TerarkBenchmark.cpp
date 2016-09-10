@@ -182,7 +182,6 @@ TerarkBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichEPlan,
 
 std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
-    std::cout << "Handle Message:" << msg << std::endl;
     if (msg.empty())
         return ss.str();
     static std::unordered_map<std::string, std::pair<bool (TerarkBenchmark::*)(const std::string &),
