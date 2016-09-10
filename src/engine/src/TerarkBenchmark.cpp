@@ -320,7 +320,7 @@ std::string TerarkBenchmark::getMinMergeSetNum(void) {
 bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
 
     double value;
-    if (sscanf(val.c_str(), "%e", &value) != 1)
+    if (sscanf(val.c_str(), "%f", &value) != 1)
         return false;
     tab->getSchemaConfig().m_purgeDeleteThreshold = value;
     return true;
