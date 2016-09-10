@@ -302,10 +302,12 @@ std::string BaseSetting::toString() {
     ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
     ret << "load_data_path:\t"  << getLoadDataPath() << std::endl;
     ret << "compact times:\t"   << static_cast<int >(getCompactTimes()) << std::endl;
-    std::string msg;
+
     ret << "message from " << BenchmarkName << std::endl;
-    while (response_message_cq.try_pop(msg)) {
-        ret << msg << std::endl;
+    std::string msg;
+    while (!response_message_cq.empty()) {
+        if (true == response_message_cq.try_pop(msg))
+            ret << msg << std::endl;
     }
     return ret.str();
 }
