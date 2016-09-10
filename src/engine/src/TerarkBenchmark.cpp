@@ -203,9 +203,11 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
     handleFuncMap["maxwritingsegmentsize"] = std::make_pair(&TerarkBenchmark::updateMaxWritingSegmentSize,
                                                             &TerarkBenchmark::getMaxWritingSegmentSize);
     size_t div = msg.find(':');
+    if (div == std::string::npos)
+        return ss.str();
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
-    (this->*handleFuncMap[key].first)(value);
+    (this->*(handleFuncMap[key].first))(value);
 
 
     for (auto each : handleFuncMap) {
