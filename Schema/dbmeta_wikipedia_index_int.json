@@ -26,22 +26,22 @@
 			"minFragLen": 8, "maxFragLen": 100,
 			"dictZipSampleRatio": 0.01,
 			"dictZipLocalMatch": true,
-			"mmapPopulate" : false,
+			"mmapPopulate" : true,
 			"useFastZip": true,
-			"checkumLevel":1,
-			"checksumLevel":1
+			"checksumLevel":2
 		}
 	},
 	"MaxWrSegSize" 		: "3G",
 	"MinMergeSegNum"	: 3,
 	"PurgeDeleteThreshold"	: 0.20,
-	"WriteThrottleBytesPerSecond": "2MB",
+	"WriteThrottleBytesPerSecond": "4MB",
 	"TableIndex" : [
 		{
 			"fields": "cur_title,cur_timestamp",
 			"ordered" : true,
 			"unique" : true,
-			"nltNestLevel": 2
+			"nltNestLevel": 2,
+			"mmapPopulate" : true
 		}
 	]
 }

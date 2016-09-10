@@ -12,7 +12,7 @@ ln ../Schema/dbmeta_wikipedia_index_int.json $dirname/dbmeta.json
 echo "####Now, running terarkdb benchmark"
 echo 3 > /proc/sys/vm/drop_caches
 date
-#export DictZipBlobStore_zipThreads=2
+export DictZipBlobStore_zipThreads=4
 export TerarkDB_CompressionThreadsNum=2
 export DictZipBlobStoreBuilder_multiThread=0
 export TerarkDB_WrSegCacheSize=1G
