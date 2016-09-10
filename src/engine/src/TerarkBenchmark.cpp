@@ -241,7 +241,7 @@ bool TerarkBenchmark::updateColGroupMmapPopulate(const std::string &val) {
     if (val == "true")
         tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate = true;
     else if (val == "false")
-        tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate = true;
+        tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate = false;
     else
         return false;
     return true;
@@ -254,7 +254,9 @@ bool TerarkBenchmark::updateCheckSumLevel(const std::string &val) {
 }
 
 bool TerarkBenchmark::updateDictZipSampleRatio(const std::string &val) {
-    float value = sscanf(val.c_str(), "%f", &value);
+    float value;
+    if (1 != sscanf(val.c_str(), "%f", &value))
+        return false;
     tab->getColgroupSchemaForChange(colgroupId).m_dictZipSampleRatio = value;
     return true;
 }
