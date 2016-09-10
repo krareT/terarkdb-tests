@@ -193,7 +193,12 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
                                                     &TerarkBenchmark::getCheckSumLevel);
     handleFuncMap["dictziosampleratio"] = std::make_pair(&TerarkBenchmark::updateDictZipSampleRatio,
                                                          &TerarkBenchmark::getDictZipSampleRatio);
-
+    handleFuncMap["minmergesegnum"] = std::make_pair(&TerarkBenchmark::updateMinMergeSetNum,
+                                                     &TerarkBenchmark::getMinMergeSetNum);
+    handleFuncMap["purgedeletethreshold"] = std::make_pair(&TerarkBenchmark::updatePurgeDeleteThreshold,
+                                                           &TerarkBenchmark::getPurgeDeleteThreshold);
+    handleFuncMap["maxwritingsegmentsize"] = std::make_pair(&TerarkBenchmark::updateMaxWritingSegmentSize,
+                                                            &TerarkBenchmark::getMaxWritingSegmentSize);
     size_t div = msg.find(':');
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
@@ -289,5 +294,47 @@ std::string TerarkBenchmark::getDictZipSampleRatio(void) {
     ss << tab->getColgroupSchemaForChange(colgroupId).m_dictZipSampleRatio;
     return ss.str();
 
+}
+
+bool TerarkBenchmark::updateMinMergeSetNum(const std::string &val) {
+    size_t value = stoi(val);
+    tab->getSchemaConfig().m_minMergeSegNum = value;
+    return true;
+}
+
+std::string TerarkBenchmark::getMinMergeSetNum(void) {
+    std::stringstream ss;
+    ss << tab->getSchemaConfig().m_minMergeSegNum;
+    return ss.str();
+
+}
+
+bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
+
+    double value;
+    if (sscanf(val.c_str(), "%l", &value) != 1)
+        return false;
+    tab->getSchemaConfig().m_purgeDeleteThreshold = value;
+    return true;
+}
+
+std::string TerarkBenchmark::getPurgeDeleteThreshold(void) {
+
+    std::stringstream ss;
+    ss << tab->getSchemaConfig().m_purgeDeleteThreshold;
+    return ss.str();
+}
+
+bool TerarkBenchmark::updateMaxWritingSegmentSize(const std::string &val) {
+
+    llong value = stoll(val);
+    tab->getSchemaConfig().m_maxWritingSegmentSize = value;
+    return true;
+}
+
+std::string TerarkBenchmark::getMaxWritingSegmentSize(void) {
+    std::stringstream ss;
+    ss << tab->getSchemaConfig().m_maxWritingSegmentSize;
+    return ss.str();
 }
 

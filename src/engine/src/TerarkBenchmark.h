@@ -48,10 +48,21 @@ private:
     bool updateCheckSumLevel(const std::string &val);
 
     std::string getCheckSumLevel(void);
-    bool updateDictZipSampleRatio(const std::string &val);
 
+    bool updateDictZipSampleRatio(const std::string &val);
     std::string getDictZipSampleRatio(void);
 
+    bool updateMinMergeSetNum(const std::string &val);
+
+    std::string getMinMergeSetNum(void);
+
+    bool updatePurgeDeleteThreshold(const std::string &val);
+
+    std::string getPurgeDeleteThreshold(void);
+
+    bool updateMaxWritingSegmentSize(const std::string &val);
+
+    std::string getMaxWritingSegmentSize(void);
 };
 
 #endif //TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H

@@ -90,7 +90,9 @@ void Benchmark::RunBenchmark(void){
             std::thread compactThread(Benchmark::CompactThreadBody,this);
             compactThread.detach();
         }
-        reportMessage(HandleMessage(setting.getMessage()));
+        auto handle_message_times = 5;
+        while (handle_message_times--)
+            reportMessage(HandleMessage(setting.getMessage()));
         sleep(5);
     }
     adjustThreadNum(0, nullptr, nullptr);
@@ -227,7 +229,7 @@ void  Benchmark::Run(void){
 };
 
 Benchmark::Benchmark(Setting &s) : setting(s) {
-        compactTimes = 0;
+    compactTimes = s.getCompactTimes();
         executeFuncMap[1] = &Benchmark::ReadOneKey;
         executeFuncMap[0] = &Benchmark::UpdateOneKey;
         executeFuncMap[2] = &Benchmark::InsertOneKey;
@@ -236,7 +238,6 @@ Benchmark::Benchmark(Setting &s) : setting(s) {
 }
 
 std::string Benchmark::HandleMessage(const std::string &msg) {
-
 }
 
 void Benchmark::reportMessage(const std::string &msg) {
