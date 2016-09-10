@@ -213,6 +213,7 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
     for (auto each : handleFuncMap) {
         ss << each.first << ":" << (this->*each.second.second)() << std::endl;
     }
+    return ss.str();
 }
 
 bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
