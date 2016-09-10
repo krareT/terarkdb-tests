@@ -44,8 +44,5 @@ target_link_libraries(Terark_Engine_Test
         boost_system
         boost_filesystem
         tbb
-                        z
-                        bz2
-                        stdc++
         pthread
         )
