@@ -207,7 +207,8 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
         return ss.str();
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
-    (this->*(handleFuncMap[key].first))(value);
+    if (handleFuncMap.count(key) > 0)
+        (this->*(handleFuncMap[key].first))(value);
 
 
     for (auto each : handleFuncMap) {
