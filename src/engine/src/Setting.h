@@ -173,18 +173,6 @@ public:
     void rocksdbSetting(int argc, char **argv);
     Setting(int argc,char **argv,char *name);
 };
-class TerarkSetting : private Setting{
-private:
-    std::unordered_map<
-            std::string,
-            std::pair<bool (TerarkSetting::*)(std::string&),
-                    uint32_t (TerarkSetting::*)(void)>>  funcMap;
-public:
-    bool strSetCompressionRatio(std::string&);
-    uint32_t getCompressionRatio(void);
-    bool strSet(std::string&);
-    int64_t strGet(std::string&);
-    TerarkSetting(int argc,char **argv,char *name);
-};
+
 
 #endif //TERARKDB_TEST_FRAMEWORK_SETTING_H
