@@ -43,6 +43,7 @@ AnalysisWorker *worker;
 void sigint_fuc(int sig) {
     std::cout << "Ctrl+c" << std::endl;
     set->setStop();
+    worker->stop();
 }
 
 int main(int argc, char **argv) {
