@@ -13,6 +13,7 @@
 #include <src/WiredTigerBenchmark.h>
 #include <src/RocksDbBenchmark.h>
 #include <src/TerarkRocksDbBenchmark.h>
+#include <src/PosixBenchmark.h>
 #include "src/Stats.h"
 #include "src/analysis_worker.h"
 
@@ -74,6 +75,8 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[1],"terark_rocksdb") == 0){
         bm = new TerarkRocksDbBenchmark(setting);
         worker = new AnalysisWorker("rocksdb", &setting);
+    } else if (strcmp(argv[1],"posix") == 0){
+        bm = new PosixBenchmark(setting);
     }
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);

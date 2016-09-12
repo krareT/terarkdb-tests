@@ -148,6 +148,9 @@ Setting::Setting(int argc,char **argv,char *name){
         terarkSetting(argc,argv);
     } else if (strcmp(name, "rocksdb") == 0 || strcmp(name, "terark_rocksdb") == 0)
         rocksdbSetting(argc, argv);
+    else if (strcmp(name, "posix") == 0) {
+        terarkSetting(argc,argv);
+    }
     else {
         fprintf(stderr,"error:argv[1]:%s",argv[1]);
         exit(1);

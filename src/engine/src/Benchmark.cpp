@@ -136,6 +136,10 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
 
 size_t Benchmark::updateKeys(void) {
     std::cout << "Update Keys:" << setting.getKeysDataPath() << std::endl;
+    if (allkeys.empty()){
+        std::cout << "allkeys empty!" << std::endl;
+        return 0;
+    }
     std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
     std::string str;
