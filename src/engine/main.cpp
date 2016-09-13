@@ -53,7 +53,9 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr, "WiredTiger or Terark?");
     }
-    Setting setting(argc, argv, argv[1]);
+	char *passwd = getenv("MYSQL_PASSWD");
+    	printf("MYSQL_PASSWD:%s\n",passwd);
+	Setting setting(argc, argv, argv[1]);
     set = &setting;
     Benchmark *bm = nullptr;
 
@@ -81,9 +83,9 @@ int main(int argc, char **argv) {
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);
     // start a thread for analysis and data upload
-//    std::thread workerThrad([](AnalysisWorker* w) {
-//        w->run();
-//    }, worker);
+    std::thread workerThrad([](AnalysisWorker* w) {
+        w->run();
+    }, worker);
     if (nullptr != bm) bm->Run();
     delete bm;
     exit(1);
