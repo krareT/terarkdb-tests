@@ -1,4 +1,4 @@
-load_file=/data/publicdata/wikipedia/datahandle/wiki_70
+load_file=/data/publicdata/wikipedia/datahandle/wiki_30
 dirname=/data/publicdata/wikipedia/experiment/posix_normal
 cd ../
 cmake CMakeLists.txt
