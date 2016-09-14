@@ -120,9 +120,10 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
     // init mysql connection
     std::unique_ptr<sql::mysql::MySQL_Driver> driver(sql::mysql::get_mysql_driver_instance());
     char* passwd = getenv("MYSQL_PASSWD");
-    if(passwd == NULL || strlen(passwd) == 0) {
+   	std::cout << passwd << std::endl;
+	if(passwd == NULL || strlen(passwd) == 0) {
         printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
-        //shoud_stop = true;
+        shoud_stop = true;
         return;
     }
 
@@ -163,6 +164,7 @@ void AnalysisWorker::stop() {
 }
 
 void AnalysisWorker::run() {
+
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
     TimeBucket read_bucket(conn, engine_name, setting->FLAGS_db);
     TimeBucket insert_bucket(conn, engine_name, setting->FLAGS_db);

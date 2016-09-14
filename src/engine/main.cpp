@@ -13,6 +13,7 @@
 #include <src/WiredTigerBenchmark.h>
 #include <src/RocksDbBenchmark.h>
 #include <src/TerarkRocksDbBenchmark.h>
+#include <src/PosixBenchmark.h>
 #include "src/Stats.h"
 #include "src/analysis_worker.h"
 
@@ -52,6 +53,7 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr, "WiredTiger or Terark?");
     }
+	char *passwd = getenv("MYSQL_PASSWD");
     Setting setting(argc, argv, argv[1]);
     set = &setting;
     Benchmark *bm = nullptr;
@@ -73,7 +75,10 @@ int main(int argc, char **argv) {
         worker = new AnalysisWorker("rocksdb", &setting);
     } else if (strcmp(argv[1],"terark_rocksdb") == 0){
         bm = new TerarkRocksDbBenchmark(setting);
-        worker = new AnalysisWorker("rocksdb", &setting);
+        worker = new AnalysisWorker("terocksdb", &setting);
+    } else if (strcmp(argv[1],"posix") == 0){
+        bm = new PosixBenchmark(setting);
+        worker = new AnalysisWorker("posix", &setting);
     }
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);
@@ -81,7 +86,11 @@ int main(int argc, char **argv) {
     std::thread workerThrad([](AnalysisWorker* w) {
         w->run();
     }, worker);
-    if (nullptr != bm) bm->Run();
-    delete bm;
+
+    if (nullptr != bm) {
+
+        bm->Run();
+        delete bm;
+    }
     exit(1);
 }
