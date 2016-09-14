@@ -10,7 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include <rocksdb/options.h>
-#include <tbb/concurrent_queue.h>
+#include "tbb/concurrent_queue.h"
 
 class BaseSetting{
 private:
@@ -82,7 +82,7 @@ public:
 class Setting : public BaseSetting{
 
 public:
-    uint64_t FLAGS_block_size = 4;
+    uint64_t FLAGS_block_size = 16 * 1024;
     enum rocksdb::CompressionType FLAGS_compression_type = rocksdb::kSnappyCompression;
     uint32_t FLAGS_min_level_to_compress = 2;
     uint64_t FLAGS_num_levels = 7;

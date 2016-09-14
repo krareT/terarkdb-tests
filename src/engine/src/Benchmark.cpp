@@ -238,6 +238,8 @@ Benchmark::Benchmark(Setting &s) : setting(s) {
 }
 
 std::string Benchmark::HandleMessage(const std::string &msg) {
+    std::string str;
+    return str;
 }
 
 void Benchmark::reportMessage(const std::string &msg) {

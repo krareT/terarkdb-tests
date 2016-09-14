@@ -78,9 +78,9 @@ int main(int argc, char **argv) {
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);
     // start a thread for analysis and data upload
-//    std::thread workerThrad([](AnalysisWorker* w) {
-//        w->run();
-//    }, worker);
+    std::thread workerThrad([](AnalysisWorker* w) {
+        w->run();
+    }, worker);
     if (nullptr != bm) bm->Run();
     delete bm;
     exit(1);
