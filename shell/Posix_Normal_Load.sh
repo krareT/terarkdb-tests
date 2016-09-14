@@ -1,10 +1,14 @@
-load_file=/data/publicdata/wikipedia/datahandle/wiki_30
-dirname=/data/publicdata/wikipedia/experiment/posix_normal
+load_file=/data/publicdata/wikipedia/datahandle/wiki_30/
+dirname=/data/publicdata/wikipedia/experiment/posix_normal/
+shell_dir=$PWD
 cd ../
 cmake CMakeLists.txt
 make
 cd shell
-sudo rm -rf $dirname/*
+mkdir $dirname
+cd $dirname
+ls ./ | xargs rm -rf
+cd $shell_dir
 echo "####Now, running posix benchmark"
 echo 3 > /proc/sys/vm/drop_caches
 date

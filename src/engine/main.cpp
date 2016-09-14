@@ -54,8 +54,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "WiredTiger or Terark?");
     }
 	char *passwd = getenv("MYSQL_PASSWD");
-    	printf("MYSQL_PASSWD:%s\n",passwd);
-	Setting setting(argc, argv, argv[1]);
+    Setting setting(argc, argv, argv[1]);
     set = &setting;
     Benchmark *bm = nullptr;
 
@@ -76,9 +75,10 @@ int main(int argc, char **argv) {
         worker = new AnalysisWorker("rocksdb", &setting);
     } else if (strcmp(argv[1],"terark_rocksdb") == 0){
         bm = new TerarkRocksDbBenchmark(setting);
-        worker = new AnalysisWorker("rocksdb", &setting);
+        worker = new AnalysisWorker("terocksdb", &setting);
     } else if (strcmp(argv[1],"posix") == 0){
         bm = new PosixBenchmark(setting);
+        worker = new AnalysisWorker("posix", &setting);
     }
     //start a thread for tcp server
     std::thread tcpServerThread(tcpServer, &setting, bm);

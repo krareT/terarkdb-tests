@@ -26,21 +26,22 @@ void PosixBenchmark::Close(void) {
 }
 
 void PosixBenchmark::Load(void) {
-    std::cout << "PosixBenchmakr::Load" << std::endl;
     DIR *dir;
+    std::cout << "PosixBenchmakr::Load to :" + setting.getLoadDataPath() << std::endl;
+
     dir = opendir(setting.getLoadDataPath().c_str());
     if (dir == NULL){
-        throw std::invalid_argument(strerror(errno));
+        throw std::invalid_argument(strerror(errno) + setting.getLoadDataPath());
     }
     auto ret = closedir(dir);
     if ( ret != 0){
-        throw std::invalid_argument(strerror(errno));
+        throw std::invalid_argument(strerror(errno) + setting.getLoadDataPath());
     }
 
     if ( system(NULL) == 0)
         throw std::logic_error("system error:no bash to use!\n");
 
-    std::string cp_cmd = "cp " + setting.getLoadDataPath() + "/./* " + setting.FLAGS_db + "/" + " -r";
+    std::string cp_cmd = "cp " + setting.getLoadDataPath() + " " + setting.FLAGS_db + "/" + " -r";
     std::cout << cp_cmd << std::endl;
     ret = system(cp_cmd.c_str());
     if (ret == -1)

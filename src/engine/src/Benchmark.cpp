@@ -151,6 +151,8 @@ size_t Benchmark::updateKeys(void) {
 
 void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys" << std::endl;
+    if (allkeys.size() == 0)
+        return;
     std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
     for( size_t i = 0; i < allkeys.size();++i){
         keyFile_bkup << allkeys.str(i) <<std::endl;
@@ -222,9 +224,14 @@ void  Benchmark::Run(void){
     Open();
     std::cout << setting.ifRunOrLoad() << std::endl;
     if (setting.ifRunOrLoad() == "load") {
-        allkeys.erase_all();
-        Load();
-        backupKeys();
+        try {
+            std::cout << "load" << std::endl;
+            allkeys.erase_all();
+            Load();
+            backupKeys();
+        } catch (const std::exception &e) {
+            std::cout << e.what() << std::endl;
+        }
     }
     else {
         std::cout << "allKeys size:" <<updateKeys() << std::endl;
