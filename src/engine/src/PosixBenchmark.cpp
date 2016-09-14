@@ -26,6 +26,7 @@ void PosixBenchmark::Close(void) {
 }
 
 void PosixBenchmark::Load(void) {
+    std::cout << "PosixBenchmakr::Load" << std::endl;
     DIR *dir;
     dir = opendir(setting.getLoadDataPath().c_str());
     if (dir == NULL){

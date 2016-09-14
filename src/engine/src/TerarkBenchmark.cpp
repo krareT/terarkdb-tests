@@ -221,7 +221,7 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
 bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
 
     char *ch;
-    size_t bytes = strtol(val, &ch);
+    size_t bytes = strtol(val.c_str(), &ch, 10);
 
     if (*ch == 'K' || *ch == 'k') {
         bytes = bytes * 1024;
