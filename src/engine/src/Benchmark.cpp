@@ -222,7 +222,6 @@ posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
 }
 void  Benchmark::Run(void){
     Open();
-    std::cout << setting.ifRunOrLoad() << std::endl;
     if (setting.ifRunOrLoad() == "load") {
         try {
             std::cout << "load" << std::endl;

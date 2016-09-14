@@ -86,7 +86,9 @@ int main(int argc, char **argv) {
     std::thread workerThrad([](AnalysisWorker* w) {
         w->run();
     }, worker);
+
     if (nullptr != bm) {
+
         bm->Run();
         delete bm;
     }
