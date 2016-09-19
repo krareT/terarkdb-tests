@@ -1,4 +1,4 @@
-load_file=/mnt/hdd/data/xab
+load_file=/mnt/hdd/data/xaa
 dirname=./experiment/terark_rocksdb
 keys_file=~/Documents/data/terark_rocksdb_keys
 cd ../
