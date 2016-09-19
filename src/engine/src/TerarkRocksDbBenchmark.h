@@ -17,10 +17,9 @@ public:
             throw std::invalid_argument("U must set the tmp_dir!\n");
         }
         opt.localTempDir = tmp_dir;
-       	printf("local temp dir:%s\n",tmp_dir);
-       	rocksdb::TableFactory* factory = NewTerarkZipTableFactory(opt);
+//       	printf("local temp dir:%s\n",tmp_dir);
+        rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewAdaptiveTableFactory());
         options.table_factory.reset(factory);
-//        options.compression_per_level[options.compression_per_level.size()-1] = rocksdb::compress
     }
 
 };
