@@ -220,21 +220,15 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
 
 bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
 
-    size_t bytes = 0;
-    for (auto ch : val) {
+    char *ch;
+    size_t bytes = strtol(val.c_str(), &ch, 10);
 
-        if (isdigit(ch)) {
-            bytes = bytes * 10 + ch & 0x0f;
-        } else if (ch == 'K' || ch == 'k') {
-            bytes = bytes * 1024;
-            break;
-        } else if (ch == 'M' || ch == 'm') {
-            bytes = bytes * 1024 * 1024;
-            break;
-        }
+    if (*ch == 'K' || *ch == 'k') {
+        bytes = bytes * 1024;
+    } else if (*ch == 'M' || *ch == 'm') {
+        bytes = bytes * 1024 * 1024;
     }
     tab->getSchemaConfig().m_writeThrottleBytesPerSecond = bytes;
-
     return true;
 }
 
