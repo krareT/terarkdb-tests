@@ -136,7 +136,8 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
 
 size_t Benchmark::updateKeys(void) {
     std::cout << "Update Keys:" << setting.getKeysDataPath() << std::endl;
-    std::ifstream keysFile(setting.getKeysDataPath());
+    
+	std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
     std::string str;
     while( getline(keysFile,str)){
@@ -150,6 +151,8 @@ size_t Benchmark::updateKeys(void) {
 
 void Benchmark::backupKeys(void) {
     std::cout <<"backupKeys" << std::endl;
+    if (allkeys.size() == 0)
+        return;
     std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
     for( size_t i = 0; i < allkeys.size();++i){
         keyFile_bkup << allkeys.str(i) <<std::endl;
@@ -180,8 +183,12 @@ bool Benchmark::pushKey(std::string &key) {
 }
 void Benchmark::loadInsertData(const Setting *setting){
     FILE *ifs = fopen(setting->getInsertDataPath().c_str(),"r");
-    assert(ifs != NULL);
-    posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
+	std::cout << setting->getInsertDataPath() << std::endl;
+	if ( ifs == NULL)
+		puts(strerror(errno));    
+	assert(ifs != NULL);
+    
+posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
     std::string str;
     std::cout << "loadInsertData start" << std::endl;
     int count = 0;
@@ -215,11 +222,15 @@ void Benchmark::loadInsertData(const Setting *setting){
 }
 void  Benchmark::Run(void){
     Open();
-    std::cout << setting.ifRunOrLoad() << std::endl;
     if (setting.ifRunOrLoad() == "load") {
-        allkeys.erase_all();
-        Load();
-        backupKeys();
+        try {
+            std::cout << "load" << std::endl;
+            allkeys.erase_all();
+            Load();
+            backupKeys();
+        } catch (const std::exception &e) {
+            std::cout << e.what() << std::endl;
+        }
     }
     else {
         std::cout << "allKeys size:" <<updateKeys() << std::endl;

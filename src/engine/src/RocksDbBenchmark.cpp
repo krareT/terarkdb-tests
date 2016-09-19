@@ -57,6 +57,8 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     for (int i = 0; i < options.compression_per_level.size(); i++) {
         printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
     }
+    options.write_buffer_size = options.write_buffer_size * 4;
+
 }
 
 void RocksDbBenchmark::Close() {
