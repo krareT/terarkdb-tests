@@ -21,6 +21,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
     }
     assert(conn != nullptr);
 
+    printf("data uploading...");
     // 上传ops数据
     std::unique_ptr<sql::PreparedStatement> ps_ops(conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)"));
     ps_ops->setInt(1, bucket);
@@ -95,13 +96,17 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
         try {
             upload(current_bucket, ops, type, uploadExtraData);
         }catch (std::exception& e){
-            printf("line-98 exception : %s\n", e.what());
+            printf("upload exception =  %s, conn valid = %d\n", e.what(), conn->isValid());
+            printf("read_cq=%d, create_cq=%d, update_cq=%d\n",  Stats::readTimeDataCq.unsafe_size(), 
+                                                                Stats::createTimeDataCq.unsafe_size(), 
+                                                                Stats::updateTimeDataCq.unsafe_size());
             if(!conn->isValid()){
+                printf("tring to re-connect to MySQL Server...\n");
                 try {
                     conn->reconnect();
                     conn->setSchema("benchmark");
                 }catch (std::exception& f){
-                    printf("line-104 exception : %s\n", f.what());
+                    printf("re-connect exception : %s\n", f.what());
                 }
             }
         }
@@ -127,10 +132,19 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
         return;
     }
 
-    conn = driver->connect("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com:3306", "terark_benchmark", std::string(passwd));
+    sql::ConnectOptionsMap connection_properties;
+    connection_properties["hostName"] = sql::SQLString("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com");
+    connection_properties["userName"] = sql::SQLString("terark_benchmark");
+    connection_properties["port"] = 3306;
+    connection_properties["password"] = sql::SQLString(passwd);
+    connection_properties["schema"] = sql::SQLString("benchmark");
+    //connection_properties["MYSQL_OPT_RECONNECT"] = true;
+    //connection_properties["MYSQL_OPT_READ_TIMEOUT"] = 1;
+    //connection_properties["MYSQL_OPT_WRITE_TIMEOUT"] = 1;
+
+    conn = driver->connect(connection_properties);
+
     if(conn != nullptr && conn->isValid()) {
-        conn->setSchema("benchmark");
-        
         // Delete data from 7 days ago.
         struct timespec t;
         clock_gettime(CLOCK_REALTIME, &t);
@@ -156,6 +170,7 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
 }
 
 AnalysisWorker::~AnalysisWorker() {
+    printf("analysis worker is stopped!\n");
     delete conn;
 }
 
@@ -176,6 +191,7 @@ void AnalysisWorker::run() {
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
 
         bool uploadExtraData = true;
+
         if(b1){
             read_bucket.add(read_result.first, read_result.second, setting->getSamplingRate(), 1, uploadExtraData);
             uploadExtraData = false;
