@@ -18,7 +18,7 @@ public:
         }
         opt.localTempDir = tmp_dir;
 //       	printf("local temp dir:%s\n",tmp_dir);
-        rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewAdaptiveTableFactory());
+        rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
         options.table_factory.reset(factory);
     }
 
