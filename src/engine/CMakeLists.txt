@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Terark_Engine_Test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -s")
 
 aux_source_directory(./ SRC_LIST)
 
@@ -33,9 +33,9 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
         src/analysis_worker.cpp util/system_resource.h src/TerarkBenchmark.cpp src/TerarkBenchmark.h src/ThreadState.cpp src/ThreadState.h src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h src/TerarkRocksDbBenchmark.cpp src/TerarkRocksDbBenchmark.h src/PosixBenchmark.cpp src/PosixBenchmark.h)
 
 target_link_libraries(Terark_Engine_Test
-                        terark-zip-rocksdb-d
-        terark-db-d
-                        terark-fsa_all-d
+                        terark-zip-rocksdb-r
+        terark-db-r
+                        terark-fsa_all-r
                         rocksdb
                         wiredtiger
                         snappy
