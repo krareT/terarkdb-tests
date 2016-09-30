@@ -38,15 +38,11 @@ private:
     std::vector<PlanConfig> planConfigs;
     std::mutex planMtx;
     tbb::concurrent_unordered_map<uint32_t,uint32_t > threadPlanMap;
-
-    std::atomic<uint8_t > readPercent;
-    std::atomic<uint8_t > insertPercent;
     std::atomic<bool > stop;
     std::atomic<uint8_t > compactTimes;
     std::atomic<uint8_t> threadNums;
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
-
     std::string insertDataPath;
     std::string loadDataPath;
     std::string keysDataPath;
@@ -80,7 +76,6 @@ private:
     bool strSetThreadPlan(std::string&);
 
 protected:
-    void setReadPercent(uint8_t);
 
     void setThreadNums(uint8_t);
 
@@ -91,9 +86,7 @@ public:
     static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
-    uint8_t getReadPercent(void) const ;
     uint8_t getSamplingRate(void) const ;
-    uint8_t getInsertPercent(void) const ;
     uint8_t getCompactTimes(void) const ;
     uint32_t getThreadNums(void) const ;
     const std::string &getInsertDataPath(void) const ;

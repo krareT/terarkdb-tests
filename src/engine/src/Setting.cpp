@@ -209,17 +209,13 @@ void Setting::rocksdbSetting(int argc, char **argv) {
 
 BaseSetting::BaseSetting(){
 
-    readPercent.store(80);
-    insertPercent.store(10);
     samplingRate.store(20);
     stop.store(false);
     run = true;
     setFuncMap["-stop"]             = &BaseSetting::strSetStop;
-    setFuncMap["-read_percent"]     = &BaseSetting::strSetReadPercent;
     setFuncMap["-thread_num"]       = &BaseSetting::strSetThreadNums;
     setFuncMap["-sampling_rate"]    = &BaseSetting::strSetSamplingRate;
     setFuncMap["-insert_data_path"] = &BaseSetting::strSetInsertDataPath;
-    setFuncMap["-insert_percent"]   = &BaseSetting::strSetInsertPercent;
     setFuncMap["-load_data_path"]   = &BaseSetting::strSetLoadDataPath;
     setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
     setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
@@ -259,13 +255,7 @@ bool BaseSetting::strSetStop(std::string &value) {
         return false;
     }
 }
-bool BaseSetting::strSetReadPercent(std::string& value) {
 
-    uint32_t readPercent = stoi(value);
-
-    setReadPercent(readPercent);
-    return true;
-}
 bool BaseSetting::strSetThreadNums(std::string &value) {
 
     uint32_t threadNums = stoi(value);
@@ -277,17 +267,7 @@ bool BaseSetting::ifStop() const
 {
     return stop.load();
 }
-void BaseSetting::setReadPercent(uint8_t rp) {
 
-    if ( rp > 100)
-        rp = 100;
-    readPercent.store(rp);
-}
-
-uint8_t BaseSetting::getReadPercent(void) const {
-
-    return readPercent.load();
-}
 void BaseSetting::setThreadNums(uint8_t num)
 {
     auto old_num = threadPlanMap.size();
@@ -310,7 +290,6 @@ std::string BaseSetting::toString() {
 
     std::stringstream ret;
     ret << "benchmark name:\t"  << BaseSetting::BenchmarkName << std::endl;
-    ret << "read percent:\t"    << static_cast<int >(getReadPercent()) << std::endl;
     ret << "sampling rate:\t"   << static_cast<int >(getSamplingRate()) << std::endl;
     ret << "thread nums:\t"     << getThreadNums() << std::endl;
     {
@@ -325,7 +304,6 @@ std::string BaseSetting::toString() {
         }
     }
     ret << "stop:\t"            << ifStop() << std::endl;
-    ret << "insert percent:\t"  << static_cast<int >(getInsertPercent()) << std::endl;
     ret << "load_or_run:\t"     << (run == true ? "run":"load") << std::endl;
     ret << "keys_data_path:\t"  << getKeysDataPath() << std::endl;
     ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
@@ -398,19 +376,6 @@ bool BaseSetting::strSetInsertDataPath(std::string &value) {
     insertDataPath = value;
     return true;
 }
-
-uint8_t BaseSetting::getInsertPercent(void) const {
-    return insertPercent.load();
-}
-
-bool BaseSetting::strSetInsertPercent(std::string &value) {
-    uint8_t val = stoi(value);
-    if (val > 100)
-        return  false;
-    insertPercent.store(val);
-    return true;
-}
-
 const std::string &BaseSetting::getInsertDataPath(void) const {
     return insertDataPath;
 }
