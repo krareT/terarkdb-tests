@@ -16,11 +16,11 @@
 struct PlanConfig{
     uint32_t read_percent;
     uint32_t update_percent;
-    uint32_t write_percent;
+    uint32_t insert_percent;
     PlanConfig(){
         read_percent = 100;
         update_percent = 0;
-        write_percent = 0;
+        insert_percent = 0;
     }
 };
 struct EnumClassHash

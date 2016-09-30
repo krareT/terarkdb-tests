@@ -232,7 +232,7 @@ BaseSetting::BaseSetting(){
         planConfigs.resize(1);
         planConfigs[0].read_percent = 90;
         planConfigs[0].update_percent = 5;
-        planConfigs[0].write_percent = 5;
+        planConfigs[0].insert_percent = 5;
         threadPlanMap.clear();
     }
 }
@@ -318,7 +318,7 @@ std::string BaseSetting::toString() {
         for(int i = 0; i < planConfigs.size(); i ++){
 
             ret << "plan " << i << " read " << planConfigs[i].read_percent << " insert "\
-                << planConfigs[i].write_percent << " update " << planConfigs[i].update_percent << std::endl;
+                << planConfigs[i].insert_percent << " update " << planConfigs[i].update_percent << std::endl;
         }
         for(const auto &plan : threadPlanMap){
             ret << "thread " << plan.first << " execute plan " << plan.second << std::endl;
@@ -515,7 +515,7 @@ bool BaseSetting::strSetPlanConfigs(std::string &val) {
             planConfigs.resize(plan_id + 1);
         }
         planConfigs[plan_id].read_percent = read_percent;
-        planConfigs[plan_id].write_percent = write_percent;
+        planConfigs[plan_id].insert_percent = write_percent;
         planConfigs[plan_id].update_percent = update_percent;
     }
     return true;

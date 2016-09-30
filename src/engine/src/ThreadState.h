@@ -15,7 +15,7 @@ struct ThreadState {
     Stats stats;
     std::atomic<uint8_t> STOP;
     WT_SESSION *session;
-    std::atomic<std::vector<uint8_t >*> *whichExecutePlan;
+
     std::atomic<std::vector<bool >*> *whichSamplingPlan;
     terark::db::DbContextPtr ctx;
     unsigned int seed;
@@ -32,7 +32,6 @@ struct ThreadState {
     ThreadState(int index,std::atomic<std::vector<uint8_t >*>* wep,
     std::atomic<std::vector<bool >*>* wsp,terark::db::DbTablePtr *tab)
     :   tid(index),
-    whichExecutePlan(wep),
     whichSamplingPlan(wsp)
     {
         STOP.store(false);
@@ -44,7 +43,6 @@ struct ThreadState {
     ThreadState(int index,WT_CONNECTION *conn,
                 std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<bool >*>* wsp)
     :tid(index),
-    whichExecutePlan(wep),
     whichSamplingPlan(wsp){
         conn->open_session(conn, NULL, NULL, &session);
         STOP.store(false);
@@ -55,7 +53,6 @@ struct ThreadState {
 
     ThreadState(int index, std::atomic<std::vector<uint8_t> *> *wep, std::atomic<std::vector<bool > *> *wsp)
             : tid(index),
-              whichExecutePlan(wep),
               whichSamplingPlan(wsp) {
         STOP.store(false);
         seed = tid;

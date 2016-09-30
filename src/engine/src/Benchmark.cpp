@@ -23,7 +23,7 @@ void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > 
         //Add new thread.
         ThreadState* state = newThreadState(whichSPlan);
         state->planConfig.read_percent = 100;
-        state->planConfig.write_percent = 0;
+        state->planConfig.insert_percent = 0;
         state->planConfig.update_percent = 0;
         updatePlan(state->planConfig,state->executePlan[0]);
         state->whichPlan.store(0,std::memory_order_relaxed);
@@ -245,11 +245,11 @@ void Benchmark::reportMessage(const std::string &msg) {
 
 void Benchmark::updatePlan(const PlanConfig &pc, std::vector<BaseSetting::OP_TYPE>& plan) {
 
-    uint32_t total_size = pc.update_percent + pc.read_percent + pc.write_percent;
+    uint32_t total_size = pc.update_percent + pc.read_percent + pc.insert_percent;
     plan.resize(total_size);
     fill_n(plan.begin(),pc.read_percent,BaseSetting::OP_TYPE::READ);
-    fill_n(plan.begin() + pc.read_percent,pc.write_percent,BaseSetting::OP_TYPE::INSERT);
-    fill_n(plan.begin() + pc.read_percent + pc.write_percent,pc.update_percent,BaseSetting::OP_TYPE::UPDATE);
+    fill_n(plan.begin() + pc.read_percent,pc.insert_percent,BaseSetting::OP_TYPE::INSERT);
+    fill_n(plan.begin() + pc.read_percent + pc.insert_percent,pc.update_percent,BaseSetting::OP_TYPE::UPDATE);
     std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
 }
 
@@ -260,7 +260,7 @@ void Benchmark::checkExecutePlan() {
         auto & threadPc = eachThread.second->planConfig;
         if ( pc.read_percent == threadPc.read_percent
              && pc.update_percent == threadPc.update_percent
-             && pc.write_percent == threadPc.write_percent) {
+             && pc.insert_percent == threadPc.insert_percent) {
             continue;
         }
         threadPc = pc;
