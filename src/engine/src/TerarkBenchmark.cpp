@@ -174,12 +174,6 @@ bool TerarkBenchmark::Compact() {
     tab->compact();
 }
 
-ThreadState *
-TerarkBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichEPlan,
-                                std::atomic<std::vector<uint8_t> *> *whichSPlan) {
-    return new ThreadState(threads.size(), whichEPlan, whichSPlan, &tab);
-}
-
 std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())
@@ -340,5 +334,9 @@ std::string TerarkBenchmark::getMaxWritingSegmentSize(void) {
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_maxWritingSegmentSize;
     return ss.str();
+}
+
+ThreadState *TerarkBenchmark::newThreadState(std::atomic<std::vector<bool > *> *whichSPlan) {
+    return new ThreadState(threads.size(), nullptr, whichSPlan, &tab);
 }
 

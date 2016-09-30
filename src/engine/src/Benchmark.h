@@ -54,13 +54,14 @@
 
 class Benchmark{
 private:
-    std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *)> executeFuncMap;
-    std::unordered_map<uint8_t, bool (Benchmark::*)(ThreadState *,uint8_t)> samplingFuncMap;
-    std::unordered_map<uint8_t ,uint8_t > samplingRecord;
+    std::unordered_map<BaseSetting::OP_TYPE , bool (Benchmark::*)(ThreadState *),EnumClassHash> executeFuncMap;
+    std::unordered_map<bool , bool (Benchmark::*)(ThreadState *,BaseSetting::OP_TYPE)> samplingFuncMap;
+    std::unordered_map<BaseSetting::OP_TYPE ,uint8_t,EnumClassHash> samplingRecord;
     std::atomic<std::vector<uint8_t > *> executePlanAddr;
-    std::atomic<std::vector<uint8_t > *> samplingPlanAddr;
-    std::vector<uint8_t > executePlan[2];
-    std::vector<uint8_t > samplingPlan[2];
+    std::atomic<std::vector<bool> *> samplingPlanAddr;
+    std::vector<bool > samplingPlan[2];
+    std::vector< std::pair<std::vector< uint8_t >,std::vector<uint8_t >>> executePlans;
+
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
     uint8_t compactTimes;
@@ -75,16 +76,17 @@ private:
         std::lock_guard<std::mutex> lock(mtx);
         bm->Compact();
     }
-    void updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal);
+    void checkExecutePlan();
+    void updatePlan(const PlanConfig &pc,std::vector<BaseSetting::OP_TYPE > &plan);
+    void updateSamplingPlan(std::vector<bool> &plan, uint8_t percent);
     void shufflePlan(std::vector<uint8_t > &plan);
-    void adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
-                         std::atomic<std::vector<uint8_t >*>* whichSPlan);
-    void adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent);
+    void adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > *> *whichSPlan);
+
     void adjustSamplingPlan(uint8_t samplingRate);
     void RunBenchmark(void);
-    bool executeOneOperationWithSampling(ThreadState* state,uint8_t type);
-    bool executeOneOperationWithoutSampling(ThreadState* state,uint8_t type);
-    bool executeOneOperation(ThreadState* state,uint8_t type);
+    bool executeOneOperationWithSampling(ThreadState *state, BaseSetting::OP_TYPE type);
+    bool executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type);
+    bool executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
     static terark::fstrvec allkeys;
     static tbb::spin_rw_mutex allkeysRwMutex;
@@ -105,8 +107,7 @@ public:
     virtual bool ReadOneKey(ThreadState*) = 0;
     virtual bool UpdateOneKey(ThreadState *) = 0;
     virtual bool InsertOneKey(ThreadState *) = 0;
-    virtual ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichExecutePlan,
-                                        std::atomic<std::vector<uint8_t >*>* whichSamplingPlan) = 0;
+    virtual ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSamplingPlan) = 0;
     virtual bool Compact(void) = 0;
 
     virtual std::string HandleMessage(const std::string &msg);

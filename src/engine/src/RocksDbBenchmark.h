@@ -40,8 +40,7 @@ public:
 
     bool InsertOneKey(ThreadState *) override;
 
-    ThreadState *newThreadState(std::atomic<std::vector<uint8_t> *> *whichExecutePlan,
-                                std::atomic<std::vector<uint8_t> *> *whichSamplingPlan) override;
+    ThreadState *newThreadState(std::atomic<std::vector<bool > *> *whichSamplingPlan) override;
 
     bool Compact(void) override;
 };

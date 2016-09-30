@@ -11,17 +11,37 @@
 #include <unordered_map>
 #include <rocksdb/options.h>
 #include "tbb/concurrent_queue.h"
-
+#include <mutex>
+#include <tbb/concurrent_unordered_map.h>
+struct PlanConfig{
+    uint32_t read_percent;
+    uint32_t update_percent;
+    uint32_t write_percent;
+};
+struct EnumClassHash
+{
+    template <typename T>
+    std::size_t operator()(T t) const
+    {
+        return static_cast<std::size_t>(t);
+    }
+};
 class BaseSetting{
+public:
+    enum class OP_TYPE{READ,INSERT,UPDATE};
 private:
+    std::vector<PlanConfig> planConfigs;
+    std::mutex planMtx;
+    tbb::concurrent_unordered_map<uint32_t,uint32_t > threadPlanMap;
+
     std::atomic<uint8_t > readPercent;
     std::atomic<uint8_t > insertPercent;
-    std::atomic<uint8_t > stop;
+    std::atomic<bool > stop;
     std::atomic<uint8_t > compactTimes;
-    std::atomic<uint32_t> threadNums;
+    std::atomic<uint8_t> threadNums;
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
-    enum{MAX_READ_PERCNT=100,MAX_THREAD_NUMS=100};
+
     std::string insertDataPath;
     std::string loadDataPath;
     std::string keysDataPath;
@@ -50,14 +70,19 @@ private:
 
     bool strSetMessage(std::string &);
 
+    bool strSetPlanConfigs(std::string &);
+
+    bool strSetThreadPlan(std::string&);
+
 protected:
     void setReadPercent(uint8_t);
 
-    void setThreadNums(uint32_t);
+    void setThreadNums(uint8_t);
 
     std::string toString();
 
 public:
+
     static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
@@ -69,7 +94,7 @@ public:
     const std::string &getInsertDataPath(void) const ;
     const std::string &getLoadDataPath(void) const ;
     const std::string &getKeysDataPath(void) const ;
-
+    bool getPlanConfig(uint32_t, PlanConfig &planConfig);
     std::string getMessage(void);
     bool ifStop(void) const ;
     std::string ifRunOrLoad(void) const ;

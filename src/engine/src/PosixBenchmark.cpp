@@ -62,14 +62,12 @@ bool PosixBenchmark::UpdateOneKey(ThreadState *) {
 bool PosixBenchmark::InsertOneKey(ThreadState *) {
     return false;
 }
-
-ThreadState *PosixBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichExecutePlan,
-                                            std::atomic<std::vector<uint8_t> *> *whichSamplingPlan) {
-    return nullptr;
-}
-
 bool PosixBenchmark::Compact(void) {
     return false;
+}
+
+ThreadState *PosixBenchmark::newThreadState(std::atomic<std::vector<bool> *> *whichSamplingPlan) {
+    return nullptr;
 }
 
 

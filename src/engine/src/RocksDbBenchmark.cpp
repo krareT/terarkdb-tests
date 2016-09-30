@@ -176,8 +176,6 @@ bool RocksDbBenchmark::Compact(void) {
     return false;
 }
 
-ThreadState *RocksDbBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichExecutePlan,
-                                              std::atomic<std::vector<uint8_t> *> *whichSamplingPlan) {
-
-    return new ThreadState(threads.size(), whichExecutePlan, whichSamplingPlan);
+ThreadState *RocksDbBenchmark::newThreadState(std::atomic<std::vector<bool > *> *whichSamplingPlan) {
+    return new ThreadState(threads.size(), nullptr, whichSamplingPlan);
 }

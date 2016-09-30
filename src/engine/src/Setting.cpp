@@ -224,7 +224,17 @@ BaseSetting::BaseSetting(){
     setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
     setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
     setFuncMap["-compact"]          = &BaseSetting::strSetCompactTimes;
-    setFuncMap["-message"] = &BaseSetting::strSetMessage;
+    setFuncMap["-message"]          = &BaseSetting::strSetMessage;
+    setFuncMap["-plan_config"]      = &BaseSetting::strSetPlanConfigs;
+    setFuncMap["-thread_plan_map"]  = &BaseSetting::strSetThreadPlan;
+    {
+        std::lock_guard<std::mutex> _lock(planMtx);
+        planConfigs.resize(1);
+        planConfigs[0].read_percent = 90;
+        planConfigs[0].update_percent = 5;
+        planConfigs[0].write_percent = 5;
+        threadPlanMap.clear();
+    }
 }
 uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
@@ -253,16 +263,13 @@ bool BaseSetting::strSetReadPercent(std::string& value) {
 
     uint32_t readPercent = stoi(value);
 
-    if ( readPercent > MAX_READ_PERCNT)
-        return false;
     setReadPercent(readPercent);
     return true;
 }
 bool BaseSetting::strSetThreadNums(std::string &value) {
 
     uint32_t threadNums = stoi(value);
-    if (threadNums > MAX_THREAD_NUMS)
-        return false;
+
     setThreadNums(threadNums);
     return true;
 }
@@ -281,8 +288,16 @@ uint8_t BaseSetting::getReadPercent(void) const {
 
     return readPercent.load();
 }
-void BaseSetting::setThreadNums(uint32_t num)
+void BaseSetting::setThreadNums(uint8_t num)
 {
+    auto old_num = threadPlanMap.size();
+    while(old_num < num){
+        threadPlanMap[old_num++] = 0;
+    }
+    while(old_num > num){
+        old_num--;
+        threadPlanMap.unsafe_erase(old_num);
+    }
     threadNums.store(num);
 }
 uint32_t BaseSetting::getThreadNums(void) const {
@@ -317,7 +332,7 @@ std::string BaseSetting::toString() {
 std::string BaseSetting::setBaseSetting(std::string &line){
 
     std::vector<std::string> strvec;
-    boost::split(strvec,line,boost::is_any_of("\t"));
+    boost::split(strvec,line,boost::is_any_of(" \t"));
     std::string message;
     if (strvec.size() == 0)
         message += "Empty Input\n";
@@ -459,4 +474,72 @@ std::string BaseSetting::getMessage(void) {
 
 void BaseSetting::sendMessageToSetting(const std::string &str) {
     response_message_cq.push(str);
+}
+
+bool BaseSetting::strSetPlanConfigs(std::string &val) {
+
+    const char split_ch = ':';
+
+    std::stringstream ss(val);
+    uint32_t plan_id;
+    ss >> plan_id;
+    if (ss.get() != split_ch)
+        return false;
+
+    uint32_t read_percent;
+    ss >> read_percent;
+    if (ss.get() != split_ch)
+        return false;
+
+    uint32_t update_percent;
+    ss >> update_percent;
+    if (ss.get() != split_ch)
+        return false;
+
+    uint32_t write_percent;
+    ss >> write_percent;
+
+    {
+        std::lock_guard<std::mutex> _lock(planMtx);
+        if (planConfigs.size() <= plan_id) {
+            planConfigs.resize(plan_id + 1);
+        }
+        planConfigs[plan_id].read_percent = read_percent;
+        planConfigs[plan_id].write_percent = write_percent;
+        planConfigs[plan_id].update_percent = update_percent;
+    }
+    return true;
+}
+
+bool BaseSetting::getPlanConfig(const uint32_t thread_id, PlanConfig &planConfig) {
+
+    auto iter = threadPlanMap.find(thread_id);
+    if (iter == threadPlanMap.end())
+        return false;
+    auto plan_id = threadPlanMap[thread_id];
+    {
+        std::lock_guard<std::mutex> _lock(planMtx);
+        if (plan_id >= planConfigs.size())
+            return false;
+        planConfig = planConfigs[plan_id];
+    }
+    return true;
+}
+
+bool BaseSetting::strSetThreadPlan(std::string &val) {
+
+    const char split_ch = ':';
+    std::stringstream ss(val);
+    uint32_t thread_id,plan_id;
+    ss >> thread_id;
+    if (ss.get() != split_ch)
+        return false;
+    ss >> plan_id;
+    {
+        std::lock_guard<std::mutex> _lock(planMtx);
+        if (plan_id >= planConfigs.size())
+            return false;
+    }
+    threadPlanMap[thread_id] = plan_id;
+    return true;
 }
