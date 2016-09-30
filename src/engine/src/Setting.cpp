@@ -313,6 +313,17 @@ std::string BaseSetting::toString() {
     ret << "read percent:\t"    << static_cast<int >(getReadPercent()) << std::endl;
     ret << "sampling rate:\t"   << static_cast<int >(getSamplingRate()) << std::endl;
     ret << "thread nums:\t"     << getThreadNums() << std::endl;
+    {
+        std::lock_guard<std::mutex>  _lock(planMtx);
+        for(int i = 0; i < planConfigs.size(); i ++){
+
+            ret << "plan " << i << " read " << planConfigs[i].read_percent << " insert "\
+                << planConfigs[i].write_percent << " update " << planConfigs[i].update_percent << std::endl;
+        }
+        for(const auto &plan : threadPlanMap){
+            ret << "thread " << plan.first << " execute plan " << plan.second << std::endl;
+        }
+    }
     ret << "stop:\t"            << ifStop() << std::endl;
     ret << "insert percent:\t"  << static_cast<int >(getInsertPercent()) << std::endl;
     ret << "load_or_run:\t"     << (run == true ? "run":"load") << std::endl;
@@ -320,7 +331,6 @@ std::string BaseSetting::toString() {
     ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
     ret << "load_data_path:\t"  << getLoadDataPath() << std::endl;
     ret << "compact times:\t"   << static_cast<int >(getCompactTimes()) << std::endl;
-
     ret << "message from " << BenchmarkName << std::endl;
     std::string msg;
     while (!response_message_cq.empty()) {
@@ -532,6 +542,8 @@ bool BaseSetting::strSetThreadPlan(std::string &val) {
     std::stringstream ss(val);
     uint32_t thread_id,plan_id;
     ss >> thread_id;
+    if (threadPlanMap.count(thread_id) == 0)
+        return false;
     if (ss.get() != split_ch)
         return false;
     ss >> plan_id;
