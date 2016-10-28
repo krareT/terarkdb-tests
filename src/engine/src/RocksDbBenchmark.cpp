@@ -130,24 +130,44 @@ bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
 
 bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
 
-    if (false == getRandomKey(ts->key, ts->randGenerator))
-        return false;
-    if (false == db->Get(read_options, ts->key, &(ts->value)).ok())
-        return false;
-    if (false == db->Put(write_options, ts->key, ts->value).ok())
-        return false;
+    if (false == getRandomKey(ts->key, ts->randGenerator)){
+     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
+	    return false;
+    }
+    if (false == db->Get(read_options, ts->key, &(ts->value)).ok()){
+     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false\n key:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
+     
+	    return false;
+    }
+    auto status = db->Put(write_options, ts->key, ts->value);
+    if (false == status.ok()){
+     
+     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Put false\n key:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
+    	fprintf(stderr,"RocksDbBenchmakr::UpdateOneKey:db-Put status:%s\n",status.ToString().c_str());
+	return false;
+    }
+    fflush(stderr);
     return true;
 }
 
 bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
 
-    if (updateDataCq.try_pop(ts->str) == false)
-        return false;
+    if (updateDataCq.try_pop(ts->str) == false){
+	    return false;
+    }
     auto ret = getKeyAndValue(ts->str, ts->key, ts->value);
-    if (ret == 0)
-        return false;
-    if (false == db->Put(write_options, ts->key, ts->value).ok())
-        return false;
+    if (ret == 0){
+     	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:getKeyAndValue false\n");
+	    return false;
+    }
+    auto status = db->Put(write_options, ts->key, ts->value);
+    if (false == status.ok()){
+     
+     	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:db->Put false.\nkey:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
+    	fprintf(stderr,"RocksDbBenchmakr::InsertOneKey:db-Put status:%s\n",status.ToString().c_str());
+	updateDataCq.push(ts->str);	  
+      	return false;
+    }
     pushKey(ts->key);
     return true;
 }
@@ -156,8 +176,6 @@ bool RocksDbBenchmark::Compact(void) {
     return false;
 }
 
-ThreadState *RocksDbBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichExecutePlan,
-                                              std::atomic<std::vector<uint8_t> *> *whichSamplingPlan) {
-
-    return new ThreadState(threads.size(), whichExecutePlan, whichSamplingPlan);
+ThreadState *RocksDbBenchmark::newThreadState(std::atomic<std::vector<bool > *> *whichSamplingPlan) {
+    return new ThreadState(threads.size(), nullptr, whichSamplingPlan);
 }

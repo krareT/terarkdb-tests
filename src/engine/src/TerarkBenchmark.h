@@ -20,8 +20,7 @@ public:
         assert(tab == NULL);
     }
 private:
-    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
-    std::atomic<std::vector<uint8_t >*>* whichSPlan) override;
+    ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSPlan) override;
     void PrintHeader();
     void Close() override;
     void Load(void) override;

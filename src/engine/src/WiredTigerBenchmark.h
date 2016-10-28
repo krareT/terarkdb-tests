@@ -22,9 +22,8 @@ public:
     }
 private:
     size_t getKeyAndValue(std::string &str,std::string &key,std::string &val);
-    ThreadState* newThreadState(std::atomic<std::vector<uint8_t >*>* whichEPlan,
-    std::atomic<std::vector<uint8_t >*>* whichSPlan) override {
-        return new ThreadState(threads.size(),conn_,whichEPlan,whichSPlan);
+    ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSPlan) override {
+        return new ThreadState(threads.size(),conn_, nullptr,whichSPlan);
     }
     void Load(void) override{
         DoWrite(true); }

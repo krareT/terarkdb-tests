@@ -14,7 +14,7 @@ std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
                                                      &TerarkRocksDbBenchmark::getTerarkZipMinLevel);
     handleFuncMap["check_sum_level"] = std::make_pair(&TerarkRocksDbBenchmark::setCheckSumLevel,
                                                     &TerarkRocksDbBenchmark::getCheckSumLevel);
-    handleFuncMap["sampling_rate"] = std::make_pair(&TerarkRocksDbBenchmark::setSamplingRatio,
+    handleFuncMap["smapling_rate"] = std::make_pair(&TerarkRocksDbBenchmark::setSamplingRatio,
                                                     &TerarkRocksDbBenchmark::getSamplingRatio);
     handleFuncMap["index_nest_level"] = std::make_pair(&TerarkRocksDbBenchmark::setIndexNestLevel,
                                                        &TerarkRocksDbBenchmark::getIndexNestLevel);

@@ -5,29 +5,28 @@
 tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
 fstrvec Benchmark::allkeys;
 tbb::spin_rw_mutex Benchmark::allkeysRwMutex;
-void Benchmark::updatePlan(std::vector<uint8_t> &plan, std::vector<std::pair<uint8_t ,uint8_t >> percent,uint8_t defaultVal){
-    if (plan.size() < 100)
-        plan.resize(100);
-    uint8_t pos = 0;
-    for(auto& eachPercent : percent){
-        if (pos >= plan.size())
-            break;
-        std::fill_n(plan.begin() + pos,eachPercent.second,eachPercent.first);
-        pos += eachPercent.second;
-    }
-    std::fill_n(plan.begin()+pos,100-pos,defaultVal);
-    shufflePlan(plan);
+void Benchmark::updateSamplingPlan(std::vector<bool> &plan, uint8_t percent) {
+
+    if (percent > 100)
+        return ;
+    plan.resize(100);
+    std::fill_n(plan.begin(),percent, true);
+    std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
 }
 
 void Benchmark::shufflePlan(std::vector<uint8_t > &plan){
     std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
 }
-void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t >*>* whichEPlan,
-                     std::atomic<std::vector<uint8_t >*>* whichSPlan){
+void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > *> *whichSPlan) {
 
     while (target > threads.size()){
         //Add new thread.
-        ThreadState* state = newThreadState(whichEPlan,whichSPlan);
+        ThreadState* state = newThreadState(whichSPlan);
+        state->planConfig.read_percent = 100;
+        state->planConfig.insert_percent = 0;
+        state->planConfig.update_percent = 0;
+        updatePlan(state->planConfig,state->executePlan[0]);
+        state->whichPlan.store(0,std::memory_order_relaxed);
         threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
     }
     while (target < threads.size()){
@@ -37,97 +36,82 @@ void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<uint8_t
         delete threads.back().second;
         threads.pop_back();
     }
-}
-void Benchmark::adjustExecutePlan(uint8_t readPercent,uint8_t insertPercent){
 
-    std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
-    planDetails.push_back(std::make_pair(1,readPercent));
-    planDetails.push_back(std::make_pair(2,insertPercent));
-
-    updatePlan(executePlan[whichEPlan],planDetails,0);
-    executePlanAddr.store( &(executePlan[whichEPlan]));
-    whichEPlan = !whichEPlan;
 }
 void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
     std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
     planDetails.push_back(std::make_pair(1,samplingRate));
-    updatePlan(samplingPlan[whichSPlan],planDetails,0);
+    updateSamplingPlan(samplingPlan[whichSPlan], samplingRate);
     samplingPlanAddr.store(& (samplingPlan[whichSPlan]));
     whichSPlan = !whichSPlan;
 }
 void Benchmark::RunBenchmark(void){
-    int old_readPercent = -1;
+
     int old_samplingRate = -1;
-    int old_insertPercent = -1;
 
     std::thread loadInsertDataThread(Benchmark::loadInsertData,&setting);
+
     while (!setting.ifStop()){
-        int readPercent = setting.getReadPercent();
-        int insertPercent = setting.getInsertPercent();
-        if (readPercent != old_readPercent || old_insertPercent != insertPercent){
-            //两份执行计划相互切换并不是完全的线程安全，
-            //这里假定在经过5秒睡眠后，所有的其他线程都已经切换到了正确的执行计划。
-            old_readPercent = readPercent;
-            old_insertPercent = insertPercent;
-            adjustExecutePlan(readPercent,insertPercent);
-        }else{
-            if (std::count(executePlan[whichEPlan].begin(),executePlan[whichEPlan].end(),1) != readPercent)
-                executePlan[whichEPlan] = executePlan[!whichEPlan];
-            shufflePlan(executePlan[whichEPlan]);
-            executePlanAddr.store(&( executePlan[whichEPlan]));
-            whichEPlan  = !whichEPlan;
-        }
+
+        //check sampling rate
         int samplingRate = setting.getSamplingRate();
         if ( old_samplingRate != samplingRate){
             old_samplingRate = samplingRate;
             adjustSamplingPlan(samplingRate);
         }
+        //check thread num
         int threadNum = setting.getThreadNums();
-        adjustThreadNum(threadNum,&executePlanAddr,&samplingPlanAddr);
+        adjustThreadNum(threadNum, &samplingPlanAddr);
+        //check execute plan
+        checkExecutePlan();
+        //check compact
         auto ct = setting.getCompactTimes();
         if ( ct != compactTimes){
             compactTimes = ct;
             std::thread compactThread(Benchmark::CompactThreadBody,this);
             compactThread.detach();
         }
+        //check message
         auto handle_message_times = 5;
         while (handle_message_times--)
             reportMessage(HandleMessage(setting.getMessage()));
         sleep(5);
     }
-    adjustThreadNum(0, nullptr, nullptr);
+    adjustThreadNum(0, nullptr);
     loadInsertDataThread.join();
 }
-bool Benchmark::executeOneOperationWithSampling(ThreadState* state,uint8_t type){
+bool Benchmark::executeOneOperationWithSampling(ThreadState *state, BaseSetting::OP_TYPE type){
     struct timespec start,end;
     bool ret;
     clock_gettime(CLOCK_REALTIME,&start);
     ret = (this->*executeFuncMap[type])(state);
-    if (ret == true || type == 1) {
+    if (ret == true || type == BaseSetting::OP_TYPE::READ) {
         clock_gettime(CLOCK_REALTIME, &end);
         state->stats.FinishedSingleOp(type, &start, &end);
     }
     return ret;
 }
-bool Benchmark::executeOneOperationWithoutSampling(ThreadState* state,uint8_t type){
+bool Benchmark::executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type){
     return ((this->*executeFuncMap[type])(state));
 }
-bool Benchmark::executeOneOperation(ThreadState* state,uint8_t type){
+bool Benchmark::executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type){
 
     assert(executeFuncMap.count(type) > 0);
-    std::vector<uint8_t > *samplingPlan = (*(state->whichSamplingPlan)).load();
-    samplingRecord[type] ++;
-    if (samplingRecord[type] > 100){
+    std::vector<bool > *samplingPlan = (*(state->whichSamplingPlan)).load();
+
+    if (samplingRecord[type] >= samplingPlan->size()){
         samplingRecord[type] = 0;
     }
-    return (this->*samplingFuncMap[( (*samplingPlan)[(samplingRecord[type]-1) % samplingPlan->size()])])(state,type);
+    bool ifSampling = (*samplingPlan)[samplingRecord[type]] ;
+    samplingRecord[type] ++;
+    return (this->*samplingFuncMap[ifSampling])(state,type);
 }
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
     std::cout << "Thread " << thread->tid << " start!" << std::endl;
-    struct timespec start,end;
+
     while (thread->STOP.load() == false) {
-        std::vector<uint8_t > *executePlan = (*(thread->whichExecutePlan)).load();
-        for (auto type : *executePlan) {
+        const auto &executePlan = thread->executePlan[thread->whichPlan.load(std::memory_order_relaxed)];
+        for (auto type : executePlan) {
             executeOneOperation(thread,type);
         }
     }
@@ -241,11 +225,11 @@ void  Benchmark::Run(void){
 
 Benchmark::Benchmark(Setting &s) : setting(s) {
     compactTimes = s.getCompactTimes();
-        executeFuncMap[1] = &Benchmark::ReadOneKey;
-        executeFuncMap[0] = &Benchmark::UpdateOneKey;
-        executeFuncMap[2] = &Benchmark::InsertOneKey;
-        samplingFuncMap[0] = &Benchmark::executeOneOperationWithoutSampling;
-        samplingFuncMap[1] = &Benchmark::executeOneOperationWithSampling;
+        executeFuncMap[BaseSetting::OP_TYPE::READ] = &Benchmark::ReadOneKey;
+        executeFuncMap[BaseSetting::OP_TYPE::UPDATE] = &Benchmark::UpdateOneKey;
+        executeFuncMap[BaseSetting::OP_TYPE::INSERT] = &Benchmark::InsertOneKey;
+        samplingFuncMap[false] = &Benchmark::executeOneOperationWithoutSampling;
+        samplingFuncMap[true] = &Benchmark::executeOneOperationWithSampling;
 }
 
 std::string Benchmark::HandleMessage(const std::string &msg) {
@@ -257,4 +241,31 @@ void Benchmark::reportMessage(const std::string &msg) {
     if (msg.empty())
         return;
     setting.sendMessageToSetting(msg);
+}
+
+void Benchmark::updatePlan(const PlanConfig &pc, std::vector<BaseSetting::OP_TYPE>& plan) {
+
+    uint32_t total_size = pc.update_percent + pc.read_percent + pc.insert_percent;
+    plan.resize(total_size);
+    fill_n(plan.begin(),pc.read_percent,BaseSetting::OP_TYPE::READ);
+    fill_n(plan.begin() + pc.read_percent,pc.insert_percent,BaseSetting::OP_TYPE::INSERT);
+    fill_n(plan.begin() + pc.read_percent + pc.insert_percent,pc.update_percent,BaseSetting::OP_TYPE::UPDATE);
+    std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
+}
+
+void Benchmark::checkExecutePlan() {
+    PlanConfig pc;
+    for( auto &eachThread : threads){
+        setting.getPlanConfig(eachThread.second->tid,pc);
+        auto & threadPc = eachThread.second->planConfig;
+        if ( pc.read_percent == threadPc.read_percent
+             && pc.update_percent == threadPc.update_percent
+             && pc.insert_percent == threadPc.insert_percent) {
+            continue;
+        }
+        threadPc = pc;
+        auto which = eachThread.second->whichPlan.load(std::memory_order_relaxed);
+        updatePlan(threadPc,eachThread.second->executePlan[ !which]);
+        eachThread.second->whichPlan.store(!which);
+    }
 };

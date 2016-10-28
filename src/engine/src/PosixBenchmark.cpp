@@ -51,25 +51,77 @@ void PosixBenchmark::Load(void) {
     return ;
 }
 
-bool PosixBenchmark::ReadOneKey(ThreadState *) {
-    return false;
+bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
+
+    if (false == getRandomKey(ts->key, ts->randGenerator))
+        return false;
+
+    std::string read_path = setting.FLAGS_db;
+    read_path = read_path + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> read_file(fopen(read_path.c_str(),"r"),fclose);
+    if (read_file.get() == nullptr)
+        return false;
+    auto size = ftell(read_file.get());
+
+    std::unique_ptr<char > buf(new char [size]);
+    if (size != fread(buf.get(),1,size,read_file.get())){
+        fprintf(stderr,"posix read error:%s\n",strerror(errno));
+        return false;
+    }
+    return true;
 }
 
-bool PosixBenchmark::UpdateOneKey(ThreadState *) {
-    return false;
+bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
+
+    if (false == getRandomKey(ts->key, ts->randGenerator)){
+        fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
+        return false;
+    }
+    ts->key = setting.FLAGS_db + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> update_file(fopen(ts->key.c_str(),"r"),fclose);
+    auto size = ftell(update_file.get());
+    std::unique_ptr<char> buf(new char[size]);
+    if ( size != fread(buf.get(),1,size,update_file.get())){
+        fprintf(stderr,"posix update read error:%s\n",strerror(errno));
+        return false;
+    }
+
+    if ( size != fwrite(buf.get(),1,size,update_file.get())){
+        fprintf(stderr,"posix update write error:%s\n",strerror(errno));
+        return false;
+    }
+    return true;
 }
 
-bool PosixBenchmark::InsertOneKey(ThreadState *) {
-    return false;
-}
+bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
 
-ThreadState *PosixBenchmark::newThreadState(std::atomic<std::vector<uint8_t> *> *whichExecutePlan,
-                                            std::atomic<std::vector<uint8_t> *> *whichSamplingPlan) {
-    return nullptr;
+    if (updateDataCq.try_pop(ts->key) == false) {
+        return false;
+    }
+    ts->str = setting.getInsertDataPath() + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> insert_source_file(fopen(ts->str.c_str(),"r"),fclose);
+    ts->str = setting.FLAGS_db;
+    ts->str = ts->str + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> insert_target_file(fopen(ts->str.c_str(),"w+"),fclose);
+    auto size = ftell(insert_source_file.get());
+    std::unique_ptr<char> buf(new char[size]);
+    if (size != fread(buf.get(),1,size,insert_source_file.get())){
+        fprintf(stderr,"posix insert read error:%s\n",strerror(errno));
+        return false;
+    }
+    if (size != fwrite(buf.get(),1,size,insert_target_file.get())){
+        fprintf(stderr,"posix insert write error:%s\n",strerror(errno));
+        return false;
+    }
+    return true;
 }
-
 bool PosixBenchmark::Compact(void) {
     return false;
+}
+
+ThreadState *PosixBenchmark::newThreadState(std::atomic<std::vector<bool> *> *whichSamplingPlan) {
+
+    return new ThreadState(threads.size(), nullptr,whichSamplingPlan);
 }
 
 
