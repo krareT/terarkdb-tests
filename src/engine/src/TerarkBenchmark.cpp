@@ -105,8 +105,11 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
     fstring key(rkey);
     tab->indexSearchExact(indexId, key, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
-    if (thread->idvec.size() == 0)
-        return false;
+    if (thread->idvec.size() == 0){
+            
+            std::cerr << "read error: keys not exist!" << std::endl;
+            return false;
+    }
     thread->ctx->getValue(thread->idvec[0], &(thread->row));
     return true;
 }
@@ -123,6 +126,7 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     tab->indexSearchExact(indexId, key, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
     if (thread->idvec.size() == 0) {
+        std::cerr << "update error: keys not exist!" << std::endl;
         return false;
     }
     thread->ctx->getValue(thread->idvec[0], &(thread->row));
@@ -133,6 +137,7 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
             return false;
         }
     } catch (const std::exception &e) {
+        std::cerr << "update error :" << e.what() << std::endl;
         return false;
     }
     return true;
@@ -143,6 +148,7 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
     std::string &rstr = thread->str;
 
     if (updateDataCq.try_pop(rstr) == false) {
+        std::cerr << "cq empty" << std::endl;
         return false;
     }
     if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', rstr, &(thread->row))) {
@@ -156,13 +162,9 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
-    } catch (const NeedRetryException &e) {
-        updateDataCq.push(rstr);
-        return false;
-    } catch (const WriteThrottleException &e) {
-        updateDataCq.push(rstr);
-        return false;
-    } catch (const std::exception &e) {
+    } 
+    catch (const std::exception &e) {
+        std::cerr << "insert error:" << e.what() << std::endl;
         return false;
     }
     thread->key = getKey(rstr);
