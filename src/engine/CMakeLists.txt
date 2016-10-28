@@ -12,9 +12,12 @@ include_directories(./)
 include_directories(./include)
 include_directories(/usr/local/include)
 include_directories(${TERARKDB_PATH}/include)
+include_directories(${TERARKDB_ROCKS}/include)
+include_directories(/lib/i386-linux-gnu/)
 
 link_directories(${TERARKDB_PATH}/lib)
-
+link_directories(${TERARKDB_ROCKS}/lib)
+link_directories()
 link_directories(/usr/local/mysql/lib)
 link_directories(/usr/local/lib)
 
