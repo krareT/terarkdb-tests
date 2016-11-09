@@ -26,7 +26,7 @@
 			"minFragLen": 8, "maxFragLen": 100,
 			"dictZipSampleRatio": 0.01,
 			"dictZipLocalMatch": true,
-			"mmapPopulate" : true,
+			"//mmapPopulate" : true,
 			"useFastZip": true,
 			"checksumLevel":2
 		}
@@ -34,7 +34,6 @@
 	"MaxWrSegSize" 		: "3G",
 	"MinMergeSegNum"	: 3,
 	"PurgeDeleteThreshold"	: 0.20,
-	"WriteThrottleBytesPerSecond": "20MB",
     "WritableSegmentClass": "trb",
 	"TableIndex" : [
 		{

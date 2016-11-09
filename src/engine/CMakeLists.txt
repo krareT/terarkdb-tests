@@ -38,7 +38,7 @@ add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.
 target_link_libraries(Terark_Engine_Test
                         terark-zip-rocksdb-r
         terark-db-r
-                        terark-fsa_all-r
+                        terark-core-r
                         rocksdb
                         wiredtiger
                         snappy

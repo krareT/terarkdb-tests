@@ -38,7 +38,7 @@ void TerarkBenchmark::Open() {
 }
 
 void TerarkBenchmark::DoWrite(bool seq) {
-    std::cout << "Write the data to terark : " << setting.getLoadDataPath() << std::endl;
+    std::cout << "Read data from : " << setting.getLoadDataPath() << std::endl;
     std::string str;
     long long recordnumber = 0;
     const Schema &rowSchema = tab->rowSchema();
@@ -102,12 +102,10 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
         std::cout << "allkeys empty" << std::endl;
         return false;
     }
-    fstring key(rkey);
-    tab->indexSearchExact(indexId, key, &(thread->idvec), thread->ctx.get());
+    tab->indexSearchExact(indexId, rkey, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
-    if (thread->idvec.size() == 0){
-            
-            std::cerr << "read error: keys not exist!" << std::endl;
+    if (thread->idvec.size() == 0){        
+            // std::cerr << "read error: keys not exist ! key = " << rkey << std::endl;
             return false;
     }
     thread->ctx->getValue(thread->idvec[0], &(thread->row));
@@ -126,7 +124,7 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     tab->indexSearchExact(indexId, key, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
     if (thread->idvec.size() == 0) {
-        std::cerr << "update error: keys not exist!" << std::endl;
+        // std::cerr << "update error: keys not exist ! key = " << rkey << std::endl;
         return false;
     }
     thread->ctx->getValue(thread->idvec[0], &(thread->row));
