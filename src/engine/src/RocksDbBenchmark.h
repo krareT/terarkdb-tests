@@ -13,6 +13,7 @@
 #include <rocksdb/options.h>
 #include <rocksdb/table.h>
 #include <rocksdb/filter_policy.h>
+#include <terark/fstring.hpp>
 
 class RocksDbBenchmark : public Benchmark {
 private:
@@ -21,7 +22,7 @@ private:
     rocksdb::WriteOptions write_options;
     rocksdb::ReadOptions read_options;
 
-    size_t getKeyAndValue(std::string &str, std::string &key, std::string &val);
+    size_t getKeyAndValue(terark::fstring str, std::string &key, std::string &val);
 
 protected:
     rocksdb::Options options;

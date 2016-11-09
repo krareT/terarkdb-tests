@@ -8,7 +8,8 @@
 
 #include <wiredtiger.h>
 #include "Stats.h"
-#include "terark/db/db_table.hpp"
+#include <terark/db/db_table.hpp>
+#include <random>
 
 struct ThreadState {
     int tid;             // 0..n-1 when running in n threads

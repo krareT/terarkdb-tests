@@ -4,6 +4,12 @@
 
 #include "RocksDbBenchmark.h"
 #include <string>
+#include <terark/fstring.hpp>
+#include <terark/util/linebuf.hpp>
+#include <terark/util/autoclose.hpp>
+
+using namespace terark;
+
 void RocksDbBenchmark::Open() {
 
     std::cout << "Create database " << setting.FLAGS_db << std::endl;
@@ -16,7 +22,6 @@ void RocksDbBenchmark::Open() {
 }
 
 RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
-
     db = nullptr;
     options.create_if_missing = true;
 // new features to add
@@ -66,61 +71,51 @@ void RocksDbBenchmark::Close() {
 }
 
 void RocksDbBenchmark::Load() {
-
     std::cout << "RocksDbBenchmark Load" << std::endl;
-    FILE *loadFile = fopen(setting.getLoadDataPath().c_str(), "r");
+    Auto_fclose loadFile(fopen(setting.getLoadDataPath().c_str(), "r"));
     assert(loadFile != NULL);
     posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
-    char *buf;
-    size_t n = 0;
-    buf = NULL;
+    LineBuf line;
     std::string key;
     std::string value;
-    std::string str;
     rocksdb::Status s;
 	uint32_t lines_num = 0;
-    while (-1 != getline(&buf, &n, loadFile)) {
-        str = buf;
-        if (n > 1024 * 1024) {
-            free(buf);
-            buf = NULL;
-            n = 0;
-        }
-        auto ret = getKeyAndValue(str, key, value);
-        if (ret == 0)
+    while (line.getline(loadFile) > 0) {
+        line.chomp();
+        if (getKeyAndValue(line, key, value) == 0)
             continue;
         s = db->Put(write_options, key, value);
         if (!s.ok()) {
             fprintf(stderr, "put error: %s\n", s.ToString().c_str());
         }
         pushKey(key);
-	lines_num++;
-	if (lines_num % 10000 == 0)
-		printf("load:%uw\n",lines_num/10000);
+        lines_num++;
+        if (lines_num % 10000 == 0)
+            printf("load:%uw\n",lines_num/10000);
     }
-
 }
 
-size_t RocksDbBenchmark::getKeyAndValue(std::string &str, std::string &key, std::string &val) {
-    std::vector<std::string> strvec;
-    boost::split(strvec, str, boost::is_any_of("\t"));
-    key.clear();
-    val.clear();
+size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::string &val) {
+    thread_local valvec<fstring> strvec;
+    strvec.erase_all();
+    str.split('\t', &strvec);
+    key.resize(0);
+    val.resize(0);
     assert(key.size() + val.size() == 0);
     if (strvec.size() < 8)
         return 0;
-    key = strvec[2] + strvec[7];
-    for (int i = 0; i < strvec.size(); i++) {
+    key.append(strvec[2].data(), strvec[2].size());
+    key.append(" ");
+    key.append(strvec[7].data(), strvec[7].size());
+    for (size_t i = 0; i < strvec.size(); i++) {
         if (i == 2 || i == 7)
             continue;
-        val.append(strvec[i]);
+        val.append(strvec[i].data(), strvec[i].size());
     }
-    val = str;
     return strvec.size();
 }
 
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
-
     if (false == getRandomKey(ts->key, ts->randGenerator))
         return false;
     if (false == db->Get(read_options, ts->key, &(ts->value)).ok())
@@ -129,7 +124,6 @@ bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
 }
 
 bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
-
     if (false == getRandomKey(ts->key, ts->randGenerator)){
      	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
 	    return false;
@@ -141,17 +135,15 @@ bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
     }
     auto status = db->Put(write_options, ts->key, ts->value);
     if (false == status.ok()){
-     
      	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Put false\n key:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
     	fprintf(stderr,"RocksDbBenchmakr::UpdateOneKey:db-Put status:%s\n",status.ToString().c_str());
-	return false;
+	    return false;
     }
     fflush(stderr);
     return true;
 }
 
 bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
-
     if (updateDataCq.try_pop(ts->str) == false){
 	    return false;
     }
