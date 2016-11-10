@@ -11,14 +11,12 @@
 using namespace terark;
 
 void RocksDbBenchmark::Open() {
-
     std::cout << "Create database " << setting.FLAGS_db << std::endl;
     rocksdb::Status s = rocksdb::DB::Open(options, setting.FLAGS_db, &db);
     if (!s.ok()) {
         fprintf(stderr, "open error: %s\n", s.ToString().c_str());
         exit(1);
     }
-
 }
 
 RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
@@ -31,7 +29,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.allow_mmap_writes = true;
     options.max_background_compactions = 2;
 // end
-//
+
     rocksdb::BlockBasedTableOptions block_based_options;
     block_based_options.index_type = rocksdb::BlockBasedTableOptions::kBinarySearch;
     block_based_options.block_cache = setting.FLAGS_cache_size >= 0 ?
@@ -61,11 +59,11 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
     }
     options.write_buffer_size = options.write_buffer_size * 4;
-
 }
 
 void RocksDbBenchmark::Close() {
     delete db;
+    db = NULL;
 }
 
 void RocksDbBenchmark::Load() {
