@@ -97,7 +97,6 @@ bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPt
 
 bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
     std::string &rkey = thread->key;
-
     if (false == getRandomKey(rkey, thread->randGenerator)) {
         std::cout << "allkeys empty" << std::endl;
         return false;
@@ -114,12 +113,10 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
 
 bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     std::string &rkey = thread->key;
-
     if (false == getRandomKey(rkey, thread->randGenerator)) {
         std::cout << "allkeys empty" << std::endl;
         return false;
     }
-
     fstring key(rkey);
     tab->indexSearchExact(indexId, key, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
@@ -213,10 +210,8 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
 }
 
 bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
-
     char *ch;
     size_t bytes = strtol(val.c_str(), &ch, 10);
-
     if (*ch == 'K' || *ch == 'k') {
         bytes = bytes * 1024;
     } else if (*ch == 'M' || *ch == 'm') {
@@ -308,7 +303,6 @@ std::string TerarkBenchmark::getMinMergeSetNum(void) {
 }
 
 bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
-
     double value;
     if (sscanf(val.c_str(), "%lf", &value) != 1)
         return false;
@@ -317,14 +311,12 @@ bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
 }
 
 std::string TerarkBenchmark::getPurgeDeleteThreshold(void) {
-
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_purgeDeleteThreshold;
     return ss.str();
 }
 
 bool TerarkBenchmark::updateMaxWritingSegmentSize(const std::string &val) {
-
     llong value = stoll(val);
     tab->getSchemaConfig().m_maxWritingSegmentSize = value;
     return true;

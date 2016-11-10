@@ -8,11 +8,12 @@
 #include <include/leveldb/options.h>
 #include <sstream>
 #include <rocksdb/env.h>
+#include <terark/lcast.hpp>
+#include <terark/valvec.hpp>
 
 std::string BaseSetting::BenchmarkName;
 void Setting::wiredTigerSetting(int argc, char **argv){
     std::string default_db_path;
-
     for (int i = 2; i < argc; i++) {
         double d;
         int n;
@@ -72,16 +73,13 @@ void Setting::wiredTigerSetting(int argc, char **argv){
         default_db_path += "/dbbench";
         FLAGS_db = default_db_path.c_str();
     }
-
-
 }
-void Setting::terarkSetting(int argc, char **argv) {
 
+void Setting::terarkSetting(int argc, char **argv) {
     FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
     FLAGS_open_files = leveldb::Options().max_open_files;
     std::string default_db_path;
     std::string default_db_table;
-
     for (int i = 2; i < argc; i++) {
         double d;
         int n;
@@ -133,13 +131,31 @@ void Setting::terarkSetting(int argc, char **argv) {
         default_db_table += "DfaDbTable";
         FLAGS_db_table = default_db_table;
     }
-
-
-
-
 }
 
 Setting::Setting(int argc,char **argv,char *name){
+    using namespace terark;
+    for (int i = 2; i < argc; ++i) {
+        fstring arg = argv[i];
+        if (arg.startsWith("--keyfields=")) {
+            valvec<fstring> fields;
+            arg.substr(strlen("--keyfields=")).split(',', &fields);
+            for(size_t j = 0; j < fields.size(); ++j) {
+                keyFields.push_back(lcast(fields[j]));
+            }
+        }
+        else if (arg.startsWith("--numfields=")) {
+            numFields = lcast(arg.substr(strlen("--numfields=")));
+        }
+    }
+    if (size_t(-1) == numFields) {
+        fprintf(stderr, "ERROR: missing argument --numfields=...\n");
+        exit(1);
+    }
+    if (keyFields.empty()) {
+        fprintf(stderr, "ERROR: missing argument --keyfields=...\n");
+        exit(1);
+    }
     if ( strcmp(name,"wiredtiger") == 0){
         wiredTigerSetting(argc,argv);
     }else if (strcmp(name,"terarkdb") == 0){
@@ -164,7 +180,6 @@ Setting::Setting(int argc,char **argv,char *name){
 }
 
 void Setting::rocksdbSetting(int argc, char **argv) {
-
     for (int i = 2; i < argc; i++) {
         double d;
         // int n;
@@ -208,7 +223,6 @@ void Setting::rocksdbSetting(int argc, char **argv) {
 }
 
 BaseSetting::BaseSetting(){
-
     samplingRate.store(20);
     stop.store(false);
     run = true;
@@ -257,9 +271,7 @@ bool BaseSetting::strSetStop(std::string &value) {
 }
 
 bool BaseSetting::strSetThreadNums(std::string &value) {
-
     uint32_t threadNums = stoi(value);
-
     setThreadNums(threadNums);
     return true;
 }
@@ -392,7 +404,6 @@ bool BaseSetting::strSetLoadDataPath(std::string& value) {
 }
 
 std::string BaseSetting::ifRunOrLoad(void) const {
-
     std::string ret;
     if (run == false)
         ret = "load";
@@ -452,7 +463,6 @@ void BaseSetting::sendMessageToSetting(const std::string &str) {
 }
 
 bool BaseSetting::strSetPlanConfigs(std::string &val) {
-
     const char split_ch = ':';
 
     std::stringstream ss(val);

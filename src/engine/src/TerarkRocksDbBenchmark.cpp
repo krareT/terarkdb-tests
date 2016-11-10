@@ -25,13 +25,10 @@ std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
         return ss.str();
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
-    if (handleFuncMap.count(key) > 0)
-    {
-	    
+    if (handleFuncMap.count(key) > 0) {
 	    if ((this->*(handleFuncMap[key].first))(value)){
 	    	ss << "set " << key << ": success" << std::endl;
 	    }else{
-	    
 	    	ss << "set " << key << ": failed" << std::endl;
 	    }
     }else{
@@ -45,7 +42,6 @@ std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
 }
 
 bool TerarkRocksDbBenchmark::setTerarkZipMinLevel(const std::string &val) {
-
     int value = std::stoi(val);
     reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->terarkZipMinLevel = value;
     return true;
@@ -64,9 +60,10 @@ std::string TerarkRocksDbBenchmark::getCheckSumLevel(void) {
     ss << value;
     return ss.str();
 }
+
 bool TerarkRocksDbBenchmark::setCheckSumLevel(const std::string &val) {
     auto value = std::stoi(val);
-    if (value >2 || value < 0)
+    if (value > 2 || value < 0)
         return false;
     reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->checksumLevel = value;
     return true;
@@ -74,7 +71,7 @@ bool TerarkRocksDbBenchmark::setCheckSumLevel(const std::string &val) {
 
 bool TerarkRocksDbBenchmark::setSamplingRatio(const std::string &val) {
     char *end;
-    double value = strtod(val.c_str(),&end);
+    double value = strtod(val.c_str(), &end);
     if (value <= 0.0)
         return false;
     reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->sampleRatio = value;
@@ -97,7 +94,6 @@ bool TerarkRocksDbBenchmark::setIndexNestLevel(const std::string &val) {
 
 std::string TerarkRocksDbBenchmark::getIndexNestLevel(void) {
     std::stringstream ss;
-
     auto value = reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->indexNestLevel;
     ss << value;
     return ss.str();

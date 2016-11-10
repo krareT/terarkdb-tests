@@ -25,7 +25,6 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     db = nullptr;
     options.create_if_missing = true;
 // new features to add
-
     options.allow_concurrent_memtable_write = true;
     options.enable_write_thread_adaptive_yield = true;
     options.allow_mmap_reads = true;
@@ -42,8 +41,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     filter_policy_.reset(set.FLAGS_bloom_bits >= 0 ?
                          rocksdb::NewBloomFilterPolicy(set.FLAGS_bloom_bits, false) : NULL);
     block_based_options.filter_policy = filter_policy_;
-    options.table_factory.reset(
-            NewBlockBasedTableFactory(block_based_options));
+    options.table_factory.reset(NewBlockBasedTableFactory(block_based_options));
     write_options = rocksdb::WriteOptions();
     read_options = rocksdb::ReadOptions();
 
@@ -76,22 +74,20 @@ void RocksDbBenchmark::Load() {
     assert(loadFile != NULL);
     posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
-    std::string key;
-    std::string value;
-    rocksdb::Status s;
-	uint32_t lines_num = 0;
+    std::string key, value;
+	size_t lines_num = 0;
     while (line.getline(loadFile) > 0) {
         line.chomp();
         if (getKeyAndValue(line, key, value) == 0)
             continue;
-        s = db->Put(write_options, key, value);
+        rocksdb::Status s = db->Put(write_options, key, value);
         if (!s.ok()) {
             fprintf(stderr, "put error: %s\n", s.ToString().c_str());
         }
         pushKey(key);
         lines_num++;
         if (lines_num % 10000 == 0)
-            printf("load:%uw\n",lines_num/10000);
+            printf("load:%zuw\n",lines_num/10000);
     }
 }
 
@@ -102,16 +98,21 @@ size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::stri
     key.resize(0);
     val.resize(0);
     assert(key.size() + val.size() == 0);
-    if (strvec.size() < 8)
+    if (strvec.size() < setting.numFields)
         return 0;
-    key.append(strvec[2].data(), strvec[2].size());
-    key.append(" ");
-    key.append(strvec[7].data(), strvec[7].size());
+    auto& kf = setting.keyFields;
+    for (size_t field: kf) {
+        key.append(strvec[field].data(), strvec[field].size());
+        key.append(" ");
+    }
+    key.pop_back();
     for (size_t i = 0; i < strvec.size(); i++) {
-        if (i == 2 || i == 7)
+        if (std::find(kf.begin(), kf.end(), i) != kf.end())
             continue;
         val.append(strvec[i].data(), strvec[i].size());
+        val.append("\t");
     }
+    val.pop_back();
     return strvec.size();
 }
 
@@ -124,13 +125,13 @@ bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
 }
 
 bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
-    if (false == getRandomKey(ts->key, ts->randGenerator)){
+    if (false == getRandomKey(ts->key, ts->randGenerator)) {
      	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
 	    return false;
     }
-    if (false == db->Get(read_options, ts->key, &(ts->value)).ok()){
-     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false\n key:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
-     
+    if (false == db->Get(read_options, ts->key, &(ts->value)).ok()) {
+     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false, value.size:%05zd, key:%s\n"
+                , ts->value.size(), ts->key.c_str());
 	    return false;
     }
     auto status = db->Put(write_options, ts->key, ts->value);
@@ -154,10 +155,9 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
     }
     auto status = db->Put(write_options, ts->key, ts->value);
     if (false == status.ok()){
-     
      	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:db->Put false.\nkey:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
     	fprintf(stderr,"RocksDbBenchmakr::InsertOneKey:db-Put status:%s\n",status.ToString().c_str());
-	updateDataCq.push(ts->str);	  
+	    updateDataCq.push(ts->str);
       	return false;
     }
     pushKey(ts->key);

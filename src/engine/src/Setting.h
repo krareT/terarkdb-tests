@@ -14,14 +14,9 @@
 #include <mutex>
 #include <tbb/concurrent_unordered_map.h>
 struct PlanConfig{
-    uint32_t read_percent;
-    uint32_t update_percent;
-    uint32_t insert_percent;
-    PlanConfig(){
-        read_percent = 100;
-        update_percent = 0;
-        insert_percent = 0;
-    }
+    uint32_t read_percent = 100;
+    uint32_t update_percent = 0;
+    uint32_t insert_percent = 0;
 };
 struct EnumClassHash
 {
@@ -82,7 +77,6 @@ protected:
     std::string toString();
 
 public:
-
     static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
@@ -102,8 +96,7 @@ public:
 
     void sendMessageToSetting(const std::string &);
 };
-class Setting : public BaseSetting{
-
+class Setting : public BaseSetting {
 public:
     uint64_t FLAGS_block_size = 16 * 1024;
     enum rocksdb::CompressionType FLAGS_compression_type = rocksdb::kSnappyCompression;
@@ -111,7 +104,7 @@ public:
     uint64_t FLAGS_num_levels = 7;
     //BaseSetting baseSetting;
     const char* FLAGS_benchmarks =
-            "fillseq,"
+                    "fillseq,"
                     "deleteseq,"
                     "fillseq,"
                     "deleterandom,"
@@ -176,11 +169,11 @@ public:
      bool FLAGS_use_existing_db = false;
 
 // Use the db with the following name.
-     const char* FLAGS_db = nullptr;
-     std::string FLAGS_db_table;
-     const char* FLAGS_resource_data = nullptr;
+    const char* FLAGS_db = nullptr;
+    std::string FLAGS_db_table;
+    const char* FLAGS_resource_data = nullptr;
     const char* FLAGS_keys_data = nullptr;
-     int *shuff = nullptr;
+    int *shuff = nullptr;
 
     bool FLAGS_use_lsm = true;
 // Stagger starting point of reads for sequential (or reverse).
@@ -189,7 +182,10 @@ public:
 // Stagger starting point of reads for sequential (or reverse).
     int FLAGS_max_compact_wait = 1200;
 
-// Use the db with the following name.
+    size_t numFields = size_t(-1);
+    std::vector<size_t> keyFields;
+
+    // Use the db with the following name.
     void terarkSetting(int argc,char **argv);
     void wiredTigerSetting(int argc,char **argv);
 

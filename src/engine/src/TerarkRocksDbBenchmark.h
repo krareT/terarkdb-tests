@@ -29,12 +29,12 @@ public:
             throw std::invalid_argument("U must set the tmp_dir!\n");
         }
         opt.localTempDir = tmp_dir;
-//       	printf("local temp dir:%s\n",tmp_dir);
+//      printf("local temp dir:%s\n",tmp_dir);
         rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
         options.table_factory.reset(factory);
-	options.base_background_compactions = 2;
-	options.max_background_compactions=2;
-	options.target_file_size_multiplier = 2;
+        options.base_background_compactions = 2;
+        options.max_background_compactions = 2;
+        options.target_file_size_multiplier = 2;
     }
 
 };

@@ -70,13 +70,16 @@ int main(int argc, char **argv) {
         compact(setting);
         puts("Compact Finish.Exit the program.");
         exit(1);
-    } else if (strcmp(argv[1], "rocksdb") == 0) {
+    }
+    else if (strcmp(argv[1], "rocksdb") == 0) {
         bm = new RocksDbBenchmark(setting);
         worker = new AnalysisWorker("rocksdb", &setting);
-    } else if (strcmp(argv[1],"terark_rocksdb") == 0){
+    }
+    else if (strcmp(argv[1],"terark_rocksdb") == 0){
         bm = new TerarkRocksDbBenchmark(setting);
         worker = new AnalysisWorker("terocksdb", &setting);
-    } else if (strcmp(argv[1],"posix") == 0){
+    }
+    else if (strcmp(argv[1],"posix") == 0){
         bm = new PosixBenchmark(setting);
         worker = new AnalysisWorker("posix", &setting);
     }

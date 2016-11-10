@@ -30,15 +30,10 @@ public:
     RocksDbBenchmark(Setting &set);
 
     void Open() override;
-
     void Load() override;
-
     void Close() override;
-
     bool ReadOneKey(ThreadState *) override;
-
     bool UpdateOneKey(ThreadState *) override;
-
     bool InsertOneKey(ThreadState *) override;
 
     ThreadState *newThreadState(std::atomic<std::vector<bool > *> *whichSamplingPlan) override;
