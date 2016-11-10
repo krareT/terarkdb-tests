@@ -130,8 +130,8 @@ bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
 	    return false;
     }
     if (false == db->Get(read_options, ts->key, &(ts->value)).ok()) {
-     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false, value.size:%05zd, key:%s\n"
-                , ts->value.size(), ts->key.c_str());
+    // 	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false, value.size:%05zd, key:%s\n"
+    //            , ts->value.size(), ts->key.c_str());
 	    return false;
     }
     auto status = db->Put(write_options, ts->key, ts->value);

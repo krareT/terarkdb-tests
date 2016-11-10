@@ -17,12 +17,12 @@
 #include <src/Stats.h>
 #include <src/analysis_worker.h>
 
+boost::asio::io_service* g_io_service;
 void tcpServer(Setting *setting, Benchmark *bm) {
     std::cout << "------------Tcp Server start-------------" << std::endl;
     try {
-        boost::asio::io_service io_service;
-        Server server(io_service, 6666, *setting, bm);
-        io_service.run();
+        Server server(*g_io_service, 6666, *setting, bm);
+        g_io_service->run();
     }
     catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
@@ -38,13 +38,14 @@ void compact(Setting &setting) {
     tab = nullptr;
 }
 
-Setting *set;
-AnalysisWorker *worker;
+Setting *g_settings;
+AnalysisWorker *g_worker;
 
 void sigint_fuc(int sig) {
     std::cout << "Ctrl+c" << std::endl;
-    set->setStop();
-    worker->stop();
+    g_settings->setStop();
+    g_worker->stop();
+    g_io_service->stop();
 }
 
 int main(int argc, char **argv) {
@@ -55,45 +56,50 @@ int main(int argc, char **argv) {
     }
 	char *passwd = getenv("MYSQL_PASSWD");
     Setting setting(argc, argv, argv[1]);
-    set = &setting;
-    Benchmark *bm = nullptr;
+    g_settings = &setting;
+    std::unique_ptr<Benchmark> bm;
 
     if (strcmp(argv[1], "terarkdb") == 0) {
-        bm = new TerarkBenchmark(setting);
-        worker = new AnalysisWorker("terarkdb",&setting);
+        bm.reset(new TerarkBenchmark(setting));
+        g_worker = new AnalysisWorker("terarkdb",&setting);
     }
     else if (strcmp(argv[1], "wiredtiger") == 0) {
-        bm = new WiredTigerBenchmark(setting);
-        worker = new AnalysisWorker("wiredtiger",&setting);
+        bm.reset(new WiredTigerBenchmark(setting));
+        g_worker = new AnalysisWorker("wiredtiger",&setting);
     }
     else if (strcmp(argv[1], "compact") == 0) {
         compact(setting);
         puts("Compact Finish.Exit the program.");
-        exit(1);
+        return 0;
     }
     else if (strcmp(argv[1], "rocksdb") == 0) {
-        bm = new RocksDbBenchmark(setting);
-        worker = new AnalysisWorker("rocksdb", &setting);
+        bm.reset(new RocksDbBenchmark(setting));
+        g_worker = new AnalysisWorker("rocksdb", &setting);
     }
-    else if (strcmp(argv[1],"terark_rocksdb") == 0){
-        bm = new TerarkRocksDbBenchmark(setting);
-        worker = new AnalysisWorker("terocksdb", &setting);
+    else if (strcmp(argv[1],"terark_rocksdb") == 0) {
+        bm.reset(new TerarkRocksDbBenchmark(setting));
+        g_worker = new AnalysisWorker("terocksdb", &setting);
     }
     else if (strcmp(argv[1],"posix") == 0){
-        bm = new PosixBenchmark(setting);
-        worker = new AnalysisWorker("posix", &setting);
+        bm.reset(new PosixBenchmark(setting));
+        g_worker = new AnalysisWorker("posix", &setting);
     }
     //start a thread for tcp server
-    std::thread tcpServerThread(tcpServer, &setting, bm);
+    boost::asio::io_service io_service;
+    g_io_service = &io_service;
+    std::thread tcpServerThread(tcpServer, &setting, bm.get());
     // start a thread for analysis and data upload
     std::thread workerThrad([](AnalysisWorker* w) {
         w->run();
-    }, worker);
-
-    if (nullptr != bm) {
-
+    }, g_worker);
+    if (bm) {
         bm->Run();
-        delete bm;
     }
-    exit(1);
+    tcpServerThread.join();
+    workerThrad.join();
+    if (g_worker) {
+        delete g_worker;
+        g_worker = NULL;
+    }
+    return 0;
 }

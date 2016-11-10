@@ -182,6 +182,7 @@ public:
 // Stagger starting point of reads for sequential (or reverse).
     int FLAGS_max_compact_wait = 1200;
 
+    double keySampleRatio = 1.0; ///< when all keys are too large, just sample a subset
     size_t numFields = size_t(-1);
     std::vector<size_t> keyFields;
 

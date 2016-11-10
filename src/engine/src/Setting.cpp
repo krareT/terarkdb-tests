@@ -147,6 +147,11 @@ Setting::Setting(int argc,char **argv,char *name){
         else if (arg.startsWith("--numfields=")) {
             numFields = lcast(arg.substr(strlen("--numfields=")));
         }
+        else if (arg.startsWith("--keySampleRatio=")) {
+            keySampleRatio = lcast(arg.substr(strlen("--keySampleRatio=")));
+            keySampleRatio = std::min(keySampleRatio, 1.0);
+            keySampleRatio = std::max(keySampleRatio, 0.0001);
+        }
     }
     if (size_t(-1) == numFields) {
         fprintf(stderr, "ERROR: missing argument --numfields=...\n");

@@ -118,30 +118,38 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
     std::cout << "Thread " << thread->tid << " stop!" << std::endl;
 }
 
-size_t Benchmark::updateKeys(void) {
-    std::cout << "Update Keys:" << setting.getKeysDataPath() << std::endl;
+void Benchmark::loadKeys(void) {
+    std::cout << "Load Keys: " << setting.getKeysDataPath() << std::endl;
 	std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
     std::string str;
-    while( getline(keysFile,str)){
-        if (str.size() == 0)
-            continue;
-        allkeys.push_back(str);
+    if (setting.keySampleRatio < 0.99) {
+        std::mt19937_64 random;
+        size_t upperBound = size_t(random.max() * setting.keySampleRatio);
+        while (getline(keysFile, str)) {
+            if (str.size() && random() < upperBound)
+                allkeys.push_back(str);
+        }
+    }
+    else {
+        while (getline(keysFile, str)) {
+            if (str.size())
+                allkeys.push_back(str);
+        }
     }
     keysFile.close();
-    return allkeys.size();
 }
 
-void Benchmark::backupKeys(void) {
-    std::cout <<"backupKeys" << std::endl;
+void Benchmark::backupKeys(const std::string& fname) {
+    std::cout <<"backupKeys: " << fname << std::endl;
     if (allkeys.size() == 0)
         return;
-    std::fstream keyFile_bkup(setting.getKeysDataPath(),std::ios_base::trunc | std::ios_base::out);
+    std::fstream keyFile_bkup(fname,std::ios_base::trunc | std::ios_base::out);
     for( size_t i = 0; i < allkeys.size();++i){
-        keyFile_bkup << allkeys.str(i) <<std::endl;
+        keyFile_bkup << allkeys.str(i) << std::endl;
     }
     keyFile_bkup.close();
-    std::cout <<"backupKeys finish" << std::endl;
+    std::cout <<"backupKeys finished" << std::endl;
 
 }
 
@@ -197,13 +205,15 @@ void Benchmark::Run(void) {
             std::cout << "load" << std::endl;
             allkeys.erase_all();
             Load();
-            backupKeys();
+            backupKeys(setting.getKeysDataPath());
         } catch (const std::exception &e) {
             std::cout << e.what() << std::endl;
         }
     }
     else {
-        std::cout << "allKeys size:" <<updateKeys() << std::endl;
+        loadKeys();
+    //  backupKeys(setting.getKeysDataPath() + ".bak"); // temporary
+        std::cout << "allKeys size:" << allkeys.size() << std::endl;
         RunBenchmark();
     }
     Close();

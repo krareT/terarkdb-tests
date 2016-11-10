@@ -155,7 +155,7 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
                                 "engine_test_dbsize_10s", 
                                 "engine_test_diskinfo_10s"
                                 };
-        for(std::string& table: tables){
+        for(std::string& table: tables) {
             std::string sql = "DELETE FROM " + table + " WHERE time_bucket < ?";
             sql::PreparedStatement* pstmt = conn->prepareStatement(sql);
             pstmt->setInt(1, filter_time);
@@ -179,7 +179,6 @@ void AnalysisWorker::stop() {
 }
 
 void AnalysisWorker::run() {
-
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
     TimeBucket read_bucket(conn, engine_name, setting->FLAGS_db);
     TimeBucket insert_bucket(conn, engine_name, setting->FLAGS_db);

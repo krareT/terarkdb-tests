@@ -65,8 +65,8 @@ private:
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
     uint8_t compactTimes;
-    size_t updateKeys(void);
-    void backupKeys(void);
+    void loadKeys(void);
+    void backupKeys(const std::string& fname);
     static void loadInsertData(const Setting *setting);
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
