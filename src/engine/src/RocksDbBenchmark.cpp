@@ -92,7 +92,7 @@ void RocksDbBenchmark::Load() {
 size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::string &val) {
     thread_local valvec<fstring> strvec;
     strvec.erase_all();
-    str.split('\t', &strvec);
+    str.split(setting.fieldsDelim, &strvec);
     key.resize(0);
     val.resize(0);
     assert(key.size() + val.size() == 0);

@@ -13,6 +13,7 @@
 #include "tbb/concurrent_queue.h"
 #include <mutex>
 #include <tbb/concurrent_unordered_map.h>
+
 struct PlanConfig{
     uint32_t read_percent = 100;
     uint32_t update_percent = 0;
@@ -184,6 +185,7 @@ public:
 
     double keySampleRatio = 1.0; ///< when all keys are too large, just sample a subset
     size_t numFields = size_t(-1);
+    unsigned char fieldsDelim = '\t';
     std::vector<size_t> keyFields;
 
     // Use the db with the following name.

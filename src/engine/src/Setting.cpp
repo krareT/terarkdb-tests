@@ -147,6 +147,9 @@ Setting::Setting(int argc,char **argv,char *name){
         else if (arg.startsWith("--numfields=")) {
             numFields = lcast(arg.substr(strlen("--numfields=")));
         }
+        else if (arg.startsWith("--fieldsDelim=")) {
+            fieldsDelim = arg[strlen("--fieldsDelim=")];
+        }
         else if (arg.startsWith("--keySampleRatio=")) {
             keySampleRatio = lcast(arg.substr(strlen("--keySampleRatio=")));
             keySampleRatio = std::min(keySampleRatio, 1.0);
@@ -224,7 +227,6 @@ void Setting::rocksdbSetting(int argc, char **argv) {
             FLAGS_resource_data = argv[i] + 16;
         }
     }
-
 }
 
 BaseSetting::BaseSetting(){
@@ -311,8 +313,7 @@ std::string BaseSetting::toString() {
     ret << "thread nums:\t"     << getThreadNums() << std::endl;
     {
         std::lock_guard<std::mutex>  _lock(planMtx);
-        for(int i = 0; i < planConfigs.size(); i ++){
-
+        for(int i = 0; i < planConfigs.size(); i ++) {
             ret << "plan " << i << " read " << planConfigs[i].read_percent << " insert "\
                 << planConfigs[i].insert_percent << " update " << planConfigs[i].update_percent << std::endl;
         }
@@ -334,8 +335,7 @@ std::string BaseSetting::toString() {
     }
     return ret.str();
 }
-std::string BaseSetting::setBaseSetting(std::string &line){
-
+std::string BaseSetting::setBaseSetting(std::string &line) {
     std::vector<std::string> strvec;
     boost::split(strvec,line,boost::is_any_of(" \t"));
     std::string message;
@@ -347,12 +347,11 @@ std::string BaseSetting::setBaseSetting(std::string &line){
         size_t div = each_kv.find('=');
         std::string key = each_kv.substr(0,div);
         std::string value = each_kv.substr(div+1);
-        if (setFuncMap.count(key) > 0){
-
-            if ((this->*setFuncMap[key])(value)){
+        if (setFuncMap.count(key) > 0) {
+            if ((this->*setFuncMap[key])(value)) {
                 message += "set\t" + key + "\tsuccess\n";
             }
-            else{
+            else {
                 message += "set\t" + key + "\tfailure\n";
             }
         }else{
