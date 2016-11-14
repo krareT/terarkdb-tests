@@ -94,11 +94,10 @@ bool Benchmark::executeOneOperationWithSampling(ThreadState *state, BaseSetting:
 bool Benchmark::executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type){
     return ((this->*executeFuncMap[type])(state));
 }
-bool Benchmark::executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type){
 
+bool Benchmark::executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type){
     assert(executeFuncMap.count(type) > 0);
     std::vector<bool > *samplingPlan = (*(state->whichSamplingPlan)).load();
-
     if (samplingRecord[type] >= samplingPlan->size()){
         samplingRecord[type] = 0;
     }
@@ -150,7 +149,6 @@ void Benchmark::backupKeys(const std::string& fname) {
     }
     keyFile_bkup.close();
     std::cout <<"backupKeys finished" << std::endl;
-
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
@@ -163,12 +161,15 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
 }
 
 bool Benchmark::pushKey(std::string &key) {
-    tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, true);//write lock
-    try {
-        allkeys.push_back(key);
-    }catch (std::exception e){
-        fprintf(stderr,"%s\n",e.what());
-        return false;
+    if (setting.keySampleRatio > 0.90 ||
+            random() < random.max() * setting.keySampleRatio) {
+        tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, true);//write lock
+        try {
+            allkeys.push_back(key);
+        } catch (std::exception e) {
+            fprintf(stderr, "%s\n", e.what());
+            return false;
+        }
     }
     return true;
 }

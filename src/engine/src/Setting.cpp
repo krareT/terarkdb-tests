@@ -155,6 +155,12 @@ Setting::Setting(int argc,char **argv,char *name){
             keySampleRatio = std::min(keySampleRatio, 1.0);
             keySampleRatio = std::max(keySampleRatio, 0.0001);
         }
+        else if (arg.startsWith("--logdir=")) {
+            logdir = arg.substr(strlen("--logdir=")).str();
+        }
+        else if (arg.startsWith("--waldir=")) {
+            waldir = arg.substr(strlen("--waldir=")).str();
+        }
     }
     if (size_t(-1) == numFields) {
         fprintf(stderr, "ERROR: missing argument --numfields=...\n");
@@ -257,7 +263,6 @@ uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
 }
 bool BaseSetting::strSetSamplingRate(std::string &value) {
-
     uint8_t sp = stoi(value);
     if (sp > 100)
         return false;
@@ -265,7 +270,6 @@ bool BaseSetting::strSetSamplingRate(std::string &value) {
     return true;
 }
 bool BaseSetting::strSetStop(std::string &value) {
-
     if (value == "true"){
         stop.store(true);
         return true;
@@ -306,7 +310,6 @@ void BaseSetting::setStop(void){
     stop.store(true);
 }
 std::string BaseSetting::toString() {
-
     std::stringstream ret;
     ret << "benchmark name:\t"  << BaseSetting::BenchmarkName << std::endl;
     ret << "sampling rate:\t"   << static_cast<int >(getSamplingRate()) << std::endl;
@@ -362,7 +365,6 @@ std::string BaseSetting::setBaseSetting(std::string &line) {
 }
 
 std::string BaseSetting::setBaseSetting(int argc, char **argv) {
-
     std::string message;
     for(int i = 0; i < argc; i ++){
         char *pos = strchr(argv[i],'=');
@@ -443,19 +445,16 @@ uint8_t BaseSetting::getCompactTimes(void) const {
 }
 
 bool BaseSetting::strSetCompactTimes(std::string &val) {
-
     compactTimes++;
     return true;
 }
 
 bool BaseSetting::strSetMessage(std::string &msg) {
-
     message_cq.push(msg);
     return true;
 }
 
 std::string BaseSetting::getMessage(void) {
-
     std::string str;
     if (message_cq.try_pop(str) == true)
         return str;
@@ -501,7 +500,6 @@ bool BaseSetting::strSetPlanConfigs(std::string &val) {
 }
 
 bool BaseSetting::getPlanConfig(const uint32_t thread_id, PlanConfig &planConfig) {
-
     auto iter = threadPlanMap.find(thread_id);
     if (iter == threadPlanMap.end())
         return false;
@@ -516,7 +514,6 @@ bool BaseSetting::getPlanConfig(const uint32_t thread_id, PlanConfig &planConfig
 }
 
 bool BaseSetting::strSetThreadPlan(std::string &val) {
-
     const char split_ch = ':';
     std::stringstream ss(val);
     uint32_t thread_id,plan_id;

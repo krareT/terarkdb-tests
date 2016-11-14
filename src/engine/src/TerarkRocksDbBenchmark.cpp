@@ -4,6 +4,26 @@
 
 #include "TerarkRocksDbBenchmark.h"
 
+TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(set) {
+    std::cout <<"TR Benchmark" << std::endl;
+    rocksdb::TerarkZipTableOptions opt;
+    char *tmp_dir = getenv("TerRocksdb_Tmpdir");
+    if (tmp_dir == NULL || strlen(tmp_dir) == 0) {
+        throw std::invalid_argument("U must set env TerRocksdb_Tmpdir!\n");
+    }
+    opt.terarkZipMinLevel = 1;
+    opt.localTempDir = tmp_dir;
+//  printf("local temp dir:%s\n",tmp_dir);
+    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
+    options.table_factory.reset(factory);
+    options.base_background_compactions = 2;
+    options.max_background_compactions = 2;
+    options.target_file_size_multiplier = 2;
+    options.compaction_style = rocksdb::kCompactionStyleUniversal;
+    options.compaction_options_universal.allow_trivial_move = true;
+//  options.compaction_options_universal.size_ratio = 10; // 10%
+}
+
 std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())
@@ -21,8 +41,10 @@ std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
     handleFuncMap["estimate_compression_ratio"] = std::make_pair(&TerarkRocksDbBenchmark::setEstimateCompressionRatio,
                                                                  &TerarkRocksDbBenchmark::getEstimateCompressionRatio);
     size_t div = msg.find(':');
-    if (div == std::string::npos)
+    if (div == std::string::npos) {
+        fprintf(stderr, "ERROR: TerarkRocksDbBenchmark::HandleMessage: msg = %s\n", msg.c_str());
         return ss.str();
+    }
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
     if (handleFuncMap.count(key) > 0) {

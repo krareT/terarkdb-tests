@@ -22,23 +22,20 @@ void PosixBenchmark::Open(void) {
 }
 
 void PosixBenchmark::Close(void) {
-
 }
 
 void PosixBenchmark::Load(void) {
     DIR *dir;
     std::cout << "PosixBenchmakr::Load to :" + setting.getLoadDataPath() << std::endl;
-
     dir = opendir(setting.getLoadDataPath().c_str());
     if (dir == NULL){
         throw std::invalid_argument(strerror(errno) + setting.getLoadDataPath());
     }
-    auto ret = closedir(dir);
-    if ( ret != 0){
+    int ret = closedir(dir);
+    if (ret != 0){
         throw std::invalid_argument(strerror(errno) + setting.getLoadDataPath());
     }
-
-    if ( system(NULL) == 0)
+    if (system(NULL) == 0)
         throw std::logic_error("system error:no bash to use!\n");
 
     std::string cp_cmd = "cp " + setting.getLoadDataPath() + " " + setting.FLAGS_db + "/" + " -r";
@@ -52,10 +49,8 @@ void PosixBenchmark::Load(void) {
 }
 
 bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
-
     if (false == getRandomKey(ts->key, ts->randGenerator))
         return false;
-
     std::string read_path = setting.FLAGS_db;
     read_path = read_path + "/" + ts->key;
     std::unique_ptr<FILE, decltype(&fclose)> read_file(fopen(read_path.c_str(),"r"),fclose);
@@ -72,7 +67,6 @@ bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
 }
 
 bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
-
     if (false == getRandomKey(ts->key, ts->randGenerator)){
         fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
         return false;
@@ -85,7 +79,6 @@ bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
         fprintf(stderr,"posix update read error:%s\n",strerror(errno));
         return false;
     }
-
     if ( size != fwrite(buf.get(),1,size,update_file.get())){
         fprintf(stderr,"posix update write error:%s\n",strerror(errno));
         return false;
@@ -94,7 +87,6 @@ bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
 }
 
 bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
-
     if (updateDataCq.try_pop(ts->key) == false) {
         return false;
     }
@@ -115,12 +107,12 @@ bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
     }
     return true;
 }
+
 bool PosixBenchmark::Compact(void) {
     return false;
 }
 
 ThreadState *PosixBenchmark::newThreadState(std::atomic<std::vector<bool> *> *whichSamplingPlan) {
-
     return new ThreadState(threads.size(), nullptr,whichSamplingPlan);
 }
 

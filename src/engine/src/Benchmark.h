@@ -61,7 +61,7 @@ private:
     std::atomic<std::vector<bool> *> samplingPlanAddr;
     std::vector<bool > samplingPlan[2];
     std::vector< std::pair<std::vector< uint8_t >,std::vector<uint8_t >>> executePlans;
-
+    std::mt19937_64 random;
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
     uint8_t compactTimes;

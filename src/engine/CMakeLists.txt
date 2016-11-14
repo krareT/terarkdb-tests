@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Terark_Engine_Test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -s -g3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -s -O2")
 
 aux_source_directory(./ SRC_LIST)
 
@@ -22,7 +22,9 @@ link_directories(/usr/local/mysql/lib)
 link_directories(/usr/local/lib)
 
 set(EXECUTABLE_OUTPUT_PATH ../../build)
-add_executable(Terark_Engine_Test ${SRC_LIST} db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
+add_executable(Terark_Engine_Test
+		${SRC_LIST}
+		db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
         db/db_iter.cc db/filename.cc db/log_reader.cc db/log_writer.cc db/memtable.cc db/repair.cc
         db/table_cache.cc db/version_edit.cc db/version_set.cc db/write_batch.cc table/block_builder.cc
         table/block.cc table/filter_block.cc table/format.cc table/iterator.cc table/merger.cc

@@ -53,6 +53,8 @@ public:
               setting(setting1),
               benchmark(bm)
     {
+        socket_.set_option(boost::asio::ip::tcp::no_delay(true));
+        acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
         do_accept();
     }
 
@@ -66,7 +68,6 @@ private:
                                    {
                                        std::make_shared<Session>(std::move(socket_))->start(&setting,benchmark);
                                    }
-
                                    do_accept();
                                });
     }

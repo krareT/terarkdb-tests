@@ -30,6 +30,47 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.max_background_compactions = 2;
 // end
 
+    static std::map<char, ullong> kmgtp = {
+            {'k', 1024ull},
+            {'K', 1024ull},
+            {'m', 1024ull*1024},
+            {'M', 1024ull*1024},
+            {'g', 1024ull*1024*1024},
+            {'G', 1024ull*1024*1024},
+            {'t', 1024ull*1024*1024*1024},
+            {'T', 1024ull*1024*1024*1024},
+            {'p', 1024ull*1024*1024*1024*1024},
+            {'P', 1024ull*1024*1024*1024*1024},
+    };
+    valvec<fstring> dircaps;
+    fstring(setting.FLAGS_db).split(',', &dircaps);
+    if (dircaps.size() > 1) {
+        for (size_t i = 0; i < dircaps.size(); ++i) {
+            fstring dircap = dircaps[i];
+            const char* colon = dircap.strstr(":");
+            if (colon) {
+                char* suffix = NULL;
+                double cap = strtof(colon+1, &suffix);
+                if (*suffix && strchr("kKmMgGtTpP", *suffix)) {
+                    cap *= kmgtp[*suffix];
+                }
+                std::string dir(dircap.data(), colon);
+                options.db_paths.push_back({dir, uint64_t(cap)});
+            }
+            else {
+                fprintf(stderr, "ERROR: invalid dir:cap,...: %s\n", setting.FLAGS_db);
+                exit(1);
+            }
+        }
+        setting.FLAGS_db = "multi-dir-rocksdb";
+    }
+    if (setting.logdir.size()) {
+        options.db_log_dir = setting.logdir;
+    }
+    if (setting.waldir.size()) {
+        options.wal_dir = setting.waldir;
+    }
+
     rocksdb::BlockBasedTableOptions block_based_options;
     block_based_options.index_type = rocksdb::BlockBasedTableOptions::kBinarySearch;
     block_based_options.block_cache = setting.FLAGS_cache_size >= 0 ?

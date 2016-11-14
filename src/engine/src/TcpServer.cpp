@@ -10,11 +10,9 @@ void Session::do_read(){
                                   {
                                       read_line_handler(ec,lenth);
                                       do_read();
-
                                   });
 }
 void Session::read_line_handler(const boost::system::error_code& ec,std::size_t size) {
-
     if (ec)
         return;
     std::istream is(&buf_);

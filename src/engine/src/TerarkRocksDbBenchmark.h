@@ -21,21 +21,7 @@ private:
     bool setEstimateCompressionRatio(const std::string &);
     std::string getEstimateCompressionRatio(void);
 public:
-    TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(set) {
-        std::cout <<"TR Benchmark" << std::endl;
-        rocksdb::TerarkZipTableOptions opt;
-        char *tmp_dir = getenv("TerRocksdb_Tmpdir");
-        if (tmp_dir == NULL || strlen(tmp_dir) == 0) {
-            throw std::invalid_argument("U must set env TerRocksdb_Tmpdir!\n");
-        }
-        opt.localTempDir = tmp_dir;
-//      printf("local temp dir:%s\n",tmp_dir);
-        rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
-        options.table_factory.reset(factory);
-        options.base_background_compactions = 2;
-        options.max_background_compactions = 2;
-        options.target_file_size_multiplier = 2;
-    }
+    TerarkRocksDbBenchmark(Setting &set);
 };
 
 

@@ -188,6 +188,9 @@ public:
     unsigned char fieldsDelim = '\t';
     std::vector<size_t> keyFields;
 
+    std::string logdir;
+    std::string waldir;
+
     // Use the db with the following name.
     void terarkSetting(int argc,char **argv);
     void wiredTigerSetting(int argc,char **argv);
