@@ -111,8 +111,10 @@ namespace benchmark {
             result += oneDirSize;
         }
         int ret = pclose(fp);
-        fprintf(stderr, "getDiskUsageByKB = %lld: pclose(%s) = %d, err = %s\n"
-                , result, cmd.c_str(), ret, strerror(errno));
+        if (ret != 0) {
+            fprintf(stderr, "getDiskUsageByKB = %lld: pclose(%s) = %d, err = %s\n"
+                    , result, cmd.c_str(), ret, strerror(errno));
+        }
         return result;
     }
 
