@@ -22,6 +22,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     options.compaction_style = rocksdb::kCompactionStyleUniversal;
     options.compaction_options_universal.allow_trivial_move = true;
 //  options.compaction_options_universal.size_ratio = 10; // 10%
+    setting.dbdirs.push_back(opt.localTempDir);
 }
 
 std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
