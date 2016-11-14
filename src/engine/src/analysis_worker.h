@@ -32,7 +32,7 @@ private:
     sql::Connection *conn = nullptr;
     uint64_t step_in_seconds = 10; // in seconds
     std::string engine_name = nullptr;
-    const char* dbpath = nullptr;
+    const std::vector<std::string>& dbdirs;
 
     uint64_t current_bucket = 0;  // seconds
     int operation_count = 0;
@@ -42,9 +42,13 @@ private:
     void upload(int bucket, int ops, int type, bool uploadExtraData);
 
 public:
-    TimeBucket(sql::Connection *const connection, std::string name, const char* dbpath) : conn(connection),
-                                                                                          engine_name(name),
-                                                                                          dbpath(dbpath) {};
+    TimeBucket(sql::Connection *const connection,
+               const std::string& engineName,
+               const std::vector<std::string>& dbdirs)
+            : conn(connection),
+              engine_name(engineName),
+              dbdirs(dbdirs)
+    {}
 
     void add(uint64_t start, uint64_t end, int sampleRate, int type, bool uploadExtraData);
 };

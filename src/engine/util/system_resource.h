@@ -92,34 +92,48 @@ namespace benchmark {
         arr.push_back(physMemUsed / 1024);
     }
 
-
-    int getDiskUsageByKB(const char *path) {
-        int result = 0;
+    long long getDiskUsageByKB(const std::vector<std::string>& pathes) {
+        std::string cmd("du -sk");
+        for (const auto& path : pathes) {
+            cmd += " ";
+            cmd += path;
+        }
+        FILE *fp = popen(cmd.c_str(), "r");
+        if (!fp) {
+            fprintf(stderr, "popen(%s) = %s\n", cmd.c_str(), strerror(errno));
+            return 0;
+        }
+        long long result = 0;
         char buffer[256];
-
-        snprintf(buffer, sizeof(buffer), "du -sk %s", path);
-        FILE *fp = popen(buffer, "r");
-        if (fp != NULL && fgets(buffer, 256, fp)) {
-            sscanf(buffer, "%d", &result);
+        while (fgets(buffer, sizeof(buffer), fp)) {
+            char* endptr = NULL;
+            long long oneDirSize = strtoll(buffer, &endptr, 10);
+            result += oneDirSize;
         }
-        if (pclose(fp)) {
-            printf("exit popen(`du -sk`) with errors\n");
-        }
+        int ret = pclose(fp);
+        fprintf(stderr, "getDiskUsageByKB = %lld: pclose(%s) = %d, err = %s\n"
+                , result, cmd.c_str(), ret, strerror(errno));
         return result;
     }
 
-    void getDiskFileInfo(const char* path, std::string& info) {
-        char buffer[128];
-
-        snprintf(buffer, sizeof(buffer), "du -h %s | sort -k2", path);
-        FILE *fp = popen(buffer, "r");
-        while(!feof(fp)) {
-            if(fp!=NULL && fgets(buffer, 128, fp)) {
-                info += buffer;
-            }
+    void getDiskFileInfo(const std::vector<std::string>& pathes, std::string& info) {
+        char buffer[256];
+        std::string cmd("du -h");
+        for (const auto& path : pathes) {
+            cmd += " ";
+            cmd += path;
+        }
+        cmd += " | sort -k2";
+        FILE *fp = popen(cmd.c_str(), "r");
+        if (!fp) {
+            fprintf(stderr, "popen(%s) = %s\n", cmd.c_str(), strerror(errno));
+            return;
+        }
+        while(fgets(buffer, sizeof(buffer), fp)) {
+            info += buffer;
         }
         if(pclose(fp)){
-            printf("exit popen(`du -sk`) with errors\n");
+            fprintf(stderr, "getDiskFileInfo: pclose(%s) = %s\n", cmd.c_str(), strerror(errno));
         }
     }
 }

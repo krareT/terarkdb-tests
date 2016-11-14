@@ -188,6 +188,7 @@ public:
     unsigned char fieldsDelim = '\t';
     std::vector<size_t> keyFields;
 
+    std::vector<std::string> dbdirs;
     std::string logdir;
     std::string waldir;
 

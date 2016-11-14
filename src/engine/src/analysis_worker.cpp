@@ -61,7 +61,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
         printf("cpu usage = %f iowait = %f\n", cpu[0], cpu[1]);
 
         // 上传文件夹尺寸
-        int dbsize = benchmark::getDiskUsageByKB(dbpath);
+        int dbsize = benchmark::getDiskUsageByKB(dbdirs);
         std::unique_ptr<sql::PreparedStatement> ps_dbsize(conn->prepareStatement("INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)"));
         if(dbsize > 0) {
             ps_dbsize->setInt(1, bucket);
@@ -74,7 +74,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
         // Disk file infomation
         std::string diskinfo;
         std::unique_ptr<sql::PreparedStatement> ps_diskinfo(conn->prepareStatement("INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)"));
-        benchmark::getDiskFileInfo(dbpath, diskinfo);
+        benchmark::getDiskFileInfo(dbdirs, diskinfo);
         if(diskinfo.length() > 0) {
             ps_diskinfo->setInt(1, bucket);
             ps_diskinfo->setString(2, diskinfo);
@@ -180,9 +180,9 @@ void AnalysisWorker::stop() {
 
 void AnalysisWorker::run() {
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    TimeBucket read_bucket(conn, engine_name, setting->FLAGS_db);
-    TimeBucket insert_bucket(conn, engine_name, setting->FLAGS_db);
-    TimeBucket update_bucket(conn, engine_name, setting->FLAGS_db);
+    TimeBucket read_bucket(conn, engine_name, setting->dbdirs);
+    TimeBucket insert_bucket(conn, engine_name, setting->dbdirs);
+    TimeBucket update_bucket(conn, engine_name, setting->dbdirs);
 
     while(!shoud_stop) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);

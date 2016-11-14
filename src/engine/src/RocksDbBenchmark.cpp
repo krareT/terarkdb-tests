@@ -45,6 +45,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     valvec<fstring> dircaps;
     fstring(setting.FLAGS_db).split(',', &dircaps);
     if (dircaps.size() > 1) {
+        setting.dbdirs.clear();
         for (size_t i = 0; i < dircaps.size(); ++i) {
             fstring dircap = dircaps[i];
             const char* colon = dircap.strstr(":");
@@ -56,6 +57,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
                 }
                 std::string dir(dircap.data(), colon);
                 options.db_paths.push_back({dir, uint64_t(cap)});
+                setting.dbdirs.push_back(dir);
             }
             else {
                 fprintf(stderr, "ERROR: invalid dir:cap,...: %s\n", setting.FLAGS_db);
@@ -66,9 +68,11 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     }
     if (setting.logdir.size()) {
         options.db_log_dir = setting.logdir;
+        setting.dbdirs.push_back(setting.logdir);
     }
     if (setting.waldir.size()) {
         options.wal_dir = setting.waldir;
+        setting.dbdirs.push_back(setting.waldir);
     }
 
     rocksdb::BlockBasedTableOptions block_based_options;

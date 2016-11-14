@@ -55,8 +55,6 @@ void Setting::wiredTigerSetting(int argc, char **argv){
             FLAGS_bloom_bits = n;
         } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
             FLAGS_open_files = n;
-        } else if (strncmp(argv[i], "--db=", 5) == 0) {
-            FLAGS_db = argv[i] + 5;
         } else if (sscanf(argv[i], "--read_ratio=%lf%c", &d, &junk) == 1) {
             FLAGS_read_write_percent = d;
         } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
@@ -72,6 +70,7 @@ void Setting::wiredTigerSetting(int argc, char **argv){
         leveldb::Env::Default()->GetTestDirectory(&default_db_path);
         default_db_path += "/dbbench";
         FLAGS_db = default_db_path.c_str();
+        dbdirs = {FLAGS_db};
     }
 }
 
@@ -103,8 +102,6 @@ void Setting::terarkSetting(int argc, char **argv) {
             FLAGS_reads = n;
         } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
             FLAGS_threads = n;
-        } else if (strncmp(argv[i], "--db=", 5) == 0) {
-            FLAGS_db = argv[i] + 5;
         } else if (sscanf(argv[i], "--read_ratio=%lf%c", &d, &junk) == 1) {
             FLAGS_read_write_percent = d;
         } else if (sscanf(argv[i], "--read_old_ratio=%lf%c", &d, &junk) == 1) {
@@ -125,6 +122,7 @@ void Setting::terarkSetting(int argc, char **argv) {
         leveldb::Env::Default()->GetTestDirectory(&default_db_path);
         default_db_path += "/dbbench";
         FLAGS_db = default_db_path.c_str();
+        dbdirs = {FLAGS_db};
     }
 
     if (FLAGS_db_table.size() == 0) {
@@ -161,7 +159,11 @@ Setting::Setting(int argc,char **argv,char *name){
         else if (arg.startsWith("--waldir=")) {
             waldir = arg.substr(strlen("--waldir=")).str();
         }
+        else if (strncmp(argv[i], "--db=", 5) == 0) {
+            FLAGS_db = argv[i] + 5;
+        }
     }
+    dbdirs = {FLAGS_db};
     if (size_t(-1) == numFields) {
         fprintf(stderr, "ERROR: missing argument --numfields=...\n");
         exit(1);
@@ -227,8 +229,6 @@ void Setting::rocksdbSetting(int argc, char **argv) {
             FLAGS_bloom_bits = n;
         } else if (sscanf(argv[i], "--open_files=%ld%c", &n, &junk) == 1) {
             FLAGS_open_files = n;
-        } else if (strncmp(argv[i], "--db=", 5) == 0) {
-            FLAGS_db = argv[i] + 5;
         } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
             FLAGS_resource_data = argv[i] + 16;
         }
