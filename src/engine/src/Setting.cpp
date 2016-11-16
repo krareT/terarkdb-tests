@@ -159,7 +159,7 @@ Setting::Setting(int argc,char **argv,char *name){
         else if (arg.startsWith("--waldir=")) {
             waldir = arg.substr(strlen("--waldir=")).str();
         }
-        else if (strncmp(argv[i], "--db=", 5) == 0) {
+        else if (arg.startsWith("--db=")) {
             FLAGS_db = argv[i] + 5;
         }
     }
@@ -235,30 +235,31 @@ void Setting::rocksdbSetting(int argc, char **argv) {
     }
 }
 
-BaseSetting::BaseSetting(){
+BaseSetting::BaseSetting() :
+        setFuncMap{
+                {"-stop"              , &BaseSetting::strSetStop },
+                {"-thread_num"        , &BaseSetting::strSetThreadNums},
+                {"-sampling_rate"     , &BaseSetting::strSetSamplingRate},
+                {"-insert_data_path"  , &BaseSetting::strSetInsertDataPath},
+                {"-load_data_path"    , &BaseSetting::strSetLoadDataPath},
+                {"-load_or_run"       , &BaseSetting::strSetLoadOrRun},
+                {"-keys_data_path"    , &BaseSetting::strSetKeysDataPath},
+                {"-compact"           , &BaseSetting::strSetCompactTimes},
+                {"-message"           , &BaseSetting::strSetMessage},
+                {"-plan_config"       , &BaseSetting::strSetPlanConfigs},
+                {"-thread_plan_map"   , &BaseSetting::strSetThreadPlan},
+        },
+        planConfigs{
+                {90, 5, 5}
+        }
+{
+    compactTimes = 0;
+    threadNums = 8;
     samplingRate.store(20);
     stop.store(false);
     run = true;
-    setFuncMap["-stop"]             = &BaseSetting::strSetStop;
-    setFuncMap["-thread_num"]       = &BaseSetting::strSetThreadNums;
-    setFuncMap["-sampling_rate"]    = &BaseSetting::strSetSamplingRate;
-    setFuncMap["-insert_data_path"] = &BaseSetting::strSetInsertDataPath;
-    setFuncMap["-load_data_path"]   = &BaseSetting::strSetLoadDataPath;
-    setFuncMap["-load_or_run"]      = &BaseSetting::strSetLoadOrRun;
-    setFuncMap["-keys_data_path"]   = &BaseSetting::strSetKeysDataPath;
-    setFuncMap["-compact"]          = &BaseSetting::strSetCompactTimes;
-    setFuncMap["-message"]          = &BaseSetting::strSetMessage;
-    setFuncMap["-plan_config"]      = &BaseSetting::strSetPlanConfigs;
-    setFuncMap["-thread_plan_map"]  = &BaseSetting::strSetThreadPlan;
-    {
-        std::lock_guard<std::mutex> _lock(planMtx);
-        planConfigs.resize(1);
-        planConfigs[0].read_percent = 90;
-        planConfigs[0].update_percent = 5;
-        planConfigs[0].insert_percent = 5;
-        threadPlanMap.clear();
-    }
 }
+
 uint8_t BaseSetting::getSamplingRate(void) const {
     return samplingRate.load();
 }
@@ -350,8 +351,9 @@ std::string BaseSetting::setBaseSetting(std::string &line) {
         size_t div = each_kv.find('=');
         std::string key = each_kv.substr(0,div);
         std::string value = each_kv.substr(div+1);
-        if (setFuncMap.count(key) > 0) {
-            if ((this->*setFuncMap[key])(value)) {
+        auto iter = setFuncMap.find(key);
+        if (setFuncMap.end() != iter) {
+            if ((this->*iter->second)(value)) {
                 message += "set\t" + key + "\tsuccess\n";
             }
             else {
@@ -372,11 +374,12 @@ std::string BaseSetting::setBaseSetting(int argc, char **argv) {
             continue;
         std::string key(argv[i],pos-argv[i]);
         std::string value(pos + 1);
-        if (setFuncMap.count(key) == 0) {
+        auto iter = setFuncMap.find(key);
+        if (setFuncMap.end() == iter) {
             message += "invalid command:" + key + "\n";
             continue;
         }
-        if ((this->*setFuncMap[key])(value)){
+        if ((this->*iter->second)(value)){
             message += "set\t" + key + "\tsuccess\t";
         }
         else{
@@ -467,7 +470,6 @@ void BaseSetting::sendMessageToSetting(const std::string &str) {
 
 bool BaseSetting::strSetPlanConfigs(std::string &val) {
     const char split_ch = ':';
-
     std::stringstream ss(val);
     uint32_t plan_id;
     ss >> plan_id;
@@ -479,14 +481,13 @@ bool BaseSetting::strSetPlanConfigs(std::string &val) {
     if (ss.get() != split_ch)
         return false;
 
-    uint32_t update_percent;
-    ss >> update_percent;
+    uint32_t write_percent;
+    ss >> write_percent;
     if (ss.get() != split_ch)
         return false;
 
-    uint32_t write_percent;
-    ss >> write_percent;
-
+    uint32_t update_percent;
+    ss >> update_percent;
     {
         std::lock_guard<std::mutex> _lock(planMtx);
         if (planConfigs.size() <= plan_id) {

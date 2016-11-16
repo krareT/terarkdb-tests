@@ -83,7 +83,7 @@ bool Benchmark::executeOneOperationWithSampling(ThreadState *state, BaseSetting:
     struct timespec start,end;
     bool ret;
     clock_gettime(CLOCK_REALTIME,&start);
-    ret = (this->*executeFuncMap[type])(state);
+    ret = (this->*executeFuncMap[int(type)])(state);
     if (ret == true || type == BaseSetting::OP_TYPE::READ) {
         clock_gettime(CLOCK_REALTIME, &end);
         state->stats.FinishedSingleOp(type, &start, &end);
@@ -92,17 +92,17 @@ bool Benchmark::executeOneOperationWithSampling(ThreadState *state, BaseSetting:
 }
 
 bool Benchmark::executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type){
-    return ((this->*executeFuncMap[type])(state));
+    return ((this->*executeFuncMap[int(type)])(state));
 }
 
 bool Benchmark::executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type){
-    assert(executeFuncMap.count(type) > 0);
-    std::vector<bool > *samplingPlan = (*(state->whichSamplingPlan)).load();
-    if (samplingRecord[type] >= samplingPlan->size()){
-        samplingRecord[type] = 0;
+    assert(executeFuncMap[int(type)] != 0);
+    std::vector<bool> *samplingPlan = (*(state->whichSamplingPlan)).load();
+    if (samplingRecord[int(type)] >= samplingPlan->size()){
+        samplingRecord[int(type)] = 0;
     }
-    bool ifSampling = (*samplingPlan)[samplingRecord[type]] ;
-    samplingRecord[type] ++;
+    bool ifSampling = (*samplingPlan)[samplingRecord[int(type)]] ;
+    samplingRecord[int(type)]++;
     return (this->*samplingFuncMap[ifSampling])(state,type);
 }
 
@@ -220,13 +220,16 @@ void Benchmark::Run(void) {
     Close();
 };
 
-Benchmark::Benchmark(Setting &s) : setting(s) {
+Benchmark::Benchmark(Setting &s) : setting(s)
+, executeFuncMap{&Benchmark::ReadOneKey,
+                 &Benchmark::InsertOneKey,
+                 &Benchmark::UpdateOneKey,
+        }
+, samplingFuncMap{&Benchmark::executeOneOperationWithoutSampling,
+                  &Benchmark::executeOneOperationWithSampling,
+        }
+{
     compactTimes = s.getCompactTimes();
-    executeFuncMap[BaseSetting::OP_TYPE::READ] = &Benchmark::ReadOneKey;
-    executeFuncMap[BaseSetting::OP_TYPE::UPDATE] = &Benchmark::UpdateOneKey;
-    executeFuncMap[BaseSetting::OP_TYPE::INSERT] = &Benchmark::InsertOneKey;
-    samplingFuncMap[false] = &Benchmark::executeOneOperationWithoutSampling;
-    samplingFuncMap[true] = &Benchmark::executeOneOperationWithSampling;
 }
 
 std::string Benchmark::HandleMessage(const std::string &msg) {

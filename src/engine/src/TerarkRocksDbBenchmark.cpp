@@ -11,16 +11,16 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     if (tmp_dir == NULL || strlen(tmp_dir) == 0) {
         throw std::invalid_argument("U must set env TerRocksdb_Tmpdir!\n");
     }
-    opt.terarkZipMinLevel = 1;
+    opt.terarkZipMinLevel = 2;
     opt.localTempDir = tmp_dir;
 //  printf("local temp dir:%s\n",tmp_dir);
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
     options.table_factory.reset(factory);
     options.base_background_compactions = 2;
-    options.max_background_compactions = 2;
+    options.max_background_compactions = 4;
     options.target_file_size_multiplier = 2;
-    options.compaction_style = rocksdb::kCompactionStyleUniversal;
-    options.compaction_options_universal.allow_trivial_move = true;
+//    options.compaction_style = rocksdb::kCompactionStyleUniversal;
+//    options.compaction_options_universal.allow_trivial_move = true;
 //  options.compaction_options_universal.size_ratio = 10; // 10%
     setting.dbdirs.push_back(opt.localTempDir);
 }

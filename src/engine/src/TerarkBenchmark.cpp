@@ -141,7 +141,6 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
 bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
     static const Schema &rowSchema = tab->rowSchema();
     std::string &rstr = thread->str;
-
     if (updateDataCq.try_pop(rstr) == false) {
         std::cerr << "cq empty" << std::endl;
         return false;
@@ -150,10 +149,8 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
         std::cerr << "InsertOneKey error:" << rstr << std::endl;
         return false;
     }
-
     try {
         if (thread->ctx->upsertRow(thread->row) < 0) { // unique index
-
             printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
@@ -175,35 +172,50 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())
         return ss.str();
-    static std::unordered_map<std::string, std::pair<bool (TerarkBenchmark::*)(const std::string &),
-            std::string (TerarkBenchmark::*)(void)>> handleFuncMap;
-    handleFuncMap["write_throttle"] = std::make_pair(&TerarkBenchmark::updateWriteThrottle,
-                                                     &TerarkBenchmark::getWriteThrottle);
-    handleFuncMap["colgroup_mmapPopulate"] = std::make_pair(&TerarkBenchmark::updateColGroupMmapPopulate,
-                                                            &TerarkBenchmark::getColGroupMmapPopulate);
-    handleFuncMap["index_mmappopulate"] = std::make_pair(&TerarkBenchmark::updateIndexMmapPopulate,
-                                                         &TerarkBenchmark::getIndexMmapPopulate);
-    handleFuncMap["checksumLevel"] = std::make_pair(&TerarkBenchmark::updateCheckSumLevel,
-                                                    &TerarkBenchmark::getCheckSumLevel);
-    handleFuncMap["dictziosampleratio"] = std::make_pair(&TerarkBenchmark::updateDictZipSampleRatio,
-                                                         &TerarkBenchmark::getDictZipSampleRatio);
-    handleFuncMap["minmergesegnum"] = std::make_pair(&TerarkBenchmark::updateMinMergeSetNum,
-                                                     &TerarkBenchmark::getMinMergeSetNum);
-    handleFuncMap["purgedeletethreshold"] = std::make_pair(&TerarkBenchmark::updatePurgeDeleteThreshold,
-                                                           &TerarkBenchmark::getPurgeDeleteThreshold);
-    handleFuncMap["maxwritingsegmentsize"] = std::make_pair(&TerarkBenchmark::updateMaxWritingSegmentSize,
-                                                            &TerarkBenchmark::getMaxWritingSegmentSize);
+    static const std::unordered_map<std::string,
+            std::pair<
+                bool (TerarkBenchmark::*)(const std::string &),
+                std::string (TerarkBenchmark::*)(void)
+            >
+    > handleFuncMap = {
+        {"write_throttle", { &TerarkBenchmark::updateWriteThrottle,
+                             &TerarkBenchmark::getWriteThrottle }
+        },
+        {"colgroup_mmapPopulate", { &TerarkBenchmark::updateColGroupMmapPopulate,
+                                    &TerarkBenchmark::getColGroupMmapPopulate}
+        },
+        {"index_mmappopulate", {&TerarkBenchmark::updateIndexMmapPopulate,
+                                &TerarkBenchmark::getIndexMmapPopulate}
+        },
+        {"checksumLevel", {&TerarkBenchmark::updateCheckSumLevel,
+                           &TerarkBenchmark::getCheckSumLevel}
+        },
+        {"dictziosampleratio", {&TerarkBenchmark::updateDictZipSampleRatio,
+                                &TerarkBenchmark::getDictZipSampleRatio}
+        },
+        {"minmergesegnum", {&TerarkBenchmark::updateMinMergeSetNum,
+                            &TerarkBenchmark::getMinMergeSetNum}
+        },
+        {"purgedeletethreshold", {&TerarkBenchmark::updatePurgeDeleteThreshold,
+                                  &TerarkBenchmark::getPurgeDeleteThreshold}
+        },
+        {"maxwritingsegmentsize", {&TerarkBenchmark::updateMaxWritingSegmentSize,
+                                   &TerarkBenchmark::getMaxWritingSegmentSize}
+        },
+    };
     size_t div = msg.find(':');
     if (div == std::string::npos)
         return ss.str();
     std::string key = msg.substr(0, div);
     std::string value = msg.substr(div + 1);
-    if (handleFuncMap.count(key) > 0)
-        (this->*(handleFuncMap[key].first))(value);
-
-
-    for (auto each : handleFuncMap) {
-        ss << each.first << ":" << (this->*each.second.second)() << std::endl;
+    auto iter = handleFuncMap.find(key);
+    if (handleFuncMap.end() != iter) {
+        auto updateConf = iter->second.first;
+        (this->*updateConf)(value);
+    }
+    for (const auto& each : handleFuncMap) {
+        auto getConf = each.second.second;
+        ss << each.first << ":" << (this->*getConf)() << std::endl;
     }
     puts(ss.str().c_str());
     return ss.str();
@@ -256,21 +268,18 @@ bool TerarkBenchmark::updateIndexMmapPopulate(const std::string &val) {
 }
 
 std::string TerarkBenchmark::getWriteThrottle(void) {
-
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_writeThrottleBytesPerSecond;
     return ss.str();
 }
 
 std::string TerarkBenchmark::getColGroupMmapPopulate(void) {
-
     std::stringstream ss;
     ss << tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate;
     return ss.str();
 }
 
 std::string TerarkBenchmark::getIndexMmapPopulate(void) {
-
     std::stringstream ss;
     ss << tab->getIndexSchemaForChange(indexId).m_mmapPopulate;
     return ss.str();
@@ -299,7 +308,6 @@ std::string TerarkBenchmark::getMinMergeSetNum(void) {
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_minMergeSegNum;
     return ss.str();
-
 }
 
 bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {

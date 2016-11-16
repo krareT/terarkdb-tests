@@ -16,8 +16,11 @@
 
 struct PlanConfig{
     uint32_t read_percent = 100;
-    uint32_t update_percent = 0;
     uint32_t insert_percent = 0;
+    uint32_t update_percent = 0;
+    PlanConfig(){}
+    PlanConfig(uint32_t r, uint32_t i, uint32_t u)
+            : read_percent(r), insert_percent(i), update_percent(u) {}
 };
 struct EnumClassHash
 {
@@ -37,6 +40,7 @@ private:
     std::atomic<bool > stop;
     std::atomic<uint8_t > compactTimes;
     std::atomic<uint8_t> threadNums;
+    const
     std::unordered_map<std::string, bool (BaseSetting::*)(std::string&)> setFuncMap;
     std::atomic<uint8_t > samplingRate;
     std::string insertDataPath;
@@ -45,6 +49,8 @@ private:
     bool run = true;
     tbb::concurrent_queue<std::string> message_cq;
     tbb::concurrent_queue<std::string> response_message_cq;
+
+public:
     bool strSetInsertDataPath(std::string &);
 
     bool strSetSamplingRate(std::string &);

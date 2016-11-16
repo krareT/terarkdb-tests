@@ -54,12 +54,14 @@
 
 class Benchmark{
 private:
-    std::unordered_map<BaseSetting::OP_TYPE , bool (Benchmark::*)(ThreadState *),EnumClassHash> executeFuncMap;
-    std::unordered_map<bool , bool (Benchmark::*)(ThreadState *,BaseSetting::OP_TYPE)> samplingFuncMap;
-    std::unordered_map<BaseSetting::OP_TYPE ,uint8_t,EnumClassHash> samplingRecord;
+    typedef bool (Benchmark::*executeFunc_t)(ThreadState *);
+    typedef bool (Benchmark::*samplingFunc_t)(ThreadState *,BaseSetting::OP_TYPE);
+    const executeFunc_t executeFuncMap[3]; // index is BaseSetting::OP_TYPE
+    const samplingFunc_t samplingFuncMap[2]; // index is bool
+    uint8_t samplingRecord[3] = {0, 0, 0}; // index is BaseSetting::OP_TYPE
     std::atomic<std::vector<uint8_t > *> executePlanAddr;
     std::atomic<std::vector<bool> *> samplingPlanAddr;
-    std::vector<bool > samplingPlan[2];
+    std::vector<bool> samplingPlan[2];
     std::vector< std::pair<std::vector< uint8_t >,std::vector<uint8_t >>> executePlans;
     std::mt19937_64 random;
     bool whichEPlan = false;//不作真假，只用来切换plan

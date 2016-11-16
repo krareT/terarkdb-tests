@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Terark_Engine_Test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -s -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g3")
 
 aux_source_directory(./ SRC_LIST)
 
@@ -45,11 +45,11 @@ add_executable(Terark_Engine_Test
 		)
 
 target_link_libraries(Terark_Engine_Test
-		terark-zip-rocksdb-r
-		terark-db-r
-		terark-zbs-r
-		terark-fsa-r
-		terark-core-r
+		terark-zip-rocksdb-d
+		terark-db-d
+		terark-zbs-d
+		terark-fsa-d
+		terark-core-d
 		rocksdb
 		wiredtiger
 		snappy

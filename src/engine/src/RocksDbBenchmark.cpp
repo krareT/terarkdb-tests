@@ -30,7 +30,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.max_background_compactions = 2;
 // end
 
-    static std::map<char, ullong> kmgtp = {
+    static const std::map<char, ullong> kmgtp = {
             {'k', 1024ull},
             {'K', 1024ull},
             {'m', 1024ull*1024},
@@ -52,12 +52,14 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
             if (colon) {
                 char* suffix = NULL;
                 double cap = strtof(colon+1, &suffix);
-                if (*suffix && strchr("kKmMgGtTpP", *suffix)) {
-                    cap *= kmgtp[*suffix];
+                auto iter = kmgtp.find(*suffix);
+                if (kmgtp.end() != iter) {
+                    cap *= iter->second;
                 }
                 std::string dir(dircap.data(), colon);
                 options.db_paths.push_back({dir, uint64_t(cap)});
                 setting.dbdirs.push_back(dir);
+                fprintf(stderr, "RocksDB: add dbdir: cap=%6.1fG, %s\n", cap/(1ull<<30), dir.c_str());
             }
             else {
                 fprintf(stderr, "ERROR: invalid dir:cap,...: %s\n", setting.FLAGS_db);
@@ -104,6 +106,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
     }
     options.write_buffer_size = options.write_buffer_size * 4;
+//    options.write_buffer_size = 2*1024*1024;
 }
 
 void RocksDbBenchmark::Close() {
