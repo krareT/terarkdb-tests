@@ -183,18 +183,14 @@ void Benchmark::loadInsertData(const Setting *setting){
     posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
     std::cout << "loadInsertData start" << std::endl;
     LineBuf line;
-    while (setting->ifStop() == false && !feof(ifs)) {
+    while (!setting->ifStop() && !feof(ifs)) {
         size_t count = 0;
-        while (updateDataCq.unsafe_size() < 200000){
-            if (feof(ifs))
-                break;
-            if (line.getline(ifs) > 0) {
-                updateDataCq.push(std::string(line.p, line.n));
-                count++;
-            }
+        while (updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+            updateDataCq.push(std::string(line.p, line.n));
+            count++;
         }
         std::cout << "insert: " << count << std::endl;
-        sleep(3);
+        usleep(300000);
     }
     std::cout << "loadInsertData stop" << std::endl;
 }
@@ -210,6 +206,9 @@ void Benchmark::Run(void) {
         } catch (const std::exception &e) {
             std::cout << e.what() << std::endl;
         }
+    }
+    else if (setting.ifRunOrLoad() == "compact") {
+        this->Compact();
     }
     else {
         loadKeys();

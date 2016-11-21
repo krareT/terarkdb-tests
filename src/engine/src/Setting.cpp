@@ -133,6 +133,10 @@ void Setting::terarkSetting(int argc, char **argv) {
 
 Setting::Setting(int argc,char **argv,char *name){
     using namespace terark;
+    FLAGS_block_size = 16 * 1024;
+    FLAGS_min_level_to_compress = 1;
+    FLAGS_num_levels = 7;
+
     for (int i = 2; i < argc; ++i) {
         fstring arg = argv[i];
         if (arg.startsWith("--keyfields=")) {
@@ -257,7 +261,7 @@ BaseSetting::BaseSetting() :
     threadNums = 8;
     samplingRate.store(20);
     stop.store(false);
-    run = true;
+    action = "run";
 }
 
 uint8_t BaseSetting::getSamplingRate(void) const {
@@ -294,6 +298,7 @@ bool BaseSetting::ifStop() const
 
 void BaseSetting::setThreadNums(uint8_t num)
 {
+    fprintf(stderr, "BaseSetting::setThreadNums(): thread_num=%d\n", num);
     auto old_num = threadPlanMap.size();
     while(old_num < num){
         threadPlanMap[old_num++] = 0;
@@ -326,7 +331,7 @@ std::string BaseSetting::toString() {
         }
     }
     ret << "stop:\t"            << ifStop() << std::endl;
-    ret << "load_or_run:\t"     << (run == true ? "run":"load") << std::endl;
+    ret << "load_or_run:\t"     << action << std::endl;
     ret << "keys_data_path:\t"  << getKeysDataPath() << std::endl;
     ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
     ret << "load_data_path:\t"  << getLoadDataPath() << std::endl;
@@ -413,22 +418,11 @@ bool BaseSetting::strSetLoadDataPath(std::string& value) {
 }
 
 std::string BaseSetting::ifRunOrLoad(void) const {
-    std::string ret;
-    if (run == false)
-        ret = "load";
-    else
-        ret = "run";
-    return ret;
+    return action;
 }
 
 bool BaseSetting::strSetLoadOrRun(std::string &value){
-    if (value == "run"){
-        run = true;
-    }else if (value == "load"){
-        run = false;
-    }else{
-        return false;
-    }
+    action = value;
     return true;
 }
 

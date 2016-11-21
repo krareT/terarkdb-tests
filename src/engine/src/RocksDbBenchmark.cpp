@@ -7,6 +7,7 @@
 #include <terark/fstring.hpp>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/autoclose.hpp>
+#include <terark/util/profiling.hpp>
 
 using namespace terark;
 
@@ -118,10 +119,14 @@ void RocksDbBenchmark::Load() {
     std::cout << "RocksDbBenchmark Load" << std::endl;
     Auto_fclose loadFile(fopen(setting.getLoadDataPath().c_str(), "r"));
     assert(loadFile != NULL);
-    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
+//    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
     std::string key, value;
 	size_t lines_num = 0;
+    size_t bytes = 0, last_bytes = 0;
+    profiling pf;
+    long long t0 = pf.now();
+    long long t1 = t0;
     while (line.getline(loadFile) > 0) {
         line.chomp();
         if (getKeyAndValue(line, key, value) == 0)
@@ -130,10 +135,20 @@ void RocksDbBenchmark::Load() {
         if (!s.ok()) {
             fprintf(stderr, "put error: %s\n", s.ToString().c_str());
         }
+        bytes += line.size();
         pushKey(key);
         lines_num++;
-        if (lines_num % 10000 == 0)
-            printf("load:%zuw\n",lines_num/10000);
+        const size_t statisticNum = 100000;
+        if (lines_num % statisticNum == 0) {
+            long long t2 = pf.now();
+            printf("line:%zuw, bytes:%9.3fG, records/sec: { cur = %6.2fw  avg = %6.2fw }, bytes/sec: { cur = %6.2fM  avg = %6.2fM }\n"
+                    , statisticNum / 10000, bytes/1e9
+                    , lines_num*1e5/pf.ns(t1,t2), lines_num*1e5/pf.ns(t0,t2)
+                    , (bytes - last_bytes)/pf.uf(t1,t2), bytes/pf.uf(t0,t2)
+            );
+            t1 = t2;
+            last_bytes = bytes;
+        }
     }
 }
 
@@ -143,7 +158,6 @@ size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::stri
     str.split(setting.fieldsDelim, &strvec);
     key.resize(0);
     val.resize(0);
-    assert(key.size() + val.size() == 0);
     if (strvec.size() < setting.numFields)
         return 0;
     auto& kf = setting.keyFields;
@@ -211,6 +225,7 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
 }
 
 bool RocksDbBenchmark::Compact(void) {
+    db->CompactRange(NULL, NULL);
     return false;
 }
 
