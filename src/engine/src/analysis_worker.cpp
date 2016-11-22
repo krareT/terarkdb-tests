@@ -8,7 +8,8 @@
 
 #include "analysis_worker.h"
 #include "util/system_resource.h"
-
+#include <terark/io/MemStream.hpp>
+#include <boost/scope_exit.hpp>
 
 int TimeBucket::findTimeBucket(uint64_t time) {
     uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
@@ -21,7 +22,11 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
     }
     assert(conn != nullptr);
 
-    printf("data uploading...");
+    terark::AutoGrownMemIO buf;
+    BOOST_SCOPE_EXIT(&buf) {
+        printf("%s\n", buf.begin());
+    }BOOST_SCOPE_EXIT_END;
+
     // 上传ops数据
     std::unique_ptr<sql::PreparedStatement> ps_ops(conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)"));
     ps_ops->setInt(1, bucket);
@@ -29,7 +34,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
     ps_ops->setInt(3, type);
     ps_ops->setString(4, engine_name);
     ps_ops->executeUpdate();
-    printf("upload time bucket[%d], ops = %d, type = %d\n", bucket, ops, type);
+    buf.printf("upload statistic time bucket[%d], ops = %d, type = %d", bucket, ops, type);
 
     // 顺便把CPU等数据也上传, 相同时间片只需要上传一次即可
     if(uploadExtraData) {
@@ -45,7 +50,7 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
         ps_memory->setString(6, engine_name);
         ps_memory->executeUpdate();
         arr.clear();
-        printf("total memory = %d\n", arr[0]);
+        buf.printf("    total memory = %5.2f GiB", arr[0]/1024.0);
 
         // 上传CPU数据
         double cpu[2];
@@ -58,18 +63,18 @@ void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
             ps_cpu->setString(4, engine_name);
             ps_cpu->executeUpdate();
         }
-        printf("cpu usage = %f iowait = %f\n", cpu[0], cpu[1]);
+        buf.printf("    cpu usage = %5.2f iowait = %5.2f", cpu[0], cpu[1]);
 
         // 上传文件夹尺寸
-        int dbsize = benchmark::getDiskUsageByKB(dbdirs);
+        int dbsizeKB = benchmark::getDiskUsageByKB(dbdirs);
         std::unique_ptr<sql::PreparedStatement> ps_dbsize(conn->prepareStatement("INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)"));
-        if(dbsize > 0) {
+        if(dbsizeKB > 0) {
             ps_dbsize->setInt(1, bucket);
-            ps_dbsize->setInt(2, dbsize);
+            ps_dbsize->setInt(2, dbsizeKB);
             ps_dbsize->setString(3, engine_name);
             ps_dbsize->executeUpdate();
         }
-        printf("dbsize = %d KB\n", dbsize);
+        buf.printf("    dbsize = %5.2f GiB", dbsizeKB/1024.0/1024);
 
         // Disk file infomation
         std::string diskinfo;
@@ -158,10 +163,9 @@ AnalysisWorker::AnalysisWorker(Setting* setting) {
                                 };
         for(std::string& table: tables) {
             std::string sql = "DELETE FROM " + table + " WHERE time_bucket < ?";
-            sql::PreparedStatement* pstmt = conn->prepareStatement(sql);
+            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(sql));
             pstmt->setInt(1, filter_time);
             pstmt->executeUpdate();
-            delete pstmt;
         }
         std::cout<<"database connected!"<<std::endl;
     }else{
