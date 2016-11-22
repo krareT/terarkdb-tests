@@ -197,6 +197,7 @@ public:
     std::vector<std::string> dbdirs;
     std::string logdir;
     std::string waldir;
+    std::string alt_engine_name;
 
     // Use the db with the following name.
     void terarkSetting(int argc,char **argv);

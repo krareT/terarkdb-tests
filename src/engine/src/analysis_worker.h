@@ -15,9 +15,9 @@ private:
     sql::Connection *conn;
     Setting *setting;
     volatile bool shoud_stop = false;
-    std::string engine_name;
 public:
-    AnalysisWorker(std::string engine_name, Setting *setting);
+    std::string engine_name;
+    AnalysisWorker(Setting *setting);
 
     ~AnalysisWorker();
 

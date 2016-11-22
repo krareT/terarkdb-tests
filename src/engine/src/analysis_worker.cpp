@@ -118,8 +118,7 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
 }
 
 
-AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
-    this->engine_name = engine_name;
+AnalysisWorker::AnalysisWorker(Setting* setting) {
     this->setting = setting;
 
     // init mysql connection
@@ -141,6 +140,8 @@ AnalysisWorker::AnalysisWorker(std::string engine_name, Setting* setting) {
     //connection_properties["MYSQL_OPT_RECONNECT"] = true;
     //connection_properties["MYSQL_OPT_READ_TIMEOUT"] = 1;
     //connection_properties["MYSQL_OPT_WRITE_TIMEOUT"] = 1;
+
+    fprintf(stderr, "mysql.hostname = %s\n", connection_properties["hostName"].get<sql::SQLString>()->c_str());
 
     conn = driver->connect(connection_properties);
 
