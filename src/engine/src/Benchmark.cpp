@@ -176,27 +176,25 @@ bool Benchmark::pushKey(std::string &key) {
 
 void Benchmark::loadInsertData(const Setting *setting){
     Auto_fclose ifs(fopen(setting->getInsertDataPath().c_str(),"r"));
-	std::cout << setting->getInsertDataPath() << std::endl;
-	if (ifs == NULL)
-		perror("fopen failed");
-	assert(ifs != NULL);
-    posix_fadvise(fileno(ifs),0,0,POSIX_FADV_SEQUENTIAL);
-    std::cout << "loadInsertData start" << std::endl;
-    LineBuf line;
-    while (setting->ifStop() == false && !feof(ifs)) {
-        size_t count = 0;
-        while (updateDataCq.unsafe_size() < 200000){
-            if (feof(ifs))
-                break;
-            if (line.getline(ifs) > 0) {
-                updateDataCq.push(std::string(line.p, line.n));
-                count++;
-            }
-        }
-        std::cout << "insert: " << count << std::endl;
-        sleep(3);
+	if (!ifs) {
+        fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", strerror(errno));
+        return;
     }
-    std::cout << "loadInsertData stop" << std::endl;
+    printf("Benchmark::loadInsertData(%s) start\n", setting->getInsertDataPath().c_str());
+    LineBuf line;
+    size_t lines = 0;
+    while (!setting->ifStop() && !feof(ifs)) {
+        size_t count = 0;
+        while (updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+            updateDataCq.push(std::string(line.p, line.n));
+            count++;
+        }
+        lines += count;
+    //  printf("Benchmark::loadInsertData(): total = %9d   chunklines = %6d\n", lines, count);
+        usleep(300000);
+    }
+    printf("Benchmark::loadInsertData(%s) %s\n", setting->getInsertDataPath().c_str()
+        , setting->ifStop()? "stopped" : "completed");
 }
 
 void Benchmark::Run(void) {
@@ -210,6 +208,9 @@ void Benchmark::Run(void) {
         } catch (const std::exception &e) {
             std::cout << e.what() << std::endl;
         }
+    }
+    else if (setting.ifRunOrLoad() == "compact") {
+        this->Compact();
     }
     else {
         loadKeys();

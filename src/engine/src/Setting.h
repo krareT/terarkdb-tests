@@ -46,7 +46,7 @@ private:
     std::string insertDataPath;
     std::string loadDataPath;
     std::string keysDataPath;
-    bool run = true;
+    std::string action;
     tbb::concurrent_queue<std::string> message_cq;
     tbb::concurrent_queue<std::string> response_message_cq;
 
@@ -105,10 +105,10 @@ public:
 };
 class Setting : public BaseSetting {
 public:
-    uint64_t FLAGS_block_size = 16 * 1024;
+    uint64_t FLAGS_block_size;
     enum rocksdb::CompressionType FLAGS_compression_type = rocksdb::kSnappyCompression;
-    uint32_t FLAGS_min_level_to_compress = 2;
-    uint64_t FLAGS_num_levels = 7;
+    uint32_t FLAGS_min_level_to_compress;
+    uint64_t FLAGS_num_levels;
     //BaseSetting baseSetting;
     const char* FLAGS_benchmarks =
                     "fillseq,"
@@ -197,6 +197,7 @@ public:
     std::vector<std::string> dbdirs;
     std::string logdir;
     std::string waldir;
+    std::string alt_engine_name;
 
     // Use the db with the following name.
     void terarkSetting(int argc,char **argv);

@@ -59,13 +59,15 @@ int main(int argc, char **argv) {
     g_settings = &setting;
     std::unique_ptr<Benchmark> bm;
 
+    g_worker = new AnalysisWorker(&setting);
+
     if (strcmp(argv[1], "terarkdb") == 0) {
         bm.reset(new TerarkBenchmark(setting));
-        g_worker = new AnalysisWorker("terarkdb",&setting);
+        g_worker->engine_name = "terarkdb";
     }
     else if (strcmp(argv[1], "wiredtiger") == 0) {
         bm.reset(new WiredTigerBenchmark(setting));
-        g_worker = new AnalysisWorker("wiredtiger",&setting);
+        g_worker->engine_name = "wiredtiger";
     }
     else if (strcmp(argv[1], "compact") == 0) {
         compact(setting);
@@ -74,15 +76,18 @@ int main(int argc, char **argv) {
     }
     else if (strcmp(argv[1], "rocksdb") == 0) {
         bm.reset(new RocksDbBenchmark(setting));
-        g_worker = new AnalysisWorker("rocksdb", &setting);
+        g_worker->engine_name = "rocksdb";
     }
     else if (strcmp(argv[1],"terark_rocksdb") == 0) {
         bm.reset(new TerarkRocksDbBenchmark(setting));
-        g_worker = new AnalysisWorker("terocksdb", &setting);
+        g_worker->engine_name = "terocksdb";
     }
     else if (strcmp(argv[1],"posix") == 0){
         bm.reset(new PosixBenchmark(setting));
-        g_worker = new AnalysisWorker("posix", &setting);
+        g_worker->engine_name = "posix";
+    }
+    if (!setting.alt_engine_name.empty()) {
+        g_worker->engine_name = setting.alt_engine_name;
     }
     //start a thread for tcp server
     boost::asio::io_service io_service;
