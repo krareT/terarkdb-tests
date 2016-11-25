@@ -4,13 +4,14 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Terark_Engine_Test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g3 -O2 -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++1y -g3 -O2 -DNDEBUG")
 
 aux_source_directory(./ SRC_LIST)
 
 include_directories(./)
 include_directories(./include)
 include_directories(/usr/local/include)
+include_directories(/opt/include)
 include_directories(${TERARKDB_PATH}/include)
 include_directories(${TERARKDB_ROCKS}/include)
 include_directories(/lib/i386-linux-gnu/)
@@ -19,6 +20,9 @@ link_directories(${TERARKDB_PATH}/lib)
 link_directories(${TERARKDB_ROCKS}/lib)
 link_directories()
 link_directories(/usr/local/mysql/lib)
+link_directories(/usr/lib64/mysql/)
+link_directories(/opt/lib)
+link_directories(/opt/lib64)
 link_directories(/usr/local/lib)
 
 set(EXECUTABLE_OUTPUT_PATH ../../build)
@@ -53,8 +57,8 @@ target_link_libraries(Terark_Engine_Test
 		rocksdb
 		wiredtiger
 		snappy
-		mysqlclient
 		mysqlcppconn
+		mysqlclient
 		boost_system
 		boost_filesystem
 		tbb
