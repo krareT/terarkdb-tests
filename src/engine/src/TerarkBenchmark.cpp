@@ -97,7 +97,7 @@ bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPt
 
 bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
     std::string &rkey = thread->key;
-    if (false == getRandomKey(rkey, thread->randGenerator)) {
+    if (!getRandomKey(rkey, thread->randGenerator)) {
         std::cout << "allkeys empty" << std::endl;
         return false;
     }
@@ -113,7 +113,7 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
 
 bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     std::string &rkey = thread->key;
-    if (false == getRandomKey(rkey, thread->randGenerator)) {
+    if (!getRandomKey(rkey, thread->randGenerator)) {
         std::cout << "allkeys empty" << std::endl;
         return false;
     }
@@ -128,11 +128,11 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     try {
         llong rid = thread->ctx->upsertRow(thread->row);
         if (rid < 0) { // unique index
-            printf("Update failed: %s\n", thread->ctx->errMsg.c_str());
+            //printf("Update failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
     } catch (const std::exception &e) {
-        std::cerr << "update error :" << e.what() << std::endl;
+        //std::cerr << "update error :" << e.what() << std::endl;
         return false;
     }
     return true;
@@ -141,22 +141,22 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
 bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
     static const Schema &rowSchema = tab->rowSchema();
     std::string &rstr = thread->str;
-    if (updateDataCq.try_pop(rstr) == false) {
-        std::cerr << "cq empty" << std::endl;
+    if (!updateDataCq.try_pop(rstr)) {
+        //std::cerr << "cq empty" << std::endl;
         return false;
     }
     if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', rstr, &(thread->row))) {
-        std::cerr << "InsertOneKey error:" << rstr << std::endl;
+        //std::cerr << "InsertOneKey error:" << rstr << std::endl;
         return false;
     }
     try {
         if (thread->ctx->upsertRow(thread->row) < 0) { // unique index
-            printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
+            //printf("Insert failed: %s\n", thread->ctx->errMsg.c_str());
             return false;
         }
     } 
     catch (const std::exception &e) {
-        std::cerr << "insert error:" << e.what() << std::endl;
+        //std::cerr << "insert error:" << e.what() << std::endl;
         return false;
     }
     thread->key = getKey(rstr);

@@ -34,7 +34,7 @@
 	"MaxWrSegSize" 		: "3G",
 	"MinMergeSegNum"	: 3,
 	"PurgeDeleteThreshold"	: 0.20,
-    "WritableSegmentClass": "trb",
+	"WritableSegmentClass"	: "trb",
 	"TableIndex" : [
 		{
 			"fields": "cur_title,cur_timestamp",
