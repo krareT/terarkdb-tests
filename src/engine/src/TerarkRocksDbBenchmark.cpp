@@ -15,8 +15,8 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     opt.terarkZipMinLevel = 0;
     opt.localTempDir = tmp_dir;
     opt.sampleRatio = 0.015;
-    opt.softZipWorkingMemLimit = 18ull<<30;
-    opt.hardZipWorkingMemLimit = 36ull<<30;
+    opt.softZipWorkingMemLimit = 16ull<<30;
+    opt.hardZipWorkingMemLimit = 28ull<<30;
 //  printf("local temp dir:%s\n",tmp_dir);
 #if 1
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
@@ -28,23 +28,9 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
 //    pto.encoding_type = rocksdb::kPlain;
 //    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewPlainTableFactory(pto));
 #endif
-    options.env->SetBackgroundThreads(2, rocksdb::Env::HIGH);
     options.table_factory.reset(factory);
-    options.level0_slowdown_writes_trigger = 1000;
-    options.level0_stop_writes_trigger = 1000;
-    options.soft_pending_compaction_bytes_limit = 2ull << 40;
-    options.hard_pending_compaction_bytes_limit = 4ull << 40;
-    options.max_background_flushes = 2;
-    options.max_subcompactions = 4;
-    options.max_write_buffer_number = 3;
-    options.base_background_compactions = 2;
-    options.max_background_compactions = 4;
-    options.write_buffer_size = 1ull << 30; // 1G
     options.target_file_size_base = 1ull << 30; // 1G
     options.target_file_size_multiplier = 2;
-    options.compaction_style = rocksdb::kCompactionStyleUniversal;
-    options.compaction_options_universal.allow_trivial_move = true;
-//  options.compaction_options_universal.size_ratio = 10; // 10%
     setting.dbdirs.push_back(opt.localTempDir);
 }
 

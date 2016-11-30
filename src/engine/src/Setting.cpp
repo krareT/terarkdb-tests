@@ -135,7 +135,6 @@ Setting::Setting(int argc,char **argv,char *name){
     using namespace terark;
     FLAGS_block_size = 16 * 1024;
     FLAGS_min_level_to_compress = 1;
-    FLAGS_num_levels = 7;
 
     for (int i = 2; i < argc; ++i) {
         fstring arg = argv[i];
@@ -168,6 +167,10 @@ Setting::Setting(int argc,char **argv,char *name){
         }
         else if (arg.startsWith("--alt_engine_name=")) {
             alt_engine_name = arg.substr(strlen("--alt_engine_name=")).str();
+        }
+        else if (arg.startsWith("--disable_wal") || arg.startsWith("--disableWAL")) {
+            disableWAL = true;
+            printf("disableWAL = true\n");
         }
     }
     dbdirs = {FLAGS_db};
@@ -205,10 +208,10 @@ Setting::Setting(int argc,char **argv,char *name){
 void Setting::rocksdbSetting(int argc, char **argv) {
     for (int i = 2; i < argc; i++) {
         double d;
-        // int n;
         long n;
         char junk;
-        if (rocksdb::Slice(argv[i]).starts_with("--benchmarks=")) {
+        terark::fstring arg(argv[i]);
+        if (arg.startsWith("--benchmarks=")) {
             FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
         } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
             FLAGS_compression_ratio = d;
@@ -227,7 +230,14 @@ void Setting::rocksdbSetting(int argc, char **argv) {
         } else if (sscanf(argv[i], "--value_size=%ld%c", &n, &junk) == 1) {
             FLAGS_value_size = n;
         } else if (sscanf(argv[i], "--write_buffer_size=%ld%c", &n, &junk) == 1) {
-            FLAGS_write_buffer_size = n;
+            if ('k' == junk || 'K' == junk)
+                FLAGS_write_buffer_size = n << 10;
+            else if ('m' == junk || 'M' == junk)
+                FLAGS_write_buffer_size = n << 20;
+            else if ('g' == junk || 'G' == junk)
+                FLAGS_write_buffer_size = n << 30;
+            else
+                FLAGS_write_buffer_size = n;
             std::cout << "FLAGS_write_buffer_size " << FLAGS_write_buffer_size << std::endl;
         } else if (sscanf(argv[i], "--cache_size=%ld%c", &n, &junk) == 1) {
             FLAGS_cache_size = n;
@@ -238,6 +248,12 @@ void Setting::rocksdbSetting(int argc, char **argv) {
             FLAGS_open_files = n;
         } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
             FLAGS_resource_data = argv[i] + 16;
+        } else if (arg.startsWith("--flushThreads=")) {
+            flushThreads = terark::lcast(arg.substr(strlen("--flushThreads=")));
+        } else if (arg.startsWith("--compactThreads=")) {
+            compactThreads = terark::lcast(arg.substr(strlen("--compactThreads=")));
+        } else if (arg.startsWith("--numLevels=")) {
+            FLAGS_num_levels = terark::lcast(arg.substr(strlen("--numLevels=")));
         }
     }
 }

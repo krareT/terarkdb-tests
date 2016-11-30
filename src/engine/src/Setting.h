@@ -152,7 +152,7 @@ public:
 
 // Number of bytes to buffer in memtable before compacting
 // (initialized to default value by "main")
-     int FLAGS_write_buffer_size = 0;
+     long FLAGS_write_buffer_size = 1L << 30;
 
 // Number of bytes to use as a cache of uncompressed data.
 // Negative means use default settings.
@@ -185,6 +185,7 @@ public:
     bool FLAGS_use_lsm = true;
 // Stagger starting point of reads for sequential (or reverse).
     bool FLAGS_stagger = false;
+    bool disableWAL = false;
 
 // Stagger starting point of reads for sequential (or reverse).
     int FLAGS_max_compact_wait = 1200;
@@ -198,6 +199,10 @@ public:
     std::string logdir;
     std::string waldir;
     std::string alt_engine_name;
+
+    int flushThreads = 2;
+    int compactThreads = 2;
+    bool rocksdbIsUniversalCompaction = true;
 
     // Use the db with the following name.
     void terarkSetting(int argc,char **argv);
