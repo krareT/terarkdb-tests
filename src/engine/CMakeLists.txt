@@ -14,7 +14,7 @@ include_directories(/usr/local/include)
 include_directories(/opt/include)
 include_directories(${TERARKDB_PATH}/include)
 include_directories(${TERARKDB_ROCKS}/include)
-include_directories(/lib/i386-linux-gnu/)
+include_directories(/usr/local/mysql/include)
 
 link_directories(${TERARKDB_PATH}/lib)
 link_directories(${TERARKDB_ROCKS}/lib)
@@ -57,7 +57,6 @@ target_link_libraries(Terark_Engine_Test
 		rocksdb
 		wiredtiger
 		snappy
-		mysqlcppconn
 		mysqlclient
 		boost_system
 		boost_filesystem

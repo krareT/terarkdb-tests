@@ -3,88 +3,134 @@
 //
 #include "stdlib.h"
 #include "inttypes.h"
-#include "time.h"
-#include "cppconn/prepared_statement.h"
-
 #include "analysis_worker.h"
 #include "util/system_resource.h"
 #include <terark/io/MemStream.hpp>
+#include <terark/lcast.hpp>
 #include <boost/scope_exit.hpp>
+#include "cppconn/prepared_statement.h"
+#include "mysql_driver.h"
+#include <mysql.h>
+
+using terark::lcast;
+using terark::fstring;
+
+class TimeBucket {
+private:
+    MYSQL* conn = nullptr;
+    uint64_t step_in_seconds = 10; // in seconds
+    const char* engine_name;
+    const std::vector<std::string>& dbdirs;
+
+    uint64_t current_bucket = 0;  // seconds
+    int operation_count = 0;
+
+    int findTimeBucket(uint64_t time);
+
+    void upload(int bucket, int ops, int type, bool uploadExtraData);
+
+public:
+    TimeBucket(MYSQL *const connection,
+               const char* engineName,
+               const std::vector<std::string>& dbdirs)
+            : conn(connection),
+              engine_name(engineName),
+              dbdirs(dbdirs)
+    {}
+
+    void add(uint64_t start, uint64_t end, int sampleRate, int type, bool uploadExtraData);
+};
 
 int TimeBucket::findTimeBucket(uint64_t time) {
     uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
     // printf("find time bucket : %" PRIu64 ", result = %" PRIu64 "\n", time, t*10);
     return t*10;
 }
-void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData){
-    if(bucket == 0 || !conn->isValid()) {
+
+void Bind_arg(MYSQL_BIND &b, const int &val) {
+    memset(&b, 0, sizeof(b));
+    b.buffer_length = 4;
+    b.buffer_type = MYSQL_TYPE_LONG;
+    b.buffer = (void*)&val;
+}
+void Bind_arg(MYSQL_BIND& b, const double& val) {
+    memset(&b, 0, sizeof(b));
+    b.buffer_length = 4;
+    b.buffer_type = MYSQL_TYPE_DOUBLE;
+    b.buffer = (void*)&val;
+}
+void Bind_arg(MYSQL_BIND &b, fstring val) {
+    memset(&b, 0, sizeof(b));
+    b.buffer_length = val.size();
+    b.buffer_type = MYSQL_TYPE_VAR_STRING;
+    b.buffer = (void*)val.data();
+}
+template<class... Args>
+bool Exec_stmt(MYSQL_STMT* stmt, const Args&... args) {
+    MYSQL_BIND  b[sizeof...(Args)];
+    memset(&b, 0, sizeof(b));
+    int i = 0;
+    std::initializer_list<int>{(Bind_arg(b[i], args), i++)...};
+    if (sizeof...(Args) != i) {
+        abort();
+    }
+    mysql_stmt_bind_param(stmt, b);
+    int err = mysql_stmt_execute(stmt);
+    if (err) {
+        fprintf(stderr, "ERROR: %s = %s\n", BOOST_CURRENT_FUNCTION, stmt->last_error);
+        return false;
+    }
+    return true;
+}
+
+static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
+    MYSQL_STMT* stmt = mysql_stmt_init(conn);
+    int err = mysql_stmt_prepare(stmt, sql.data(), sql.size());
+    if (err) {
+        fprintf(stderr, "ERROR: mysql_stmt_prepare(%s) = %s\n", sql.c_str(), mysql_error(conn));
+        return NULL;
+    }
+    return stmt;
+}
+static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo;
+
+void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData) {
+    if(bucket == 0 || NULL == conn) {
         return;
     }
-    assert(conn != nullptr);
-
     terark::AutoGrownMemIO buf;
     BOOST_SCOPE_EXIT(&buf) {
         printf("%s\n", buf.begin());
     }BOOST_SCOPE_EXIT_END;
 
-    // 上传ops数据
-    std::unique_ptr<sql::PreparedStatement> ps_ops(conn->prepareStatement("INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)"));
-    ps_ops->setInt(1, bucket);
-    ps_ops->setInt(2, ops);
-    ps_ops->setInt(3, type);
-    ps_ops->setString(4, engine_name);
-    ps_ops->executeUpdate();
+    Exec_stmt(ps_ops, bucket, ops, type, engine_name);
     buf.printf("upload statistic time bucket[%d], ops = %d, type = %d", bucket, ops, type);
 
     // 顺便把CPU等数据也上传, 相同时间片只需要上传一次即可
     if(uploadExtraData) {
-        // 上传内存数据
         std::vector<int> arr;
         benchmark::getPhysicalMemoryUsage(arr);
-        std::unique_ptr<sql::PreparedStatement> ps_memory(conn->prepareStatement("INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)"));
-        ps_memory->setInt(1, bucket);
-        ps_memory->setInt(2, arr[0]);
-        ps_memory->setInt(3, arr[1]);
-        ps_memory->setInt(4, arr[2]);
-        ps_memory->setInt(5, arr[3]);
-        ps_memory->setString(6, engine_name);
-        ps_memory->executeUpdate();
+        Exec_stmt(ps_memory, bucket, arr[0], arr[1], arr[2], arr[3], engine_name);
         arr.clear();
         buf.printf("    total memory = %5.2f GiB", arr[0]/1024.0);
 
-        // 上传CPU数据
         double cpu[2];
         benchmark::getCPUPercentage(cpu);
-        std::unique_ptr<sql::PreparedStatement> ps_cpu(conn->prepareStatement("INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, `iowait`, engine_name) VALUES(?, ?, ?, ?)"));
         if(cpu > 0){
-            ps_cpu->setInt(1, bucket);
-            ps_cpu->setDouble(2, cpu[0]);
-            ps_cpu->setDouble(3, cpu[1]);
-            ps_cpu->setString(4, engine_name);
-            ps_cpu->executeUpdate();
+            Exec_stmt(ps_cpu, bucket, cpu[0], cpu[1], engine_name);
         }
         buf.printf("    cpu usage = %5.2f iowait = %5.2f", cpu[0], cpu[1]);
 
-        // 上传文件夹尺寸
         int dbsizeKB = benchmark::getDiskUsageByKB(dbdirs);
-        std::unique_ptr<sql::PreparedStatement> ps_dbsize(conn->prepareStatement("INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)"));
         if(dbsizeKB > 0) {
-            ps_dbsize->setInt(1, bucket);
-            ps_dbsize->setInt(2, dbsizeKB);
-            ps_dbsize->setString(3, engine_name);
-            ps_dbsize->executeUpdate();
+            Exec_stmt(ps_dbsize, bucket, dbsizeKB, engine_name);
         }
         buf.printf("    dbsize = %5.2f GiB", dbsizeKB/1024.0/1024);
 
-        // Disk file infomation
         std::string diskinfo;
-        std::unique_ptr<sql::PreparedStatement> ps_diskinfo(conn->prepareStatement("INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)"));
         benchmark::getDiskFileInfo(dbdirs, diskinfo);
         if(diskinfo.length() > 0) {
-            ps_diskinfo->setInt(1, bucket);
-            ps_diskinfo->setString(2, diskinfo);
-            ps_diskinfo->setString(3, engine_name);
-            ps_diskinfo->executeUpdate();
+            Exec_stmt(ps_diskinfo, bucket, fstring(diskinfo), engine_name);
         }
     }
 }
@@ -96,25 +142,9 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
     // when meet the next bucket, upload previous one first, default step is 10 seconds
     int next_bucket = findTimeBucket(start);
     if(next_bucket > current_bucket) {
-//            int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
+//      int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
         int ops = operation_count * 100 / (10 * sampleRate); // sample rate : (0, 100]
-        try {
-            upload(current_bucket, ops, type, uploadExtraData);
-        }catch (std::exception& e){
-            printf("upload exception =  %s, conn valid = %d\n", e.what(), conn->isValid());
-            printf("read_cq=%d, create_cq=%d, update_cq=%d\n",  Stats::readTimeDataCq.unsafe_size(), 
-                                                                Stats::createTimeDataCq.unsafe_size(), 
-                                                                Stats::updateTimeDataCq.unsafe_size());
-            if(!conn->isValid()){
-                printf("tring to re-connect to MySQL Server...\n");
-                try {
-                    conn->reconnect();
-                    conn->setSchema("benchmark");
-                }catch (std::exception& f){
-                    printf("re-connect exception : %s\n", f.what());
-                }
-            }
-        }
+        upload(current_bucket, ops, type, uploadExtraData);
         operation_count = 1;
         current_bucket = next_bucket;
     }else{
@@ -122,61 +152,12 @@ void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, boo
     }
 }
 
-
 AnalysisWorker::AnalysisWorker(Setting* setting) {
     this->setting = setting;
-
-    // init mysql connection
-    std::unique_ptr<sql::mysql::MySQL_Driver> driver(sql::mysql::get_mysql_driver_instance());
-    char* passwd = getenv("MYSQL_PASSWD");
-   	std::cout << passwd << std::endl;
-	if(passwd == NULL || strlen(passwd) == 0) {
-        printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
-        shoud_stop = true;
-        return;
-    }
-
-    sql::ConnectOptionsMap connection_properties;
-    connection_properties["hostName"] = sql::SQLString("rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com");
-    connection_properties["userName"] = sql::SQLString("terark_benchmark");
-    connection_properties["port"] = 3306;
-    connection_properties["password"] = sql::SQLString(passwd);
-    connection_properties["schema"] = sql::SQLString("benchmark");
-    //connection_properties["MYSQL_OPT_RECONNECT"] = true;
-    //connection_properties["MYSQL_OPT_READ_TIMEOUT"] = 1;
-    //connection_properties["MYSQL_OPT_WRITE_TIMEOUT"] = 1;
-
-    fprintf(stderr, "mysql.hostname = %s\n", connection_properties["hostName"].get<sql::SQLString>()->c_str());
-
-    conn = driver->connect(connection_properties);
-
-    if(conn != nullptr && conn->isValid()) {
-        // Delete data from 7 days ago.
-        struct timespec t;
-        clock_gettime(CLOCK_REALTIME, &t);
-        int filter_time = t.tv_sec - 60*60*24*7;
-        std::string tables[] = {"engine_test_ops_10s", 
-                                "engine_test_memory_10s", 
-                                "engine_test_cpu_10s", 
-                                "engine_test_dbsize_10s", 
-                                "engine_test_diskinfo_10s"
-                                };
-        for(std::string& table: tables) {
-            std::string sql = "DELETE FROM " + table + " WHERE time_bucket < ?";
-            std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(sql));
-            pstmt->setInt(1, filter_time);
-            pstmt->executeUpdate();
-        }
-        std::cout<<"database connected!"<<std::endl;
-    }else{
-        std::cout<<"database connection fault, data will not upload"<<std::endl;
-        shoud_stop = true;
-    }
 }
 
 AnalysisWorker::~AnalysisWorker() {
     printf("analysis worker is stopped!\n");
-    delete conn;
 }
 
 void AnalysisWorker::stop() {
@@ -184,18 +165,66 @@ void AnalysisWorker::stop() {
 }
 
 void AnalysisWorker::run() {
-    std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    TimeBucket read_bucket(conn, engine_name, setting->dbdirs);
-    TimeBucket insert_bucket(conn, engine_name, setting->dbdirs);
-    TimeBucket update_bucket(conn, engine_name, setting->dbdirs);
+    char* passwd = getenv("MYSQL_PASSWD");
+    std::cout << passwd << std::endl;
+    if(passwd == NULL || strlen(passwd) == 0) {
+        printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
+        shoud_stop = true;
+        return;
+    }
+    const char* host = "rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com";
+    const char* user = "terark_benchmark";
+    const char* db = "benchmark";
+    int port = 3306;
+    my_bool myTrue = true;
 
+    MYSQL conn;
+    mysql_init(&conn);
+    mysql_options(&conn, MYSQL_OPT_RECONNECT, &myTrue);
+    unsigned long clientflag = CLIENT_REMEMBER_OPTIONS;
+    if (!mysql_real_connect(&conn, host, user, passwd, db, port, NULL, clientflag)) {
+        fprintf(stderr
+                , "ERROR: mysql_real_connect(host=%s, user=%s, passwd=%s, db=%s, port=%d, NULL, CLIENT_REMEMBER_OPTIONS) = %s\n"
+                , "       database connection fault, monitor data will not be uploaded\n"
+                , host, user, passwd, db, port, mysql_error(&conn)
+        );
+        shoud_stop = true;
+        return;
+    }
+    printf("database connected!\n");
+    fflush(stdout);
+    // Delete data from 7 days ago.
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
+    int filter_time = t.tv_sec - 60*60*24*7;
+    std::string tables[] = {"engine_test_ops_10s",
+                            "engine_test_memory_10s",
+                            "engine_test_cpu_10s",
+                            "engine_test_dbsize_10s",
+                            "engine_test_diskinfo_10s"
+    };
+    for(std::string& table: tables) {
+        std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
+        mysql_real_query(&conn, sql.c_str(), sql.size());
+    }
+
+    ps_ops = prepare(&conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
+    ps_memory = prepare(&conn, "INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
+    ps_cpu = prepare(&conn, "INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, `iowait`, engine_name) VALUES(?, ?, ?, ?)");
+    ps_dbsize = prepare(&conn, "INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)");
+    ps_diskinfo = prepare(&conn, "INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)");
+
+    std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
+    TimeBucket read_bucket(&conn, engine_name.c_str(), setting->dbdirs);
+    TimeBucket insert_bucket(&conn, engine_name.c_str(), setting->dbdirs);
+    TimeBucket update_bucket(&conn, engine_name.c_str(), setting->dbdirs);
+
+    shoud_stop = false;
     while(!shoud_stop) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);
         bool b2 = Stats::createTimeDataCq.try_pop(insert_result);
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
-
         bool uploadExtraData = true;
-
         if(b1){
             read_bucket.add(read_result.first, read_result.second, setting->getSamplingRate(), 1, uploadExtraData);
             uploadExtraData = false;
@@ -212,4 +241,10 @@ void AnalysisWorker::run() {
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }
+    mysql_stmt_close(ps_ops);
+    mysql_stmt_close(ps_memory);
+    mysql_stmt_close(ps_cpu);
+    mysql_stmt_close(ps_dbsize);
+    mysql_stmt_close(ps_diskinfo);
+    mysql_close(&conn);
 }
