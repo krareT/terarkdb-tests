@@ -73,7 +73,7 @@ namespace benchmark {
      * memory usage stats
      * @return
      */
-    void getPhysicalMemoryUsage(std::vector<int> &arr) {
+    void getPhysicalMemoryUsage(int arr[4]) {
         int totalPhysMem, physMemFree, physMemAvaliable, physMemBuffer, physMemCached;
         FILE *file = fopen("/proc/meminfo", "r");
         fscanf(file, "MemTotal: %d kB MemFree: %d kB MemAvailable: %d kB Buffers: %d kB Cached: %d kB",
@@ -86,10 +86,10 @@ namespace benchmark {
         int physMemUsed = totalPhysMem - physMemFree - physMemBuffer - physMemCached;
 
         // MB, total,free,cached,used
-        arr.push_back(totalPhysMem / 1024);
-        arr.push_back(physMemFree / 1024);
-        arr.push_back((physMemBuffer + physMemCached) / 1024);
-        arr.push_back(physMemUsed / 1024);
+        arr[0] = totalPhysMem / 1024;
+        arr[1] = physMemFree / 1024;
+        arr[2] = (physMemBuffer + physMemCached) / 1024;
+        arr[3] = physMemUsed / 1024;
     }
 
     long long getDiskUsageByKB(const std::vector<std::string>& pathes) {

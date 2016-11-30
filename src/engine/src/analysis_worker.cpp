@@ -17,31 +17,25 @@ using terark::fstring;
 
 class TimeBucket {
 private:
-    MYSQL* conn = nullptr;
-    uint64_t step_in_seconds = 10; // in seconds
     const char* engine_name;
     const std::vector<std::string>& dbdirs;
 
-    uint64_t current_bucket = 0;  // seconds
+    int current_bucket = 0;  // seconds
     int operation_count = 0;
-
-    int findTimeBucket(uint64_t time);
-
-    void upload(int bucket, int ops, int type, bool uploadExtraData);
 
 public:
     TimeBucket(MYSQL *const connection,
                const char* engineName,
                const std::vector<std::string>& dbdirs)
-            : conn(connection),
-              engine_name(engineName),
+            : engine_name(engineName),
               dbdirs(dbdirs)
     {}
 
-    void add(uint64_t start, uint64_t end, int sampleRate, int type, bool uploadExtraData);
+    void add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, int sampleRate, int type);
 };
 
-int TimeBucket::findTimeBucket(uint64_t time) {
+static int findTimeBucket(uint64_t time) {
+    static const uint64_t step_in_seconds = 10; // in seconds
     uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
     // printf("find time bucket : %" PRIu64 ", result = %" PRIu64 "\n", time, t*10);
     return t*10;
@@ -71,13 +65,10 @@ bool Exec_stmt(MYSQL_STMT* stmt, const Args&... args) {
     memset(&b, 0, sizeof(b));
     int i = 0;
     std::initializer_list<int>{(Bind_arg(b[i], args), i++)...};
-    if (sizeof...(Args) != i) {
-        abort();
-    }
     mysql_stmt_bind_param(stmt, b);
     int err = mysql_stmt_execute(stmt);
     if (err) {
-        fprintf(stderr, "ERROR: %s = %s\n", BOOST_CURRENT_FUNCTION, stmt->last_error);
+        fprintf(stderr, "WARN: %s = %s\n", BOOST_CURRENT_FUNCTION, stmt->last_error);
         return false;
     }
     return true;
@@ -94,57 +85,50 @@ static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
 }
 static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo;
 
-void TimeBucket::upload(int bucket, int ops, int type, bool uploadExtraData) {
-    if(bucket == 0 || NULL == conn) {
+static int g_prev_sys_stat_bucket = 0;
+static void upload_sys_stat(terark::AutoGrownMemIO& buf,
+                            const std::vector<std::string>& dbdirs,
+                            int bucket, const char* engine_name) {
+// 顺便把CPU等数据也上传, 相同时间片只需要上传一次即可
+    if (bucket == g_prev_sys_stat_bucket) {
         return;
     }
-    terark::AutoGrownMemIO buf;
-    BOOST_SCOPE_EXIT(&buf) {
-        printf("%s\n", buf.begin());
-    }BOOST_SCOPE_EXIT_END;
+    g_prev_sys_stat_bucket = bucket;
+    int arr[4];
+    benchmark::getPhysicalMemoryUsage(arr);
+    Exec_stmt(ps_memory, bucket, arr[0], arr[1], arr[2], arr[3], engine_name);
+    buf.printf("    total memory = %5.2f GiB", arr[0]/1024.0);
 
-    Exec_stmt(ps_ops, bucket, ops, type, engine_name);
-    buf.printf("upload statistic time bucket[%d], ops = %d, type = %d", bucket, ops, type);
+    double cpu[2];
+    benchmark::getCPUPercentage(cpu);
+    if(cpu > 0){
+        Exec_stmt(ps_cpu, bucket, cpu[0], cpu[1], engine_name);
+    }
+    buf.printf("    cpu usage = %5.2f iowait = %5.2f", cpu[0], cpu[1]);
 
-    // 顺便把CPU等数据也上传, 相同时间片只需要上传一次即可
-    if(uploadExtraData) {
-        std::vector<int> arr;
-        benchmark::getPhysicalMemoryUsage(arr);
-        Exec_stmt(ps_memory, bucket, arr[0], arr[1], arr[2], arr[3], engine_name);
-        arr.clear();
-        buf.printf("    total memory = %5.2f GiB", arr[0]/1024.0);
+    int dbsizeKB = benchmark::getDiskUsageByKB(dbdirs);
+    if(dbsizeKB > 0) {
+        Exec_stmt(ps_dbsize, bucket, dbsizeKB, engine_name);
+    }
+    buf.printf("    dbsize = %5.2f GiB", dbsizeKB/1024.0/1024);
 
-        double cpu[2];
-        benchmark::getCPUPercentage(cpu);
-        if(cpu > 0){
-            Exec_stmt(ps_cpu, bucket, cpu[0], cpu[1], engine_name);
-        }
-        buf.printf("    cpu usage = %5.2f iowait = %5.2f", cpu[0], cpu[1]);
-
-        int dbsizeKB = benchmark::getDiskUsageByKB(dbdirs);
-        if(dbsizeKB > 0) {
-            Exec_stmt(ps_dbsize, bucket, dbsizeKB, engine_name);
-        }
-        buf.printf("    dbsize = %5.2f GiB", dbsizeKB/1024.0/1024);
-
-        std::string diskinfo;
-        benchmark::getDiskFileInfo(dbdirs, diskinfo);
-        if(diskinfo.length() > 0) {
-            Exec_stmt(ps_diskinfo, bucket, fstring(diskinfo), engine_name);
-        }
+    std::string diskinfo;
+    benchmark::getDiskFileInfo(dbdirs, diskinfo);
+    if(diskinfo.length() > 0) {
+        Exec_stmt(ps_diskinfo, bucket, fstring(diskinfo), engine_name);
     }
 }
 
-void TimeBucket::add(uint64_t start, uint64_t end, int sampleRate, int type, bool uploadExtraData) {
-    if(start <=0 || end <= 0 || start == end) {
-        return;
-    }
+void TimeBucket::add(terark::AutoGrownMemIO& buf,uint64_t start, uint64_t end, int sampleRate, int type) {
     // when meet the next bucket, upload previous one first, default step is 10 seconds
     int next_bucket = findTimeBucket(start);
     if(next_bucket > current_bucket) {
-//      int ops = operation_count * 5 / (int)step_in_seconds; // sample rate is 20%, here we multiply it back.
         int ops = operation_count * 100 / (10 * sampleRate); // sample rate : (0, 100]
-        upload(current_bucket, ops, type, uploadExtraData);
+        buf.rewind();
+        Exec_stmt(ps_ops, current_bucket, ops, type, engine_name);
+        buf.printf("upload statistic time bucket[%d], ops = %d, type = %d", current_bucket, ops, type);
+        upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
+        printf("%s\n", buf.begin());
         operation_count = 1;
         current_bucket = next_bucket;
     }else{
@@ -219,25 +203,33 @@ void AnalysisWorker::run() {
     TimeBucket insert_bucket(&conn, engine_name.c_str(), setting->dbdirs);
     TimeBucket update_bucket(&conn, engine_name.c_str(), setting->dbdirs);
 
+    int prev_bucket = 0;
+    terark::AutoGrownMemIO buf;
     shoud_stop = false;
     while(!shoud_stop) {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);
         bool b2 = Stats::createTimeDataCq.try_pop(insert_result);
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
-        bool uploadExtraData = true;
         if(b1){
-            read_bucket.add(read_result.first, read_result.second, setting->getSamplingRate(), 1, uploadExtraData);
-            uploadExtraData = false;
+            read_bucket.add(buf, read_result.first, read_result.second, setting->getSamplingRate(), 1);
         }
         if(b2){
-            insert_bucket.add(insert_result.first, insert_result.second, setting->getSamplingRate(), 2, uploadExtraData);
-            uploadExtraData = false;
+            insert_bucket.add(buf, insert_result.first, insert_result.second, setting->getSamplingRate(), 2);
         }
         if(b3){
-            update_bucket.add(update_result.first, update_result.second, setting->getSamplingRate(), 3, uploadExtraData);
-            uploadExtraData = false;
+            update_bucket.add(buf, update_result.first, update_result.second, setting->getSamplingRate(), 3);
         }
         if(!b1 && !b2 && !b3){
+            timespec ts1;
+            clock_gettime(CLOCK_REALTIME, &ts1);
+            unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
+            int curr_bucket = findTimeBucket(tt);
+            if (curr_bucket > g_prev_sys_stat_bucket) {
+                buf.rewind();
+                buf.printf("upload statistic time bucket[%d] no-op", curr_bucket);
+                upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
+                printf("%s\n", buf.begin());
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }

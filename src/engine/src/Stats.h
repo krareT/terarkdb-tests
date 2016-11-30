@@ -14,7 +14,8 @@
 class Stats {
 
 private:
-    std::unordered_map<BaseSetting::OP_TYPE , void (Stats::*)(struct timespec *start,struct timespec *end),EnumClassHash> timeDataFuncMap;
+    typedef void (Stats::*Func_t)(struct timespec *start,struct timespec *end);
+    const Func_t timeDataFuncMap[3];
     void readPlusOne(struct timespec *start,struct timespec *end);
     void updatePlusOne(struct timespec *start,struct timespec *end);
     void createPlusOne(struct timespec *start,struct timespec *end);
@@ -22,14 +23,14 @@ public:
     static tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> readTimeDataCq;
     static tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> createTimeDataCq;
     static tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> updateTimeDataCq;
-    Stats(){
-        timeDataFuncMap[BaseSetting::OP_TYPE::UPDATE] = &Stats::updatePlusOne;
-        timeDataFuncMap[BaseSetting::OP_TYPE::READ] = &Stats::readPlusOne;
-        timeDataFuncMap[BaseSetting::OP_TYPE::INSERT] = &Stats::createPlusOne;
-    }
+    Stats() : timeDataFuncMap {
+                &Stats::readPlusOne,
+                &Stats::createPlusOne,
+                &Stats::updatePlusOne,
+    } {}
 
     void FinishedSingleOp(BaseSetting::OP_TYPE type, struct timespec *start, struct timespec *end){
-        (this->*timeDataFuncMap[type])(start,end);
+        (this->*timeDataFuncMap[int(type)])(start,end);
     }
 };
 

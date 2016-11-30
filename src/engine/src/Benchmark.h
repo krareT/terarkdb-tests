@@ -69,7 +69,7 @@ private:
     uint8_t compactTimes;
     void loadKeys(void);
     void backupKeys(const std::string& fname);
-    static void loadInsertData(const Setting *setting);
+    void loadInsertData(const Setting *setting);
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }

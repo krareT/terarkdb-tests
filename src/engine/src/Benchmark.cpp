@@ -49,7 +49,7 @@ void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
 
 void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
-    std::thread loadInsertDataThread(Benchmark::loadInsertData,&setting);
+    std::thread loadInsertDataThread(&Benchmark::loadInsertData, this, &setting);
     while (!setting.ifStop()){
         //check sampling rate
         int samplingRate = setting.getSamplingRate();
@@ -180,7 +180,7 @@ void Benchmark::loadInsertData(const Setting *setting){
         fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", strerror(errno));
         return;
     }
-    printf("Benchmark::loadInsertData(%s) start\n", setting->getInsertDataPath().c_str());
+    fprintf(stderr, "Benchmark::loadInsertData(%s) start\n", setting->getInsertDataPath().c_str());
     LineBuf line;
     size_t lines = 0;
     while (!setting->ifStop() && !feof(ifs)) {
@@ -193,8 +193,15 @@ void Benchmark::loadInsertData(const Setting *setting){
     //  printf("Benchmark::loadInsertData(): total = %9d   chunklines = %6d\n", lines, count);
         usleep(300000);
     }
-    printf("Benchmark::loadInsertData(%s) %s\n", setting->getInsertDataPath().c_str()
+    fprintf(stderr, "Benchmark::loadInsertData(%s) %s\n", setting->getInsertDataPath().c_str()
         , setting->ifStop()? "stopped" : "completed");
+    if (!setting->ifStop()) {
+        fprintf(stderr, "Benchmark::loadInsertData(): all data are loaded, wait for 2 minutes then compact!\n");
+        usleep(2*60*1000*1000);
+        fprintf(stderr, "Benchmark::loadInsertData(): start compact ...\n");
+        Compact();
+        fprintf(stderr, "Benchmark::loadInsertData(): compaction finished!\n");
+    }
 }
 
 void Benchmark::Run(void) {
