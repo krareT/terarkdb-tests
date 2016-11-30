@@ -110,7 +110,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.max_background_compactions = set.compactThreads*2;
     options.num_levels = set.FLAGS_num_levels;
     options.env->SetBackgroundThreads(set.flushThreads, rocksdb::Env::HIGH);
-    if (set.rocksdbIsUniversalCompaction) {
+    if (set.rocksdbUniversalCompaction) {
         options.compaction_style = rocksdb::kCompactionStyleUniversal;
         options.compaction_options_universal.allow_trivial_move = true;
     //  options.compaction_options_universal.size_ratio = 10; // 10%

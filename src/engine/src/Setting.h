@@ -202,7 +202,7 @@ public:
 
     int flushThreads = 2;
     int compactThreads = 2;
-    bool rocksdbIsUniversalCompaction = true;
+    bool rocksdbUniversalCompaction = true;
 
     // Use the db with the following name.
     void terarkSetting(int argc,char **argv);

@@ -254,6 +254,8 @@ void Setting::rocksdbSetting(int argc, char **argv) {
             compactThreads = terark::lcast(arg.substr(strlen("--compactThreads=")));
         } else if (arg.startsWith("--numLevels=")) {
             FLAGS_num_levels = terark::lcast(arg.substr(strlen("--numLevels=")));
+        } else if (arg.startsWith("--universalCompaction=")) {
+            rocksdbUniversalCompaction = (int)terark::lcast(arg.substr(strlen("--universalCompaction=")));
         }
     }
 }
