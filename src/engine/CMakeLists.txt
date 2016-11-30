@@ -15,6 +15,7 @@ include_directories(/opt/include)
 include_directories(${TERARKDB_PATH}/include)
 include_directories(${TERARKDB_ROCKS}/include)
 include_directories(/usr/local/mysql/include)
+include_directories(/usr/include/mysql)
 
 link_directories(${TERARKDB_PATH}/lib)
 link_directories(${TERARKDB_ROCKS}/lib)
