@@ -15,7 +15,7 @@ void RocksDbBenchmark::Open() {
     std::cout << "Create database " << setting.FLAGS_db << std::endl;
     rocksdb::Status s = rocksdb::DB::Open(options, setting.FLAGS_db, &db);
     if (!s.ok()) {
-        fprintf(stderr, "open error: %s\n", s.ToString().c_str());
+        fprintf(stderr, "rocksdb::DB::Open error: %s\n", s.ToString().c_str());
         exit(1);
     }
 }
