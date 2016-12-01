@@ -60,7 +60,7 @@ void Bind_arg(MYSQL_BIND &b, fstring val) {
     b.buffer = (void*)val.data();
 }
 template<class... Args>
-bool Exec_stmt(MYSQL_STMT* stmt, const Args&... args) {
+bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
     MYSQL_BIND  b[sizeof...(Args)];
     memset(&b, 0, sizeof(b));
     int i = 0;
