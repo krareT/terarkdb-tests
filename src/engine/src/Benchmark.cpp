@@ -177,7 +177,7 @@ bool Benchmark::pushKey(std::string &key) {
 void Benchmark::loadInsertData(const Setting *setting){
     Auto_fclose ifs(fopen(setting->getInsertDataPath().c_str(),"r"));
 	if (!ifs) {
-        fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", strerror(errno));
+        fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", setting->getInsertDataPath().c_str(), strerror(errno));
         return;
     }
     fprintf(stderr, "Benchmark::loadInsertData(%s) start\n", setting->getInsertDataPath().c_str());
