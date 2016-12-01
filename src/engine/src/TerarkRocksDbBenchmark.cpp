@@ -30,7 +30,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
 #endif
     options.table_factory.reset(factory);
     options.target_file_size_base = 1ull << 30; // 1G
-    options.target_file_size_multiplier = 2;
+    options.target_file_size_multiplier = set.target_file_size_multiplier;
     setting.dbdirs.push_back(opt.localTempDir);
 }
 

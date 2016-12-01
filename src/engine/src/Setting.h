@@ -165,6 +165,8 @@ public:
 // Negative means use default settings.
      int FLAGS_bloom_bits = -1;
 
+    int target_file_size_multiplier = 2;
+
 // read write percent
      double FLAGS_read_write_percent = 100.0;
      double FLAGS_write_new_record_percent = 80.0;
