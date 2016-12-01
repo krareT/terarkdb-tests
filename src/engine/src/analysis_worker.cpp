@@ -148,6 +148,8 @@ void AnalysisWorker::stop() {
     shoud_stop = true;
 }
 
+bool g_upload_fake_ops = false;
+
 void AnalysisWorker::run() {
     char* passwd = getenv("MYSQL_PASSWD");
     std::cout << passwd << std::endl;
@@ -223,10 +225,15 @@ void AnalysisWorker::run() {
             unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
             int curr_bucket = findTimeBucket(tt);
             if (curr_bucket > g_prev_sys_stat_bucket) {
-                int ops = 0, op_type = 1;
                 buf.rewind();
-                Exec_stmt(ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
-                buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", curr_bucket, ops, op_type);
+                if (g_upload_fake_ops) {
+                    int ops = 0, op_type = 1;
+                    Exec_stmt(ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
+                    buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", curr_bucket, ops, op_type);
+                }
+                else {
+                    buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
+                }
                 upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
                 printf("%s\n", buf.begin());
             }

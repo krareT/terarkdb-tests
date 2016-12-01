@@ -174,6 +174,8 @@ bool Benchmark::pushKey(std::string &key) {
     return true;
 }
 
+extern bool g_upload_fake_ops;
+
 void Benchmark::loadInsertData(const Setting *setting){
     Auto_fclose ifs(fopen(setting->getInsertDataPath().c_str(),"r"));
 	if (!ifs) {
@@ -193,6 +195,7 @@ void Benchmark::loadInsertData(const Setting *setting){
     //  printf("Benchmark::loadInsertData(): total = %9d   chunklines = %6d\n", lines, count);
         usleep(300000);
     }
+    g_upload_fake_ops = true;
     fprintf(stderr, "Benchmark::loadInsertData(%s) %s\n", setting->getInsertDataPath().c_str()
         , setting->ifStop()? "stopped" : "completed");
     if (!setting->ifStop()) {
