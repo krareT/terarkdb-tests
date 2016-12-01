@@ -126,7 +126,7 @@ void TimeBucket::add(terark::AutoGrownMemIO& buf,uint64_t start, uint64_t end, i
         int ops = operation_count * 100 / (10 * sampleRate); // sample rate : (0, 100]
         buf.rewind();
         Exec_stmt(ps_ops, current_bucket, ops, type, engine_name);
-        buf.printf("upload statistic time bucket[%d], ops = %d, type = %d", current_bucket, ops, type);
+        buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
         upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
         printf("%s\n", buf.begin());
         operation_count = 1;
@@ -202,8 +202,6 @@ void AnalysisWorker::run() {
     TimeBucket read_bucket(&conn, engine_name.c_str(), setting->dbdirs);
     TimeBucket insert_bucket(&conn, engine_name.c_str(), setting->dbdirs);
     TimeBucket update_bucket(&conn, engine_name.c_str(), setting->dbdirs);
-
-    int prev_bucket = 0;
     terark::AutoGrownMemIO buf;
     shoud_stop = false;
     while(!shoud_stop) {
@@ -225,8 +223,10 @@ void AnalysisWorker::run() {
             unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
             int curr_bucket = findTimeBucket(tt);
             if (curr_bucket > g_prev_sys_stat_bucket) {
+                int ops = 0, op_type = 1;
                 buf.rewind();
-                buf.printf("upload statistic time bucket[%d] no-op", curr_bucket);
+                Exec_stmt(ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
+                buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", curr_bucket, ops, op_type);
                 upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
                 printf("%s\n", buf.begin());
             }
