@@ -177,14 +177,19 @@ bool Benchmark::pushKey(std::string &key) {
 extern bool g_upload_fake_ops;
 
 void Benchmark::loadInsertData(const Setting *setting){
-    Auto_fclose ifs(fopen(setting->getInsertDataPath().c_str(),"r"));
+    const char* fpath = setting->getInsertDataPath().c_str();
+    Auto_fclose ifs(fopen(fpath, "r"));
 	if (!ifs) {
-        fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", setting->getInsertDataPath().c_str(), strerror(errno));
+        fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", fpath, strerror(errno));
         return;
     }
-    fprintf(stderr, "Benchmark::loadInsertData(%s) start\n", setting->getInsertDataPath().c_str());
+    fprintf(stderr, "Benchmark::loadInsertData(%s) start\n", fpath);
     LineBuf line;
     size_t lines = 0;
+    while (lines < setting->skipInsertLines && line.getline(ifs) > 0) {
+        lines++;
+    }
+    fprintf(stderr, "Benchmark::loadInsertData(%s) skipped %zd lines\n", fpath, lines);
     while (!setting->ifStop() && !feof(ifs)) {
         size_t count = 0;
         while (updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
@@ -196,8 +201,8 @@ void Benchmark::loadInsertData(const Setting *setting){
         usleep(300000);
     }
     g_upload_fake_ops = true;
-    fprintf(stderr, "Benchmark::loadInsertData(%s) %s\n", setting->getInsertDataPath().c_str()
-        , setting->ifStop()? "stopped" : "completed");
+    fprintf(stderr, "Benchmark::loadInsertData(%s) %s, lines = %zd\n", fpath
+        , setting->ifStop()? "stopped" : "completed", lines);
     if (!setting->ifStop()) {
         fprintf(stderr, "Benchmark::loadInsertData(): all data are loaded, wait for 2 minutes then compact!\n");
         usleep(2*60*1000*1000);

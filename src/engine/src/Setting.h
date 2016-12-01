@@ -158,6 +158,8 @@ public:
 // Negative means use default settings.
     long FLAGS_cache_size = -1;
 
+    size_t skipInsertLines = 0;
+
 // Maximum number of files to keep open at the same time (use default if == 0)
      int FLAGS_open_files = 0;
 

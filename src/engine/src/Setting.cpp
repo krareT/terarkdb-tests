@@ -165,6 +165,9 @@ Setting::Setting(int argc,char **argv,char *name){
         else if (arg.startsWith("--db=")) {
             FLAGS_db = argv[i] + 5;
         }
+        else if (arg.startsWith("--skipInsertLines=")) {
+            skipInsertLines = arg.substr(strlen("--skipInsertLines=")).str();
+        }
         else if (arg.startsWith("--alt_engine_name=")) {
             alt_engine_name = arg.substr(strlen("--alt_engine_name=")).str();
         }
