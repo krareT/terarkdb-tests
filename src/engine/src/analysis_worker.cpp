@@ -227,7 +227,7 @@ void AnalysisWorker::run() {
             if (curr_bucket > g_prev_sys_stat_bucket) {
                 buf.rewind();
                 if (g_upload_fake_ops) {
-                    int ops = 0, op_type = 1;
+                    int ops = 0, op_type = 2;
                     Exec_stmt(ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
                     buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", curr_bucket, ops, op_type);
                 }
