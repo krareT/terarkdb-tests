@@ -229,7 +229,7 @@ void AnalysisWorker::run() {
                 if (g_upload_fake_ops) {
                     int ops = 0, op_type = 2;
                     Exec_stmt(ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
-                    buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", curr_bucket, ops, op_type);
+                    buf.printf("upload statistic time bucket[%d], OPS = %7d, type = %d", curr_bucket, ops, op_type);
                 }
                 else {
                     buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
