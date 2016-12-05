@@ -131,7 +131,7 @@ void Setting::terarkSetting(int argc, char **argv) {
     }
 }
 
-Setting::Setting(int argc,char **argv,char *name){
+Setting::Setting(int argc,char **argv,char *name) {
     using namespace terark;
     FLAGS_block_size = 16 * 1024;
     FLAGS_min_level_to_compress = 1;
@@ -185,7 +185,7 @@ Setting::Setting(int argc,char **argv,char *name){
         fprintf(stderr, "ERROR: missing argument --keyfields=...\n");
         exit(1);
     }
-    if ( strcmp(name,"wiredtiger") == 0){
+    if (strcmp(name,"wiredtiger") == 0){
         wiredTigerSetting(argc,argv);
     }else if (strcmp(name,"terarkdb") == 0){
         terarkSetting(argc,argv);
@@ -535,6 +535,7 @@ bool BaseSetting::getPlanConfig(const uint32_t thread_id, PlanConfig &planConfig
 }
 
 bool BaseSetting::strSetThreadPlan(std::string &val) {
+    printf("BaseSetting::strSetThreadPlan(%s)\n", val.c_str());
     char* endp = NULL;
     const char* str = val.c_str();
     auto thread_id_beg = strtoul(str, &endp, 10);

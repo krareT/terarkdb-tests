@@ -12,10 +12,11 @@
 using namespace terark;
 
 void RocksDbBenchmark::Open() {
-    std::cout << "Create database " << setting.FLAGS_db << std::endl;
+    printf("rocksdb::DB::Open(%s)\n", setting.FLAGS_db.c_str());
     rocksdb::Status s = rocksdb::DB::Open(options, setting.FLAGS_db, &db);
     if (!s.ok()) {
-        fprintf(stderr, "rocksdb::DB::Open error: %s\n", s.ToString().c_str());
+        fprintf(stderr, "rocksdb::DB::Open(%s) error: %s\n",
+                setting.FLAGS_db.c_str(), s.ToString().c_str());
         exit(1);
     }
 }

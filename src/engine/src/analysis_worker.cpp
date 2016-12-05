@@ -211,6 +211,7 @@ void AnalysisWorker::run() {
         std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
         mysql_real_query(&g_conn, sql.c_str(), sql.size());
     }
+    prepair_all_stmt();
 
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
     TimeBucket read_bucket(engine_name.c_str(), setting->dbdirs);
