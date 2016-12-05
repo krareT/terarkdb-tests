@@ -68,7 +68,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
                 exit(1);
             }
         }
-        setting.FLAGS_db = "multi-dir-rocksdb";
+        setting.FLAGS_db = std::string("multi-dir-") + setting.BenchmarkName;
     }
     if (setting.logdir.size()) {
         options.db_log_dir = setting.logdir;

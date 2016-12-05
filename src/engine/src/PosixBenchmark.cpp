@@ -9,9 +9,8 @@ PosixBenchmark::PosixBenchmark(Setting &setting):Benchmark(setting){
 }
 
 void PosixBenchmark::Open(void) {
-
     DIR *dir;
-    dir = opendir(setting.FLAGS_db);
+    dir = opendir(setting.FLAGS_db.c_str());
     if (dir == NULL){
         throw std::invalid_argument(strerror(errno));
     }

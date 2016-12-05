@@ -180,7 +180,7 @@ public:
      bool FLAGS_use_existing_db = false;
 
 // Use the db with the following name.
-    const char* FLAGS_db = nullptr;
+    std::string FLAGS_db = nullptr;
     std::string FLAGS_db_table;
     const char* FLAGS_resource_data = nullptr;
     const char* FLAGS_keys_data = nullptr;

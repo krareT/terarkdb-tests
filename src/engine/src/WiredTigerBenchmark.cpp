@@ -137,7 +137,7 @@ void WiredTigerBenchmark::Open(){
     //config << ",verbose=[lsm]";
     Env::Default()->CreateDir(setting.FLAGS_db);
     printf("WT config : %s\n",config.str().c_str());
-    wiredtiger_open(setting.FLAGS_db, NULL, config.str().c_str(), &conn_);
+    wiredtiger_open(setting.FLAGS_db.c_str(), NULL, config.str().c_str(), &conn_);
     assert(conn_ != NULL);
 
     WT_SESSION *session;

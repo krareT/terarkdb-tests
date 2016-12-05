@@ -66,10 +66,10 @@ void Setting::wiredTigerSetting(int argc, char **argv){
     }
 
     // Choose a location for the test database if none given with --db=<path>
-    if (FLAGS_db == NULL) {
+    if (FLAGS_db.empty()) {
         leveldb::Env::Default()->GetTestDirectory(&default_db_path);
         default_db_path += "/dbbench";
-        FLAGS_db = default_db_path.c_str();
+        FLAGS_db = default_db_path;
         dbdirs = {FLAGS_db};
     }
 }
@@ -118,10 +118,10 @@ void Setting::terarkSetting(int argc, char **argv) {
     }
 
     // Choose a location for the test database if none given with --db=<path>
-    if (FLAGS_db == NULL) {
+    if (FLAGS_db.empty()) {
         leveldb::Env::Default()->GetTestDirectory(&default_db_path);
         default_db_path += "/dbbench";
-        FLAGS_db = default_db_path.c_str();
+        FLAGS_db = default_db_path;
         dbdirs = {FLAGS_db};
     }
 
@@ -203,7 +203,7 @@ Setting::Setting(int argc,char **argv,char *name){
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
     BaseSetting::BenchmarkName.assign(name);
-    assert(FLAGS_db != nullptr);
+    assert(!FLAGS_db.empty());
     std::cout << toString() << std::endl;
     std::cout << "wait" << std::endl;
 }
@@ -365,7 +365,7 @@ std::string BaseSetting::toString() {
     ret << "message from " << BenchmarkName << std::endl;
     std::string msg;
     while (!response_message_cq.empty()) {
-        if (true == response_message_cq.try_pop(msg))
+        if (response_message_cq.try_pop(msg))
             ret << msg << std::endl;
     }
     return ret.str();
@@ -479,7 +479,7 @@ bool BaseSetting::strSetMessage(std::string &msg) {
 
 std::string BaseSetting::getMessage(void) {
     std::string str;
-    if (message_cq.try_pop(str) == true)
+    if (message_cq.try_pop(str))
         return str;
     return str;
 }
