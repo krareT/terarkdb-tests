@@ -48,7 +48,7 @@ void PosixBenchmark::Load(void) {
 }
 
 bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
-    if (false == getRandomKey(ts->key, ts->randGenerator))
+    if (!getRandomKey(ts->key, ts->randGenerator))
         return false;
     std::string read_path = setting.FLAGS_db;
     read_path = read_path + "/" + ts->key;
@@ -66,7 +66,7 @@ bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
 }
 
 bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
-    if (false == getRandomKey(ts->key, ts->randGenerator)){
+    if (!getRandomKey(ts->key, ts->randGenerator)){
         fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
         return false;
     }
@@ -86,7 +86,7 @@ bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
 }
 
 bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
-    if (updateDataCq.try_pop(ts->key) == false) {
+    if (!updateDataCq.try_pop(ts->key)) {
         return false;
     }
     ts->str = setting.getInsertDataPath() + "/" + ts->key;

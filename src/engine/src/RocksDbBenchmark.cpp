@@ -198,19 +198,19 @@ size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::stri
 }
 
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
-    if (false == getRandomKey(ts->key, ts->randGenerator))
+    if (!getRandomKey(ts->key, ts->randGenerator))
         return false;
-    if (false == db->Get(read_options, ts->key, &(ts->value)).ok())
+    if (!db->Get(read_options, ts->key, &(ts->value)).ok())
         return false;
     return true;
 }
 
 bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
-    if (false == getRandomKey(ts->key, ts->randGenerator)) {
+    if (!getRandomKey(ts->key, ts->randGenerator)) {
      	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
 	    return false;
     }
-    if (false == db->Get(read_options, ts->key, &(ts->value)).ok()) {
+    if (!db->Get(read_options, ts->key, &(ts->value)).ok()) {
     // 	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false, value.size:%05zd, key:%s\n"
     //            , ts->value.size(), ts->key.c_str());
 	    return false;
@@ -226,7 +226,7 @@ bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
 }
 
 bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
-    if (updateDataCq.try_pop(ts->str) == false){
+    if (!updateDataCq.try_pop(ts->str)){
 	    return false;
     }
     auto ret = getKeyAndValue(ts->str, ts->key, ts->value);
@@ -235,7 +235,7 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
 	    return false;
     }
     auto status = db->Put(write_options, ts->key, ts->value);
-    if (false == status.ok()){
+    if (!status.ok()){
      	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:db->Put false.\nkey:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
     	fprintf(stderr,"RocksDbBenchmakr::InsertOneKey:db-Put status:%s\n",status.ToString().c_str());
 	    updateDataCq.push(ts->str);

@@ -20,7 +20,7 @@ struct ThreadState {
     std::atomic<std::vector<bool >*> *whichSamplingPlan;
     terark::db::DbContextPtr ctx;
     unsigned int seed;
-    std::mt19937 randGenerator;
+    std::mt19937_64 randGenerator;
     std::string key;
     std::string value;
     std::string str;

@@ -96,7 +96,7 @@ private:
     void reportMessage(const std::string &);
 public:
     void  Run(void);
-    bool getRandomKey(std::string &key,std::mt19937 &rg);
+    bool getRandomKey(std::string &key,std::mt19937_64 &rg);
     bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;

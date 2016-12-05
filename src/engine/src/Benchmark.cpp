@@ -81,10 +81,9 @@ void Benchmark::RunBenchmark(void){
 
 bool Benchmark::executeOneOperationWithSampling(ThreadState *state, BaseSetting::OP_TYPE type){
     struct timespec start,end;
-    bool ret;
     clock_gettime(CLOCK_REALTIME,&start);
-    ret = (this->*executeFuncMap[int(type)])(state);
-    if (ret == true || type == BaseSetting::OP_TYPE::READ) {
+    bool ret = (this->*executeFuncMap[int(type)])(state);
+    if (ret || type == BaseSetting::OP_TYPE::READ) {
         clock_gettime(CLOCK_REALTIME, &end);
         state->stats.FinishedSingleOp(type, &start, &end);
     }
@@ -108,7 +107,7 @@ bool Benchmark::executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type
 
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
     std::cout << "Thread " << thread->tid << " start!" << std::endl;
-    while (thread->STOP.load() == false) {
+    while (!thread->STOP.load()) {
         const auto &executePlan = thread->executePlan[thread->whichPlan.load(std::memory_order_relaxed)];
         for (auto type : executePlan) {
             executeOneOperation(thread,type);
@@ -151,12 +150,13 @@ void Benchmark::backupKeys(const std::string& fname) {
     std::cout <<"backupKeys finished" << std::endl;
 }
 
-bool Benchmark::getRandomKey(std::string &key,std::mt19937 &rg) {
-    tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, false);//read lock
+bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
     if (allkeys.empty()){
         return false;
     }
-    key.assign(allkeys.str(rg() % allkeys.size()));
+    auto randomIndex = rg() % allkeys.size();
+    tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, false);//read lock
+    key.assign(allkeys.str(randomIndex));
     return true;
 }
 

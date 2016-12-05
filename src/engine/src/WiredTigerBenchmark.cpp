@@ -24,7 +24,7 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
 
     std::string &rkey = thread->key;
     std::string &rstr = thread->str;
-    if ( getRandomKey(rstr,thread->randGenerator) == false){
+    if (!getRandomKey(rstr,thread->randGenerator)){
         return false;
     }
     WT_CURSOR *cursor;
@@ -47,12 +47,10 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     return found > 0;
 }
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
-
     std::string &rkey = thread->key;
     std::string &rval = thread->value;
     std::string &rstr = thread->str;
-
-    if ( getRandomKey(rkey,thread->randGenerator) == false){
+    if (!getRandomKey(rkey,thread->randGenerator)){
         return false;
     }
     WT_CURSOR *cursor;
@@ -61,7 +59,6 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
         fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
         return false;
     }
-
     cursor->set_key(cursor, rkey.c_str());
     if (cursor->search(cursor) != 0){
         std::cerr << "cursor search error :" << rkey << std::endl;
@@ -85,7 +82,6 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     std::string &rkey = thread->key;
     std::string &rval = thread->value;
     std::string &rstr = thread->str;
-
     WT_CURSOR *cursor;
     int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
     if (ret != 0) {
@@ -103,7 +99,6 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     }
     cursor->set_key(cursor, rkey.c_str());
     cursor->set_value(cursor,rval.c_str());
-
     ret = cursor->insert(cursor);
     if (ret != 0) {
         fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
@@ -246,7 +241,6 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
         recordnumber++;
         if (recordnumber % 100000 == 0)
             std::cout << "Record number: " << recordnumber << std::endl;
-
     }
     if ( buf != NULL){
         free(buf);
@@ -307,7 +301,6 @@ void WiredTigerBenchmark::PrintEnvironment() {
 #if defined(__linux)
     time_t now = time(NULL);
     fprintf(stderr, "Date:       %s", ctime(&now));  // ctime() adds newline
-
     FILE* cpuinfo = fopen("/proc/cpuinfo", "r");
     if (cpuinfo != NULL) {
         char line[1000];
