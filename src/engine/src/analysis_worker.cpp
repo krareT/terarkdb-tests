@@ -7,10 +7,9 @@
 #include "util/system_resource.h"
 #include <terark/io/MemStream.hpp>
 #include <terark/lcast.hpp>
-#include <boost/scope_exit.hpp>
 #include "cppconn/prepared_statement.h"
-#include "mysql_driver.h"
 #include <mysql.h>
+#include <errmsg.h>
 
 using terark::lcast;
 using terark::fstring;
@@ -24,8 +23,7 @@ private:
     int operation_count = 0;
 
 public:
-    TimeBucket(MYSQL *const connection,
-               const char* engineName,
+    TimeBucket(const char* engineName,
                const std::vector<std::string>& dbdirs)
             : engine_name(engineName),
               dbdirs(dbdirs)
@@ -39,6 +37,56 @@ static int findTimeBucket(uint64_t time) {
     uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
     // printf("find time bucket : %" PRIu64 ", result = %" PRIu64 "\n", time, t*10);
     return t*10;
+}
+
+static char* g_passwd = getenv("MYSQL_PASSWD");
+static MYSQL g_conn;
+
+static bool Mysql_connect(MYSQL* conn) {
+    if(g_passwd == NULL || strlen(g_passwd) == 0) {
+        printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
+        return false;
+    }
+    printf("Mysql_connect, passwd = %s\n", g_passwd);
+    fflush(stdout);
+    const char* host = "rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com";
+    const char* user = "terark_benchmark";
+    const char* db = "benchmark";
+    int port = 3306;
+    my_bool myTrue = true;
+    mysql_init(conn);
+    mysql_options(conn, MYSQL_OPT_RECONNECT, &myTrue); // brain dead reconnect has a fucking bug
+    conn->reconnect = true;
+    unsigned long clientflag = CLIENT_REMEMBER_OPTIONS;
+    if (!mysql_real_connect(conn, host, user, g_passwd, db, port, NULL, clientflag)) {
+        fprintf(stderr
+                , "ERROR: mysql_real_connect(host=%s, user=%s, passwd=%s, db=%s, port=%d, NULL, CLIENT_REMEMBER_OPTIONS) = %s\n"
+                , "       database connection fault, monitor data will not be uploaded\n"
+                , host, user, g_passwd, db, port, mysql_error(conn)
+        );
+        return false;
+    }
+    printf("database connected!\n");
+    fflush(stdout);
+    return true;
+}
+
+static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
+    MYSQL_STMT* stmt = mysql_stmt_init(conn);
+    int err = mysql_stmt_prepare(stmt, sql.data(), sql.size());
+    if (err) {
+        fprintf(stderr, "ERROR: mysql_stmt_prepare(%s) = %s\n", sql.c_str(), mysql_error(conn));
+        return NULL;
+    }
+    return stmt;
+}
+static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo;
+static void prepair_all_stmt() {
+    ps_ops = prepare(&g_conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
+    ps_memory = prepare(&g_conn, "INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
+    ps_cpu = prepare(&g_conn, "INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, `iowait`, engine_name) VALUES(?, ?, ?, ?)");
+    ps_dbsize = prepare(&g_conn, "INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)");
+    ps_diskinfo = prepare(&g_conn, "INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)");
 }
 
 void Bind_arg(MYSQL_BIND &b, const int &val) {
@@ -69,21 +117,15 @@ bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
     int err = mysql_stmt_execute(stmt);
     if (err) {
         fprintf(stderr, "WARN: %s = %s\n", BOOST_CURRENT_FUNCTION, stmt->last_error);
+        if (CR_SERVER_LOST == err) {
+        //    mysql_ping(stmt->mysql); // brain dead mysql
+            Mysql_connect(&g_conn);
+            prepair_all_stmt();
+        }
         return false;
     }
     return true;
 }
-
-static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
-    MYSQL_STMT* stmt = mysql_stmt_init(conn);
-    int err = mysql_stmt_prepare(stmt, sql.data(), sql.size());
-    if (err) {
-        fprintf(stderr, "ERROR: mysql_stmt_prepare(%s) = %s\n", sql.c_str(), mysql_error(conn));
-        return NULL;
-    }
-    return stmt;
-}
-static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo;
 
 static int g_prev_sys_stat_bucket = 0;
 static void upload_sys_stat(terark::AutoGrownMemIO& buf,
@@ -151,34 +193,10 @@ void AnalysisWorker::stop() {
 bool g_upload_fake_ops = false;
 
 void AnalysisWorker::run() {
-    char* passwd = getenv("MYSQL_PASSWD");
-    std::cout << passwd << std::endl;
-    if(passwd == NULL || strlen(passwd) == 0) {
-        printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
+    if (!Mysql_connect(&g_conn)) {
         shoud_stop = true;
         return;
     }
-    const char* host = "rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com";
-    const char* user = "terark_benchmark";
-    const char* db = "benchmark";
-    int port = 3306;
-    my_bool myTrue = true;
-
-    MYSQL conn;
-    mysql_init(&conn);
-    mysql_options(&conn, MYSQL_OPT_RECONNECT, &myTrue);
-    unsigned long clientflag = CLIENT_REMEMBER_OPTIONS;
-    if (!mysql_real_connect(&conn, host, user, passwd, db, port, NULL, clientflag)) {
-        fprintf(stderr
-                , "ERROR: mysql_real_connect(host=%s, user=%s, passwd=%s, db=%s, port=%d, NULL, CLIENT_REMEMBER_OPTIONS) = %s\n"
-                , "       database connection fault, monitor data will not be uploaded\n"
-                , host, user, passwd, db, port, mysql_error(&conn)
-        );
-        shoud_stop = true;
-        return;
-    }
-    printf("database connected!\n");
-    fflush(stdout);
     // Delete data from 7 days ago.
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
@@ -191,19 +209,13 @@ void AnalysisWorker::run() {
     };
     for(std::string& table: tables) {
         std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
-        mysql_real_query(&conn, sql.c_str(), sql.size());
+        mysql_real_query(&g_conn, sql.c_str(), sql.size());
     }
 
-    ps_ops = prepare(&conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
-    ps_memory = prepare(&conn, "INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
-    ps_cpu = prepare(&conn, "INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, `iowait`, engine_name) VALUES(?, ?, ?, ?)");
-    ps_dbsize = prepare(&conn, "INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)");
-    ps_diskinfo = prepare(&conn, "INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)");
-
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    TimeBucket read_bucket(&conn, engine_name.c_str(), setting->dbdirs);
-    TimeBucket insert_bucket(&conn, engine_name.c_str(), setting->dbdirs);
-    TimeBucket update_bucket(&conn, engine_name.c_str(), setting->dbdirs);
+    TimeBucket read_bucket(engine_name.c_str(), setting->dbdirs);
+    TimeBucket insert_bucket(engine_name.c_str(), setting->dbdirs);
+    TimeBucket update_bucket(engine_name.c_str(), setting->dbdirs);
     terark::AutoGrownMemIO buf;
     shoud_stop = false;
     while(!shoud_stop) {
@@ -245,5 +257,5 @@ void AnalysisWorker::run() {
     mysql_stmt_close(ps_cpu);
     mysql_stmt_close(ps_dbsize);
     mysql_stmt_close(ps_diskinfo);
-    mysql_close(&conn);
+    mysql_close(&g_conn);
 }
