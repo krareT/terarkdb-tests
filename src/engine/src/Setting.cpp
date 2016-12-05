@@ -535,20 +535,26 @@ bool BaseSetting::getPlanConfig(const uint32_t thread_id, PlanConfig &planConfig
 }
 
 bool BaseSetting::strSetThreadPlan(std::string &val) {
-    const char split_ch = ':';
-    std::stringstream ss(val);
-    uint32_t thread_id,plan_id;
-    ss >> thread_id;
-    if (threadPlanMap.count(thread_id) == 0)
+    char* endp = NULL;
+    const char* str = val.c_str();
+    auto thread_id_beg = strtoul(str, &endp, 10);
+    auto thread_id_end = thread_id_beg;
+    str = endp + 1;
+    if ('-' == *endp) {
+        thread_id_end = strtoul(str, &endp, 10);
+    }
+    str = endp + 1;
+    if (':' != *endp) {
         return false;
-    if (ss.get() != split_ch)
-        return false;
-    ss >> plan_id;
+    }
+    auto plan_id = strtoul(str, &endp, 10);
     {
         std::lock_guard<std::mutex> _lock(planMtx);
         if (plan_id >= planConfigs.size())
             return false;
     }
-    threadPlanMap[thread_id] = plan_id;
+    for (auto thread_id = thread_id_beg; thread_id <= thread_id_end; ++thread_id) {
+        threadPlanMap[uint32_t(thread_id)] = uint32_t(plan_id);
+    }
     return true;
 }

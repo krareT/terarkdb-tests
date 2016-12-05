@@ -117,14 +117,14 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
     std::cout << "Thread " << thread->tid << " stop!" << std::endl;
 }
 
-void Benchmark::loadKeys(void) {
+void Benchmark::loadKeys(double keySampleRatio) {
     std::cout << "Load Keys: " << setting.getKeysDataPath() << std::endl;
 	std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
     std::string str;
-    if (setting.keySampleRatio < 0.99) {
+    if (keySampleRatio < 0.99) {
         std::mt19937_64 random;
-        size_t upperBound = size_t(random.max() * setting.keySampleRatio);
+        size_t upperBound = size_t(random.max() * keySampleRatio);
         while (getline(keysFile, str)) {
             if (str.size() && random() < upperBound)
                 allkeys.push_back(str);
@@ -228,7 +228,7 @@ void Benchmark::Run(void) {
         this->Compact();
     }
     else {
-        loadKeys();
+        loadKeys(1.0);
     //  backupKeys(setting.getKeysDataPath() + ".bak"); // temporary
         std::cout << "allKeys size:" << allkeys.size() << std::endl;
         RunBenchmark();
