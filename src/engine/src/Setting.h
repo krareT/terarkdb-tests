@@ -160,28 +160,22 @@ public:
 
     size_t skipInsertLines = 0;
 
-// Maximum number of files to keep open at the same time (use default if == 0)
-     int FLAGS_open_files = 0;
+// Maximum number of files to keep open at the same time (use default if == -1)
+    int FLAGS_open_files = -1;
 
 // Bloom filter bits per key.
 // Negative means use default settings.
-     int FLAGS_bloom_bits = -1;
+    int FLAGS_bloom_bits = -1;
 
     int target_file_size_multiplier = 2;
-
-// read write percent
-     double FLAGS_read_write_percent = 100.0;
-     double FLAGS_write_new_record_percent = 80.0;
-     double FLAGS_read_old_record_percent = 50.0;
 
 // If true, do not destroy the existing database.  If you set this
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
-     bool FLAGS_use_existing_db = false;
+    bool FLAGS_use_existing_db = false;
 
 // Use the db with the following name.
     std::string FLAGS_db;
-    std::string FLAGS_db_table;
     const char* FLAGS_resource_data = nullptr;
     const char* FLAGS_keys_data = nullptr;
     int *shuff = nullptr;
@@ -208,11 +202,6 @@ public:
     int compactThreads = 2;
     bool rocksdbUniversalCompaction = true;
 
-    // Use the db with the following name.
-    void terarkSetting(int argc,char **argv);
-    void wiredTigerSetting(int argc,char **argv);
-
-    void rocksdbSetting(int argc, char **argv);
     Setting(int argc,char **argv,char *name);
 };
 

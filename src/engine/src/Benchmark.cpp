@@ -156,7 +156,9 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
     }
     auto randomIndex = rg() % allkeys.size();
     tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, false);//read lock
-    key.assign(allkeys.str(randomIndex));
+    const char*  p = allkeys.beg_of(randomIndex);
+    const size_t n = allkeys.slen(randomIndex);
+    key.assign(p, n);
     return true;
 }
 
@@ -166,7 +168,7 @@ bool Benchmark::pushKey(std::string &key) {
         tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, true);//write lock
         try {
             allkeys.push_back(key);
-        } catch (std::exception e) {
+        } catch (const std::exception& e) {
             fprintf(stderr, "%s\n", e.what());
             return false;
         }

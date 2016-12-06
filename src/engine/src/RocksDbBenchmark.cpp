@@ -107,6 +107,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
     }
 
+    options.max_open_files = set.FLAGS_open_files;
     options.base_background_compactions = set.compactThreads;
     options.max_background_compactions = set.compactThreads*2;
     options.num_levels = set.FLAGS_num_levels;

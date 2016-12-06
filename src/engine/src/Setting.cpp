@@ -12,123 +12,19 @@
 #include <terark/valvec.hpp>
 
 std::string BaseSetting::BenchmarkName;
-void Setting::wiredTigerSetting(int argc, char **argv){
-    std::string default_db_path;
-    for (int i = 2; i < argc; i++) {
-        double d;
-        int n;
-        long size;
-        char junk;
-        if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
-            FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
-        } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_compression_ratio = d;
-        } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_histogram = n;
-        } else if (sscanf(argv[i], "--use_lsm=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_use_lsm = n;
-        } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_use_existing_db = n;
-        } else if (sscanf(argv[i], "--max_compact_wait=%d%c", &n, &junk) == 1) {
-            FLAGS_max_compact_wait = n;
-        } else if (sscanf(argv[i], "--num=%d%c", &n, &junk) == 1) {
-            FLAGS_num = n;
-        } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
-            FLAGS_reads = n;
-        } else if (sscanf(argv[i], "--stagger=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_stagger = n;
-        } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
-            FLAGS_threads = n;
-        } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
-            FLAGS_value_size = n;
-        } else if (sscanf(argv[i], "--write_buffer_size=%d%c", &n, &junk) == 1) {
-            FLAGS_write_buffer_size = n;
-        } else if (sscanf(argv[i], "--cache_size=%ld%c", &size, &junk) == 1) {
 
-            FLAGS_cache_size = size;
-            std::cout << "cache_size " << FLAGS_cache_size << std::endl;
-        } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
-            FLAGS_bloom_bits = n;
-        } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
-            FLAGS_open_files = n;
-        } else if (sscanf(argv[i], "--read_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_read_write_percent = d;
-        } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
-            FLAGS_resource_data = argv[i] + 16;
-        } else if (strncmp(argv[i], "--keys_data=", 12) == 0){
-            FLAGS_keys_data = argv[i] + 12;
-            std::cout << "FLAGS_keys_data:" << FLAGS_keys_data << std::endl;
-        }
-    }
-
-    // Choose a location for the test database if none given with --db=<path>
-    if (FLAGS_db.empty()) {
-        leveldb::Env::Default()->GetTestDirectory(&default_db_path);
-        default_db_path += "/dbbench";
-        FLAGS_db = default_db_path;
-        dbdirs = {FLAGS_db};
-    }
-}
-
-void Setting::terarkSetting(int argc, char **argv) {
-    FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
-    FLAGS_open_files = leveldb::Options().max_open_files;
-    std::string default_db_path;
-    std::string default_db_table;
-    for (int i = 2; i < argc; i++) {
-        double d;
-        int n;
-        char junk;
-        if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
-            FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
-        } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_compression_ratio = d;
-        } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_histogram = n;
-        } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_use_existing_db = n;
-        } else if (sscanf(argv[i], "--sync_index=%d%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_sync_index = n;
-        } else if (sscanf(argv[i], "--num=%d%c", &n, &junk) == 1) {
-            FLAGS_num = n;
-        } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
-            FLAGS_reads = n;
-        } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
-            FLAGS_threads = n;
-        } else if (sscanf(argv[i], "--read_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_read_write_percent = d;
-        } else if (sscanf(argv[i], "--read_old_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_read_old_record_percent = d;
-        } else if (sscanf(argv[i], "--write_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_write_new_record_percent = d;
-        } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
-            FLAGS_resource_data = argv[i] + 16;
-            std::cout << "FLAGSresource_data:" << FLAGS_resource_data << std::endl;
-        } else if (strncmp(argv[i], "--keys_data=", 12) == 0){
-            FLAGS_keys_data = argv[i] + 12;
-            std::cout << "FLAGS_keys_data:" << FLAGS_keys_data << std::endl;
-        }
-    }
-
-    // Choose a location for the test database if none given with --db=<path>
-    if (FLAGS_db.empty()) {
-        leveldb::Env::Default()->GetTestDirectory(&default_db_path);
-        default_db_path += "/dbbench";
-        FLAGS_db = default_db_path;
-        dbdirs = {FLAGS_db};
-    }
-
-    if (FLAGS_db_table.size() == 0) {
-        default_db_table += "DfaDbTable";
-        FLAGS_db_table = default_db_table;
-    }
+static uint64_t ParseSizeXiB(const char* str) {
+    char* endp = NULL;
+    double val = strtod(str, &endp);
+    char scale = *endp;
+    if ('k' == scale || 'K' == scale)
+        return uint64_t(val * (1ull << 10));
+    else if ('m' == scale || 'M' == scale)
+        return uint64_t(val * (1ull << 20));
+    else if ('g' == scale || 'G' == scale)
+        return uint64_t(val * (1ull << 30));
+    else
+        return uint64_t(val);
 }
 
 Setting::Setting(int argc,char **argv,char *name) {
@@ -137,6 +33,9 @@ Setting::Setting(int argc,char **argv,char *name) {
     FLAGS_min_level_to_compress = 1;
 
     for (int i = 2; i < argc; ++i) {
+        double d;
+        char junk;
+        long n;
         fstring arg = argv[i];
         if (arg.startsWith("--keyfields=")) {
             valvec<fstring> fields;
@@ -175,6 +74,69 @@ Setting::Setting(int argc,char **argv,char *name) {
             disableWAL = true;
             printf("disableWAL = true\n");
         }
+        else if (arg.startsWith("--sync_index=")) {
+            FLAGS_sync_index = (int)lcast(arg.substr(strlen("--sync_index=")));
+        }
+        else if (arg.startsWith("--benchmarks=")) {
+            FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
+        }
+        else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
+            FLAGS_compression_ratio = d;
+        }
+        else if (sscanf(argv[i], "--histogram=%ld%c", &n, &junk) == 1 &&
+                   (n == 0 || n == 1)) {
+            FLAGS_histogram = n;
+        }
+        else if (sscanf(argv[i], "--use_lsm=%d%c", &n, &junk) == 1 &&
+                 (n == 0 || n == 1)) {
+            FLAGS_use_lsm = n;
+        }
+        else if (sscanf(argv[i], "--use_existing_db=%ld%c", &n, &junk) == 1 &&
+                   (n == 0 || n == 1)) {
+            FLAGS_use_existing_db = n;
+        }
+        else if (sscanf(argv[i], "--num=%ld%c", &n, &junk) == 1) {
+            FLAGS_num = n;
+        }
+        else if (sscanf(argv[i], "--reads=%ld%c", &n, &junk) == 1) {
+            FLAGS_reads = n;
+        }
+        else if (sscanf(argv[i], "--threads=%ld%c", &n, &junk) == 1) {
+            FLAGS_threads = n;
+        }
+        else if (sscanf(argv[i], "--value_size=%ld%c", &n, &junk) == 1) {
+            FLAGS_value_size = n;
+        }
+        else if (arg.startsWith("--write_buffer_size=")) {
+            FLAGS_write_buffer_size = ParseSizeXiB(arg.p + strlen("--write_buffer_size="));
+        }
+        else if (arg.startsWith("--cache_size=")) {
+            FLAGS_cache_size = ParseSizeXiB(arg.p + strlen("--cache_size="));
+        }
+        else if (sscanf(argv[i], "--bloom_bits=%ld%c", &n, &junk) == 1) {
+            FLAGS_bloom_bits = n;
+        }
+        else if (sscanf(argv[i], "--open_files=%ld%c", &n, &junk) == 1) {
+            FLAGS_open_files = n;
+        }
+        else if (arg.startsWith("--resource_data=")) {
+            FLAGS_resource_data = arg.substr(strlen("--resource_data=")).c_str();
+        }
+        else if (arg.startsWith("--flushThreads=")) {
+            flushThreads = terark::lcast(arg.substr(strlen("--flushThreads=")));
+        }
+        else if (arg.startsWith("--compactThreads=")) {
+            compactThreads = terark::lcast(arg.substr(strlen("--compactThreads=")));
+        }
+        else if (arg.startsWith("--numLevels=")) {
+            FLAGS_num_levels = terark::lcast(arg.substr(strlen("--numLevels=")));
+        }
+        else if (arg.startsWith("--target_file_size_multiplier=")) {
+            target_file_size_multiplier = terark::lcast(arg.substr(strlen("--target_file_size_multiplier=")));
+        }
+        else if (arg.startsWith("--universalCompaction=")) {
+            rocksdbUniversalCompaction = (int)terark::lcast(arg.substr(strlen("--universalCompaction=")));
+        }
     }
     dbdirs = {FLAGS_db};
     if (size_t(-1) == numFields) {
@@ -185,84 +147,12 @@ Setting::Setting(int argc,char **argv,char *name) {
         fprintf(stderr, "ERROR: missing argument --keyfields=...\n");
         exit(1);
     }
-    if (strcmp(name,"wiredtiger") == 0){
-        wiredTigerSetting(argc,argv);
-    }else if (strcmp(name,"terarkdb") == 0){
-        terarkSetting(argc,argv);
-    }else if (strcmp(name,"compact") == 0){
-        terarkSetting(argc,argv);
-    } else if (strcmp(name, "rocksdb") == 0 || strcmp(name, "terark_rocksdb") == 0)
-        rocksdbSetting(argc, argv);
-    else if (strcmp(name, "posix") == 0) {
-        terarkSetting(argc,argv);
-    }
-    else {
-        fprintf(stderr,"error:argv[1]:%s",argv[1]);
-        exit(1);
-    }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
     BaseSetting::BenchmarkName.assign(name);
     assert(!FLAGS_db.empty());
     std::cout << toString() << std::endl;
     std::cout << "wait" << std::endl;
-}
-
-void Setting::rocksdbSetting(int argc, char **argv) {
-    for (int i = 2; i < argc; i++) {
-        double d;
-        long n;
-        char junk;
-        terark::fstring arg(argv[i]);
-        if (arg.startsWith("--benchmarks=")) {
-            FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
-        } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
-            FLAGS_compression_ratio = d;
-        } else if (sscanf(argv[i], "--histogram=%ld%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_histogram = n;
-        } else if (sscanf(argv[i], "--use_existing_db=%ld%c", &n, &junk) == 1 &&
-                   (n == 0 || n == 1)) {
-            FLAGS_use_existing_db = n;
-        } else if (sscanf(argv[i], "--num=%ld%c", &n, &junk) == 1) {
-            FLAGS_num = n;
-        } else if (sscanf(argv[i], "--reads=%ld%c", &n, &junk) == 1) {
-            FLAGS_reads = n;
-        } else if (sscanf(argv[i], "--threads=%ld%c", &n, &junk) == 1) {
-            FLAGS_threads = n;
-        } else if (sscanf(argv[i], "--value_size=%ld%c", &n, &junk) == 1) {
-            FLAGS_value_size = n;
-        } else if (sscanf(argv[i], "--write_buffer_size=%ld%c", &n, &junk) == 1) {
-            if ('k' == junk || 'K' == junk)
-                FLAGS_write_buffer_size = n << 10;
-            else if ('m' == junk || 'M' == junk)
-                FLAGS_write_buffer_size = n << 20;
-            else if ('g' == junk || 'G' == junk)
-                FLAGS_write_buffer_size = n << 30;
-            else
-                FLAGS_write_buffer_size = n;
-            std::cout << "FLAGS_write_buffer_size " << FLAGS_write_buffer_size << std::endl;
-        } else if (sscanf(argv[i], "--cache_size=%ld%c", &n, &junk) == 1) {
-            FLAGS_cache_size = n;
-            std::cout << " cache size " << FLAGS_cache_size << std::endl;
-        } else if (sscanf(argv[i], "--bloom_bits=%ld%c", &n, &junk) == 1) {
-            FLAGS_bloom_bits = n;
-        } else if (sscanf(argv[i], "--open_files=%ld%c", &n, &junk) == 1) {
-            FLAGS_open_files = n;
-        } else if (strncmp(argv[i], "--resource_data=", 16) == 0) {
-            FLAGS_resource_data = argv[i] + 16;
-        } else if (arg.startsWith("--flushThreads=")) {
-            flushThreads = terark::lcast(arg.substr(strlen("--flushThreads=")));
-        } else if (arg.startsWith("--compactThreads=")) {
-            compactThreads = terark::lcast(arg.substr(strlen("--compactThreads=")));
-        } else if (arg.startsWith("--numLevels=")) {
-            FLAGS_num_levels = terark::lcast(arg.substr(strlen("--numLevels=")));
-        } else if (arg.startsWith("--target_file_size_multiplier=")) {
-            target_file_size_multiplier = terark::lcast(arg.substr(strlen("--target_file_size_multiplier=")));
-        } else if (arg.startsWith("--universalCompaction=")) {
-            rocksdbUniversalCompaction = (int)terark::lcast(arg.substr(strlen("--universalCompaction=")));
-        }
-    }
 }
 
 BaseSetting::BaseSetting() :
