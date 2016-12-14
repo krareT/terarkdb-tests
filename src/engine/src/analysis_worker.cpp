@@ -200,7 +200,7 @@ void AnalysisWorker::run() {
     // Delete data from 7 days ago.
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
-    int filter_time = t.tv_sec - 60*60*24*7;
+    int filter_time = t.tv_sec - 60*60*24*60;
     std::string tables[] = {"engine_test_ops_10s",
                             "engine_test_memory_10s",
                             "engine_test_cpu_10s",
