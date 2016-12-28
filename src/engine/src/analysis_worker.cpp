@@ -197,7 +197,7 @@ void AnalysisWorker::run() {
         shoud_stop = true;
         return;
     }
-    // Delete data from 7 days ago.
+#if 0
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
     int filter_time = t.tv_sec - 60*60*24*60;
@@ -211,6 +211,7 @@ void AnalysisWorker::run() {
         std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
         mysql_real_query(&g_conn, sql.c_str(), sql.size());
     }
+#endif
     prepair_all_stmt();
 
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
