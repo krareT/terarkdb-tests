@@ -29,6 +29,11 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 直接 diff file1.gz 和 file2.gz 解压后的内容，不需要先解压到中间文件。<br/>
 当使用这个技巧时，zcat 可能会成为瓶颈，因为 gzip 的解压速度可能低于 测试程序 读取输入并插入 DB 的速度。
 
+## RocksDB 存储格式
+
+* Key: 不管字段分隔符是啥，单条包含多个字段的组合 key ，字段之间总是以空格分隔。
+* Value: 输入数据中，去除掉 Key 以外的所有其它字段，按顺序拼接，不管字段分隔符是啥，统一使用 '\t' 做分隔。
+
 
 ## 命令行参数
 
@@ -41,6 +46,8 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 |--keyfields=   |逗号(,)分隔的数字列表，<br/>每个数字表示一个字段序号(字段序号从0开始)|
 |--numfields=   |每条记录有多少个字段，仅用于数据合法性检查|
 |--fieldsDelim= |字段分隔符，不指定该参数时，默认'\t'，TPC-H数据的分隔符是'&#124;'，<br/>shell脚本中需要将'&#124;'放入引号中，否则'&#124;' 会被解释为管道|
+|--insert\_data\_path=|**数据源**的文件名，可以是 shell 替换，例如 `<(zcat data.gz)`|
+|--keys\_data\_path=|预抽取出来的 key 文件|
 |--logdir=|用于自定义 RocksDB 的 logdir(记录状态和出错信息)|
 |--waldir=|用于自定义 RocksDB 的 waldir(wal 指 Write Ahead Log)|
 |--db=|数据库目录|
