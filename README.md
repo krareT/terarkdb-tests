@@ -50,7 +50,7 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 |--keys\_data\_path=|预抽取出来的 key 文件|
 |--logdir=|用于自定义 RocksDB 的 logdir(记录状态和出错信息)|
 |--waldir=|用于自定义 RocksDB 的 waldir(wal 指 Write Ahead Log)|
-|--db=|数据库目录|
+|--db=|数据库目录，在 RocksDB 中，可以指定多个数据库目录，此时，<br/>参数的格式为: `size1:dir1,size2:dir2,...`，<br/>size表示这个目录可用的空间配额，可以加K,M,G,T后缀，例如100G<br/>rocksdb在多个目录之间的容量平衡分配有问题，有些情况下可能达不到预期效果|
 |--alt\_engine\_name=|为这次测试指定一个名字/标签|
 |--disable\_wal|禁用 Write Ahead Log, 这会提高写性能，但出错时会丢失数据|
 |--flushThreads=|RocksDB 的 Flush 线程数（将 MemTable 刷新到 SST 文件的线程数），<br/>(Flush 线程的优先级高于 Compact)|
