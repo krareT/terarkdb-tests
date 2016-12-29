@@ -50,7 +50,7 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 |--numLevels=|RocksDB 的 Level 数量|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
 |--universalCompaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction|
-|--autoSlowDownWrite=|1或0，为1时，可能会因为 compact 太慢，导致写降速，为 0 时，对写速度不做限制，总是尽最大速度写入|
+|--autoSlowDownWrite=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入|
 |--thread\_num=|前台线程数（对数据库执行读/写/更新操作的线程），<br/>线程编号从0开始，对应前闭后开区间 [0, n) |
 |--plan\_config=|参数格式 `configId:读百分比:写百分比:更新百分比`，<br/>和 `--thread\_plan\_map` 配合，是为了<br/>让不同的线程按预定义的读/写/更新比例执行|
 |--thread\_plan\_map=|参数格式 `线程编号范围:configId`，<br/>线程编号范围格式 `min-max`，指闭区间[min,max]，<br/>线程编号范围也可以是单个线程编号|
