@@ -74,3 +74,8 @@ WhichDB 可以是:
 |--terocksdb\_tmpdir=|terocksdb 专用的临时目录，测试 terocksdb 时必须指定|
 |--mysql\_passwd=|指定监控数据库(MySQL)的密码|
 
+
+### 命令行样例
+
+`shell` 目录中有一些脚本，是命令行使用的标准样例，例如 [shell/Terocksdb\_Tpch\_Run.sh]
+
