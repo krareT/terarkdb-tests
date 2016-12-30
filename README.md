@@ -72,5 +72,5 @@ WhichDB 可以是:
 |--plan\_config=|参数格式 `configId:读百分比:写百分比:更新百分比`，<br/>和 `--thread_plan_map` 配合，可以<br/>让不同的线程按预定义的读/写/更新比例执行|
 |--thread\_plan\_map=|参数格式 `线程编号范围:configId`，<br/>线程编号范围格式 `min-max`，指闭区间[min,max]，<br/>线程编号范围也可以是单个线程编号|
 |--terocksdb\_tmpdir=|terocksdb 专用的临时目录，测试 terocksdb 时必须指定|
-|--mysql\_passwd|指定监控数据库(MySQL)的密码|
+|--mysql\_passwd=|指定监控数据库(MySQL)的密码|
 
