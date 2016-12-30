@@ -6,11 +6,11 @@
 void Session::do_read(){
     auto self(shared_from_this());
     boost::asio::async_read_until(socket_, buf_, "\n",
-                                  [this,self](boost::system::error_code ec, std::size_t lenth)
-                                  {
-                                      read_line_handler(ec,lenth);
-                                      do_read();
-                                  });
+		  [this,self](boost::system::error_code ec, std::size_t lenth)
+		  {
+			  read_line_handler(ec,lenth);
+			  do_read();
+		  });
 }
 void Session::read_line_handler(const boost::system::error_code& ec,std::size_t size) {
     if (ec)
@@ -28,14 +28,14 @@ void Session::do_write(std::string &message)
 {
     auto self(shared_from_this());
     boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),
-                             [this, self,message](boost::system::error_code ec, std::size_t transferred_byte)
-                             {
-                                 if (transferred_byte == message.size())
-                                     std::cout << "Reply finish!" << std::endl;
-                                 else{
-                                     std::cout << "Send:" << transferred_byte << std::endl;
-                                     std::string msg = message.substr(transferred_byte);
-                                     do_write(msg);
-                                 }
-                             });
+		 [this, self,message](boost::system::error_code ec, std::size_t transferred_byte)
+		 {
+			 if (transferred_byte == message.size())
+				 std::cout << "Reply finish!" << std::endl;
+			 else{
+				 std::cout << "Send:" << transferred_byte << std::endl;
+				 std::string msg = message.substr(transferred_byte);
+				 do_write(msg);
+			 }
+		 });
 }

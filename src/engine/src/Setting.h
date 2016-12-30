@@ -181,11 +181,10 @@ public:
     int *shuff = nullptr;
 
     bool FLAGS_use_lsm = true;
-// Stagger starting point of reads for sequential (or reverse).
     bool FLAGS_stagger = false;
     bool disableWAL = false;
+    bool autoSlowDownWrite = true;
 
-// Stagger starting point of reads for sequential (or reverse).
     int FLAGS_max_compact_wait = 1200;
 
     double keySampleRatio = 1.0; ///< when all keys are too large, just sample a subset
@@ -197,6 +196,8 @@ public:
     std::string logdir;
     std::string waldir;
     std::string alt_engine_name;
+
+	std::string terocksdb_tmpdir;
 
     int flushThreads = 2;
     int compactThreads = 2;

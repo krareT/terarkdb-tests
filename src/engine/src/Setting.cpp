@@ -11,6 +11,8 @@
 #include <terark/lcast.hpp>
 #include <terark/valvec.hpp>
 
+using terark::lcast;
+
 std::string BaseSetting::BenchmarkName;
 
 static uint64_t ParseSizeXiB(const char* str) {
@@ -47,11 +49,11 @@ Setting::Setting(int argc,char **argv,char *name) {
         else if (arg.startsWith("--numfields=")) {
             numFields = lcast(arg.substr(strlen("--numfields=")));
         }
-        else if (arg.startsWith("--fieldsDelim=")) {
-            fieldsDelim = arg[strlen("--fieldsDelim=")];
+        else if (arg.startsWith("--fields_delim=")) {
+            fieldsDelim = arg[strlen("--fields_delim=")];
         }
-        else if (arg.startsWith("--keySampleRatio=")) {
-            keySampleRatio = lcast(arg.substr(strlen("--keySampleRatio=")));
+        else if (arg.startsWith("--key_sample_ratio=")) {
+            keySampleRatio = lcast(arg.substr(strlen("--key_sample_ratio=")));
             keySampleRatio = std::min(keySampleRatio, 1.0);
             keySampleRatio = std::max(keySampleRatio, 0.0001);
         }
@@ -64,15 +66,15 @@ Setting::Setting(int argc,char **argv,char *name) {
         else if (arg.startsWith("--db=")) {
             FLAGS_db = argv[i] + 5;
         }
-        else if (arg.startsWith("--skipInsertLines=")) {
-            skipInsertLines = lcast(arg.substr(strlen("--skipInsertLines=")));
+        else if (arg.startsWith("--skip_insert_lines=")) {
+            skipInsertLines = lcast(arg.substr(strlen("--skip_insert_lines=")));
         }
         else if (arg.startsWith("--alt_engine_name=")) {
             alt_engine_name = arg.substr(strlen("--alt_engine_name=")).str();
         }
         else if (arg.startsWith("--disable_wal") || arg.startsWith("--disableWAL")) {
             disableWAL = true;
-            printf("disableWAL = true\n");
+            printf("disable_wal = true\n");
         }
         else if (arg.startsWith("--sync_index=")) {
             FLAGS_sync_index = (int)lcast(arg.substr(strlen("--sync_index=")));
@@ -122,20 +124,30 @@ Setting::Setting(int argc,char **argv,char *name) {
         else if (arg.startsWith("--resource_data=")) {
             FLAGS_resource_data = arg.substr(strlen("--resource_data=")).c_str();
         }
-        else if (arg.startsWith("--flushThreads=")) {
-            flushThreads = terark::lcast(arg.substr(strlen("--flushThreads=")));
+        else if (arg.startsWith("--flush_threads=")) {
+            flushThreads = lcast(arg.substr(strlen("--flush_threads=")));
         }
-        else if (arg.startsWith("--compactThreads=")) {
-            compactThreads = terark::lcast(arg.substr(strlen("--compactThreads=")));
+        else if (arg.startsWith("--compact_threads=")) {
+            compactThreads = lcast(arg.substr(strlen("--compact_threads=")));
         }
-        else if (arg.startsWith("--numLevels=")) {
-            FLAGS_num_levels = terark::lcast(arg.substr(strlen("--numLevels=")));
+        else if (arg.startsWith("--num_levels=")) {
+            FLAGS_num_levels = lcast(arg.substr(strlen("--num_levels=")));
         }
         else if (arg.startsWith("--target_file_size_multiplier=")) {
-            target_file_size_multiplier = terark::lcast(arg.substr(strlen("--target_file_size_multiplier=")));
+            target_file_size_multiplier = lcast(arg.substr(strlen("--target_file_size_multiplier=")));
         }
-        else if (arg.startsWith("--universalCompaction=")) {
-            rocksdbUniversalCompaction = (int)terark::lcast(arg.substr(strlen("--universalCompaction=")));
+        else if (arg.startsWith("--terocksdb_tmpdir=")) {
+            terocksdb_tmpdir = arg.substr(strlen("--terocksdb_tmpdir=")).c_str();
+        }
+         else if (arg.startsWith("--universal_compaction=")) {
+            rocksdbUniversalCompaction = lcast(arg.substr(strlen("--universal_compaction=")));
+        }
+        else if (arg.startsWith("--auto_slowdown_write=")) {
+            autoSlowDownWrite = lcast(arg.substr(strlen("--auto_slowdown_write=")));
+        }
+        else if (arg.startsWith("--mysql_passwd=")) {
+			extern const char* g_passwd;
+			g_passwd = arg.p + strlen("--mysql_passwd=");
         }
     }
     dbdirs = {FLAGS_db};
@@ -157,17 +169,17 @@ Setting::Setting(int argc,char **argv,char *name) {
 
 BaseSetting::BaseSetting() :
         setFuncMap{
-                {"-stop"              , &BaseSetting::strSetStop },
-                {"-thread_num"        , &BaseSetting::strSetThreadNums},
-                {"-sampling_rate"     , &BaseSetting::strSetSamplingRate},
-                {"-insert_data_path"  , &BaseSetting::strSetInsertDataPath},
-                {"-load_data_path"    , &BaseSetting::strSetLoadDataPath},
-                {"-load_or_run"       , &BaseSetting::strSetLoadOrRun},
-                {"-keys_data_path"    , &BaseSetting::strSetKeysDataPath},
-                {"-compact"           , &BaseSetting::strSetCompactTimes},
-                {"-message"           , &BaseSetting::strSetMessage},
-                {"-plan_config"       , &BaseSetting::strSetPlanConfigs},
-                {"-thread_plan_map"   , &BaseSetting::strSetThreadPlan},
+                {"--stop"              , &BaseSetting::strSetStop },
+                {"--thread_num"        , &BaseSetting::strSetThreadNums},
+                {"--sampling_rate"     , &BaseSetting::strSetSamplingRate},
+                {"--insert_data_path"  , &BaseSetting::strSetInsertDataPath},
+                {"--load_data_path"    , &BaseSetting::strSetLoadDataPath},
+                {"--action"            , &BaseSetting::strSetLoadOrRun},
+                {"--keys_data_path"    , &BaseSetting::strSetKeysDataPath},
+                {"--compact"           , &BaseSetting::strSetCompactTimes},
+                {"--message"           , &BaseSetting::strSetMessage},
+                {"--plan_config"       , &BaseSetting::strSetPlanConfigs},
+                {"--thread_plan_map"   , &BaseSetting::strSetThreadPlan},
         },
         planConfigs{
                 {90, 5, 5}
@@ -247,7 +259,7 @@ std::string BaseSetting::toString() {
         }
     }
     ret << "stop:\t"            << ifStop() << std::endl;
-    ret << "load_or_run:\t"     << action << std::endl;
+    ret << "action:\t"          << action << std::endl;
     ret << "keys_data_path:\t"  << getKeysDataPath() << std::endl;
     ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
     ret << "load_data_path:\t"  << getLoadDataPath() << std::endl;
@@ -311,7 +323,6 @@ std::string BaseSetting::setBaseSetting(int argc, char **argv) {
 }
 
 bool BaseSetting::strSetInsertDataPath(std::string &value) {
-
     if (0 == value.size()){
         return false;
     }

@@ -15,7 +15,7 @@ void RocksDbBenchmark::Open() {
     printf("rocksdb::DB::Open(%s)\n", setting.FLAGS_db.c_str());
     rocksdb::Status s = rocksdb::DB::Open(options, setting.FLAGS_db, &db);
     if (!s.ok()) {
-        fprintf(stderr, "rocksdb::DB::Open(%s) error: %s\n",
+        fprintf(stderr, "FATAL: rocksdb::DB::Open(%s) = %s\n",
                 setting.FLAGS_db.c_str(), s.ToString().c_str());
         exit(1);
     }
@@ -122,10 +122,12 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.max_write_buffer_number = 3;
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 
-    options.level0_slowdown_writes_trigger = 1000;
-    options.level0_stop_writes_trigger = 1000;
-    options.soft_pending_compaction_bytes_limit = 2ull << 40;
-    options.hard_pending_compaction_bytes_limit = 4ull << 40;
+    if (!setting.autoSlowDownWrite) {
+		options.level0_slowdown_writes_trigger = 1000;
+		options.level0_stop_writes_trigger = 1000;
+		options.soft_pending_compaction_bytes_limit = 2ull << 40;
+		options.hard_pending_compaction_bytes_limit = 4ull << 40;
+    }
 }
 
 void RocksDbBenchmark::Close() {

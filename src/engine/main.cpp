@@ -17,6 +17,8 @@
 #include <src/Stats.h>
 #include <src/analysis_worker.h>
 
+using terark::fstring;
+
 boost::asio::io_service* g_io_service;
 void tcpServer(Setting *setting, Benchmark *bm) {
     std::cout << "------------Tcp Server start-------------" << std::endl;
@@ -52,39 +54,37 @@ int main(int argc, char **argv) {
     //Stats::readTimeDataCq
     signal(SIGINT, sigint_fuc);
     if (argc < 2) {
-        fprintf(stderr, "WiredTiger or Terark?");
+        fprintf(stderr, "usage: %s WhichDB options\n", argv[0]);
+        return 1;
     }
-	char *passwd = getenv("MYSQL_PASSWD");
-    Setting setting(argc, argv, argv[1]);
+    const fstring whichDB = argv[1];
+    Setting setting(argc, argv, whichDB);
     g_settings = &setting;
     std::unique_ptr<Benchmark> bm;
 
     g_worker = new AnalysisWorker(&setting);
 
-    if (strcmp(argv[1], "terarkdb") == 0) {
+    g_worker->engine_name = "terarkdb";
+    if (whichDB == "terarkdb") {
         bm.reset(new TerarkBenchmark(setting));
-        g_worker->engine_name = "terarkdb";
     }
-    else if (strcmp(argv[1], "wiredtiger") == 0) {
+    else if (whichDB == "wiredtiger") {
         bm.reset(new WiredTigerBenchmark(setting));
-        g_worker->engine_name = "wiredtiger";
     }
-    else if (strcmp(argv[1], "compact") == 0) {
+    else if (whichDB == "compact") {
         compact(setting);
         puts("Compact Finish.Exit the program.");
         return 0;
     }
-    else if (strcmp(argv[1], "rocksdb") == 0) {
+    else if (whichDB == "rocksdb") {
         bm.reset(new RocksDbBenchmark(setting));
-        g_worker->engine_name = "rocksdb";
     }
-    else if (strcmp(argv[1],"terark_rocksdb") == 0) {
+    else if (whichDB == "terark_rocksdb" || whichDB == "terocksdb" ) {
         bm.reset(new TerarkRocksDbBenchmark(setting));
         g_worker->engine_name = "terocksdb";
     }
-    else if (strcmp(argv[1],"posix") == 0){
+    else if (whichDB == "posix") {
         bm.reset(new PosixBenchmark(setting));
-        g_worker->engine_name = "posix";
     }
     if (!setting.alt_engine_name.empty()) {
         g_worker->engine_name = setting.alt_engine_name;
@@ -94,17 +94,16 @@ int main(int argc, char **argv) {
     g_io_service = &io_service;
     std::thread tcpServerThread(tcpServer, &setting, bm.get());
     // start a thread for analysis and data upload
-    std::thread workerThrad([](AnalysisWorker* w) {
-        w->run();
-    }, g_worker);
+    std::thread workerThread([](AnalysisWorker* w){w->run();}, g_worker);
     if (bm) {
         bm->Run();
     }
     tcpServerThread.join();
-    workerThrad.join();
+    workerThread.join();
     if (g_worker) {
         delete g_worker;
         g_worker = NULL;
     }
     return 0;
 }
+

@@ -39,7 +39,7 @@ static int findTimeBucket(uint64_t time) {
     return t*10;
 }
 
-static char* g_passwd = getenv("MYSQL_PASSWD");
+char* g_passwd = getenv("MYSQL_PASSWD");
 static MYSQL g_conn;
 
 static bool Mysql_connect(MYSQL* conn) {

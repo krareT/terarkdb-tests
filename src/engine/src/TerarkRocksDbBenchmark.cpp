@@ -8,9 +8,8 @@
 TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(set) {
     std::cout <<"TR Benchmark" << std::endl;
     rocksdb::TerarkZipTableOptions opt;
-    char *tmp_dir = getenv("TerRocksdb_Tmpdir");
-    if (tmp_dir == NULL || strlen(tmp_dir) == 0) {
-        throw std::invalid_argument("U must set env TerRocksdb_Tmpdir!\n");
+    if (set.terocksdb_tmpdir.empty()) {
+        throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");
     }
     opt.terarkZipMinLevel = 0;
     opt.localTempDir = tmp_dir;
@@ -30,7 +29,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
 //    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewPlainTableFactory(pto));
 #endif
     options.table_factory.reset(factory);
-    options.target_file_size_base = 1ull << 30; // 1G
+    options.target_file_size_base = options.write_buffer_size / 3;
     options.target_file_size_multiplier = set.target_file_size_multiplier;
     setting.dbdirs.push_back(opt.localTempDir);
 }
@@ -44,16 +43,16 @@ std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
                       std::string (TerarkRocksDbBenchmark::*)(void)
                      >
     > handleFuncMap = {
-            { "terark_zip_min_level", { &TerarkRocksDbBenchmark::setTerarkZipMinLevel,
-                                        &TerarkRocksDbBenchmark::getTerarkZipMinLevel }},
-            { "check_sum_level",  { &TerarkRocksDbBenchmark::setCheckSumLevel,
-                                    &TerarkRocksDbBenchmark::getCheckSumLevel }},
-            { "sampling_rate", { &TerarkRocksDbBenchmark::setSamplingRatio,
-                                 &TerarkRocksDbBenchmark::getSamplingRatio }},
-            { "index_nest_level", { &TerarkRocksDbBenchmark::setIndexNestLevel,
-                                    &TerarkRocksDbBenchmark::getIndexNestLevel }},
-            { "estimate_compression_ratio", { &TerarkRocksDbBenchmark::setEstimateCompressionRatio,
-                                              &TerarkRocksDbBenchmark::getEstimateCompressionRatio }},
+		{ "terark_zip_min_level", { &TerarkRocksDbBenchmark::setTerarkZipMinLevel,
+									&TerarkRocksDbBenchmark::getTerarkZipMinLevel }},
+		{ "check_sum_level",  { &TerarkRocksDbBenchmark::setCheckSumLevel,
+								&TerarkRocksDbBenchmark::getCheckSumLevel }},
+		{ "sampling_rate", { &TerarkRocksDbBenchmark::setSamplingRatio,
+							 &TerarkRocksDbBenchmark::getSamplingRatio }},
+		{ "index_nest_level", { &TerarkRocksDbBenchmark::setIndexNestLevel,
+								&TerarkRocksDbBenchmark::getIndexNestLevel }},
+		{ "estimate_compression_ratio", { &TerarkRocksDbBenchmark::setEstimateCompressionRatio,
+										  &TerarkRocksDbBenchmark::getEstimateCompressionRatio }},
     };
     size_t div = msg.find(':');
     if (div == std::string::npos) {
