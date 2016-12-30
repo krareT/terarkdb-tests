@@ -58,6 +58,7 @@ WhichDB 可以是:
 |--fields\_delim= |字段分隔符，不指定该参数时，默认'\t'，TPC-H数据的分隔符是'&#124;'，<br/>shell脚本中需要将'&#124;'放入引号中，否则'&#124;' 会被解释为管道|
 |--insert\_data\_path=|**数据源**的文件名，可以是 shell 替换，例如 `<(zcat data.gz)`|
 |--keys\_data\_path=|预抽取出来的 key 文件，用来进行随机读|
+|--cache\_size=|RocksDB/wiredtiger 数据库缓存的尺寸，可以使用 K,M,G,T 后缀。<br/>注意：操作系统的 pagecache 需要另外的内存，如果 cache\_size 设置过大，<br/>可能会导致操作系统 pagecache 太小不够用而引起一些问题|
 |--logdir=|用于自定义 RocksDB 的 logdir(记录状态和出错信息)|
 |--waldir=|用于自定义 RocksDB 的 waldir(wal 指 Write Ahead Log)|
 |--db=|数据库目录，在 RocksDB 中，可以指定多个数据库目录，此时，<br/>参数的格式为: `size1:dir1,size2:dir2,...`，<br/>size表示这个目录可用的空间配额，可以加K,M,G,T后缀，例如100G<br/>rocksdb在多个目录之间的容量平衡分配有问题，有些情况下可能达不到预期效果|
