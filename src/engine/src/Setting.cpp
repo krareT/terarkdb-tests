@@ -39,15 +39,15 @@ Setting::Setting(int argc,char **argv,char *name) {
         char junk;
         long n;
         fstring arg = argv[i];
-        if (arg.startsWith("--keyfields=")) {
+        if (arg.startsWith("--key_fields=")) {
             valvec<fstring> fields;
-            arg.substr(strlen("--keyfields=")).split(',', &fields);
+            arg.substr(strlen("--key_fields=")).split(',', &fields);
             for(size_t j = 0; j < fields.size(); ++j) {
                 keyFields.push_back(lcast(fields[j]));
             }
         }
-        else if (arg.startsWith("--numfields=")) {
-            numFields = lcast(arg.substr(strlen("--numfields=")));
+        else if (arg.startsWith("--fields_num=")) {
+            numFields = lcast(arg.substr(strlen("--fields_num=")));
         }
         else if (arg.startsWith("--fields_delim=")) {
             fieldsDelim = arg[strlen("--fields_delim=")];
@@ -152,11 +152,11 @@ Setting::Setting(int argc,char **argv,char *name) {
     }
     dbdirs = {FLAGS_db};
     if (size_t(-1) == numFields) {
-        fprintf(stderr, "ERROR: missing argument --numfields=...\n");
+        fprintf(stderr, "ERROR: missing argument --fields_num=...\n");
         exit(1);
     }
     if (keyFields.empty()) {
-        fprintf(stderr, "ERROR: missing argument --keyfields=...\n");
+        fprintf(stderr, "ERROR: missing argument --key_fields=...\n");
         exit(1);
     }
     setThreadNums(FLAGS_threads);
