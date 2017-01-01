@@ -179,7 +179,8 @@ void RocksDbBenchmark::Load() {
 size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::string &val) {
     thread_local valvec<fstring> strvec;
     strvec.erase_all();
-    str.split(setting.fieldsDelim, &strvec);
+    byte_t delim = byte_t(setting.fieldsDelim);
+    str.split(delim, &strvec);
     key.resize(0);
     val.resize(0);
     if (strvec.size() < setting.numFields)
@@ -187,14 +188,14 @@ size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::stri
     auto& kf = setting.keyFields;
     for (size_t field: kf) {
         key.append(strvec[field].data(), strvec[field].size());
-        key.append(" ");
+        key.append(delim);
     }
     key.pop_back();
     for (size_t i = 0; i < strvec.size(); i++) {
         if (std::find(kf.begin(), kf.end(), i) != kf.end())
             continue;
         val.append(strvec[i].data(), strvec[i].size());
-        val.append("\t");
+        val.append(delim);
     }
     val.pop_back();
     return strvec.size();
