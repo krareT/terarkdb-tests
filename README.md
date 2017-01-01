@@ -31,9 +31,22 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 
 ## RocksDB 存储格式
 
-* Key: 单个 Key 可以是包含多个字段的组合 Key ，不管记录的字段分隔符是啥，存储到 RocksDB 中的 Key 的多个字段之间总是以空格分隔。
-* Value: 输入数据中，去除掉 Key 以外的所有其它字段，按顺序拼接，不管字段分隔符是啥，统一使用 '\t' 做分隔。
+* Key: 单个 Key 可以是包含多个字段的组合 Key ，组合 Key 的多个字段之间用记录分隔符分隔。
+* Value: 输入数据中，去除掉 Key 以外的所有其它字段，按顺序拼接，并使用记录分隔符分隔。
 
+### 分离 Key Value
+我们提供了一个程序(`splitkv`)来将文本数据库（每行由分隔符分隔成字段）中的 key value 拆分成分别的 key文件 和 value文件（用 cut 或 awk 也可以，但速度太慢）。
+
+分离的 Key 与 Value 在文本文件中的格式与在 RocksDB 中存储的格式完全相同。
+
+```bash
+cat  lineitem.tbl    | splitkv.exe -k 0,1,2 -d'|' lineitem.key lineitem.value
+# 或者，如果使用了 dbgen.sh 进行了压缩：
+zcat lineitem.tbl.gz | splitkv.exe -k 0,1,2 -d'|' lineitem.key lineitem.value
+```
+
+分离的 key 可以使用 [nlt\_build](https://github.com/Terark/terark-wiki-zh_cn/blob/master/tools/bin/nlt_build.exe.md) 进行压缩并测试<br/>
+分离的 value 可以使用 [zbs\_build](https://github.com/Terark/terark-wiki-zh_cn/blob/master/tools/bin/zbs_build.exe.md) 进行压缩并测试
 
 ## 命令行参数
 
@@ -97,4 +110,14 @@ TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 
 TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 44 个字节。为了符合测试要求，我们需要修改该字段的长度。我们基于 tpch\_2\_17 做了[这个修改](https://github.com/rockeet/tpch-dbgen/commit/13bf6a246514bb500ff0ab4991b36735110e3f8f)。
 
 我们增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
+
+## 预先生成随机采样的 Query Key
+通过分离 key value，我们可以得到所有的 key，为了测试随机读性能，我们需要把所有的 Key 都放入内存，并且支持在常数时间内随机取一个 Key，要实现这个需求，最简单的做法是使用 std::vector&lt;std::string&gt;，但这样消耗的内存太多，我们使用了一种简单的优化存储 [fstrvec](https://github.com/Terark/terark-db/tree/master/terark-base/src/terark/util/fstrvec.hpp)，然而，但即使这样，把全部的 Key 保存在内存中，在很多情况下也不太现实(TPC-H 短数据lineitem.comment=512字节时，550GB 数据中 Key 占 22GB)。
+
+所以，我们只在内存中存储一部分 Key，为了达到“随机”读的效果，这些 Key 必须是随机选取的，可以使用 `awk` 脚本，来完成这个随机选取的功能：
+```awk
+awk '{if(rand()<0.07)print($0)}' # 随机选取 7% 的 key
+```
+
+得到的这个采样 key 文件(sampled.keys.txt)之后，将参数 `--keys_data=sampled.keys.txt` 传给测试程序
 
