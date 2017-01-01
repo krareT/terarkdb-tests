@@ -23,8 +23,8 @@ export DictZipBlobStore_zipThreads=12
   --waldir=/data/terocksdb_tpch.waldir \
   --terocksdb_tmpdir=/newssd1/terocksdb_tpch_.tmpdir \
   --fields_delim="|" \
-  --numfields=16 \
-  --keyfields=0,1,2 \
+  --fields_num=16 \
+  --key_fields=0,1,2 \
   --key_sample_ratio=0.05 \
   --disable_wal \
   --num_levels=4 \

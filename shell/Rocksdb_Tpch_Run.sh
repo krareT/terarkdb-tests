@@ -19,8 +19,8 @@ export MYSQL_PASSWD=$1
   --logdir=/data/rocksdb_tpch.logdir \
   --waldir=/data/rocksdb_tpch.waldir \
   --fieldsDelim="|" \
-  --numfields=16 \
-  --keyfields=0,1,2 \
+  --fields_num=16 \
+  --key_fields=0,1,2 \
   --keySampleRatio=0.05 \
   --cache_size=16G \
   --disableWAL \

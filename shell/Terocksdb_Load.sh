@@ -17,8 +17,8 @@ rm -rf $dbdir/*
 	--load_or_run=load \
 	--keys_data_path=~/Documents/data/terark_rocksdb_keys \
     --db=$dbdir \
-    --numfields=8 \
-	--keyfields=2,7 \
+    --fields_num=8 \
+	--key_fields=2,7 \
     --load_data_path=/data/publicdata/wikipedia/wikipedia.txt \
 	--cache_size=16G \
 	--terocksdb_tmpdir=/newssd2/terark_rocksdb.tmpdir \

@@ -19,7 +19,7 @@ export DictZipBlobStore_zipThreads=3
 export MYSQL_PASSWD=$1
 echo $MYSQL_PASSWD
 gdb --arg ../build/Terark_Engine_Test terarkdb -read_percent=90 -insert_percent=5 \
-	--numfields=17 --keyfields=2,7 \
+	--fields_num=17 --key_fields=2,7 \
 	-load_or_run=run -insert_data_path=$insert_file \
 	--sync_index=1 --db=$dirname --threads=8 -keys_data_path=$keys_file
 date
