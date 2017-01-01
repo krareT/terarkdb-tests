@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     const fstring whichDB = argv[1];
-    Setting setting(argc, argv, whichDB);
+    Setting setting(argc, argv);
     g_settings = &setting;
     std::unique_ptr<Benchmark> bm;
 

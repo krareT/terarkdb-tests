@@ -12,7 +12,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
         throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");
     }
     opt.terarkZipMinLevel = 0;
-    opt.localTempDir = tmp_dir;
+    opt.localTempDir = set.terocksdb_tmpdir;
     opt.sampleRatio = 0.015;
     opt.indexNestLevel = 3;
     opt.softZipWorkingMemLimit = 16ull<<30;

@@ -29,7 +29,7 @@ static uint64_t ParseSizeXiB(const char* str) {
         return uint64_t(val);
 }
 
-Setting::Setting(int argc,char **argv,char *name) {
+Setting::Setting(int argc,char **argv) {
     using namespace terark;
     FLAGS_block_size = 16 * 1024;
     FLAGS_min_level_to_compress = 1;
@@ -161,7 +161,7 @@ Setting::Setting(int argc,char **argv,char *name) {
     }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
-    BaseSetting::BenchmarkName.assign(name);
+    BaseSetting::BenchmarkName.assign(argv[1]);
     assert(!FLAGS_db.empty());
     std::cout << toString() << std::endl;
     std::cout << "wait" << std::endl;

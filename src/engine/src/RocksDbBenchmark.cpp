@@ -188,14 +188,14 @@ size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::stri
     auto& kf = setting.keyFields;
     for (size_t field: kf) {
         key.append(strvec[field].data(), strvec[field].size());
-        key.append(delim);
+        key.push_back(delim);
     }
     key.pop_back();
     for (size_t i = 0; i < strvec.size(); i++) {
         if (std::find(kf.begin(), kf.end(), i) != kf.end())
             continue;
         val.append(strvec[i].data(), strvec[i].size());
-        val.append(delim);
+        val.push_back(delim);
     }
     val.pop_back();
     return strvec.size();

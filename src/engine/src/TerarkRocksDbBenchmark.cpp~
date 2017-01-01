@@ -9,7 +9,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     std::cout <<"TR Benchmark" << std::endl;
     rocksdb::TerarkZipTableOptions opt;
     if (set.terocksdb_tmpdir.empty()) {
-        throw std::invalid_argument("--terocksdb_tmpdir=/some/dir is required !\n");
+        throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");
     }
     opt.terarkZipMinLevel = 0;
     opt.localTempDir = tmp_dir;

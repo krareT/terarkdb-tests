@@ -203,7 +203,7 @@ public:
     int compactThreads = 2;
     bool rocksdbUniversalCompaction = true;
 
-    Setting(int argc,char **argv,char *name);
+    Setting(int argc, char **argv);
 };
 
 
