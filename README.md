@@ -31,7 +31,7 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 
 ## RocksDB 存储格式
 
-* Key: 不管字段分隔符是啥，单条包含多个字段的组合 key ，字段之间总是以空格分隔。
+* Key: 单个 Key 可以是包含多个字段的组合 Key ，不管记录的字段分隔符是啥，存储到 RocksDB 中的 Key 的多个字段之间总是以空格分隔。
 * Value: 输入数据中，去除掉 Key 以外的所有其它字段，按顺序拼接，不管字段分隔符是啥，统一使用 '\t' 做分隔。
 
 
@@ -88,3 +88,13 @@ WhichDB 可以是:
 |环境变量名|说明|
 |----------|----|
 |DictZipBlobStore\_zipThreads|该变量未设置时(默认)，相当于 8 ，<br/>如果机器的 CPU 数量小于 8 ，就是实际的 CPU 数量；<br/>如果设为 0，表示不使用多线程压缩；<br/>非0时，总是使用多线程压缩，读、压缩、写线程是分离的，<br/>默认值可以工作的不错，如果需要，可以进行精细控制，<br/>对于TPC-H数据，8个线程的压缩速度可以达到200MB/s|
+
+## TPC-H 测试数据
+我们对 TPC-H 的 dbgen 做了一些修改，改变文本字段的长度，用来生成我们需要的数据。
+
+TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 表的数据进行测试。
+
+TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 44 个字节。为了符合测试要求，我们需要修改该字段的长度。我们基于 tpch\_2\_17 做了[这个修改](https://github.com/rockeet/tpch-dbgen/commit/13bf6a246514bb500ff0ab4991b36735110e3f8f)。
+
+我们增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
+
