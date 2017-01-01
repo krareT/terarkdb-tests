@@ -27,7 +27,7 @@ Schema
 diff <(zcat file1.gz) <(zcat file2.gz>
 ```
 直接 diff file1.gz 和 file2.gz 解压后的内容，不需要先解压到中间文件。<br/>
-当使用这个技巧时，zcat 可能会成为瓶颈，因为 gzip 的解压速度可能低于 测试程序 读取输入并插入 DB 的速度。
+当使用这个技巧时，zcat 可能会成为瓶颈，因为 gzip 的解压速度可能低于 测试程序 读取输入并插入 DB 的速度；并且，这种实时解压会占用一个 CPU，所以，只有在磁盘空间不足时，再使用这种方法。
 
 ## RocksDB 存储格式
 
@@ -92,7 +92,7 @@ WhichDB 可以是:
 ## TPC-H 测试数据
 我们对 TPC-H 的 dbgen 做了一些修改，改变文本字段的长度，用来生成我们需要的数据。
 
-TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 表的数据进行测试。
+TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 表的数据进行测试。**注意**: TPC-H dbgen 生成的数据库文本文件，记录的分隔符是 '|' 。
 
 TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 44 个字节。为了符合测试要求，我们需要修改该字段的长度。我们基于 tpch\_2\_17 做了[这个修改](https://github.com/rockeet/tpch-dbgen/commit/13bf6a246514bb500ff0ab4991b36735110e3f8f)。
 
