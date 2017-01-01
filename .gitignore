@@ -39,3 +39,5 @@ cmake_install.cmake
 build/*
 shell/experiment
 
+# fuck, vim backup
+*~
