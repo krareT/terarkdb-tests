@@ -129,8 +129,9 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         options.max_write_buffer_number = 5;
         options.level0_slowdown_writes_trigger = 2;
         options.level0_stop_writes_trigger = 5000; // never stop write
-        options.soft_pending_compaction_bytes_limit = setting.write_rate_limit * 60; // 1 minutes written bytes
-        options.hard_pending_compaction_bytes_limit = 4ull << 40;
+    //  options.soft_pending_compaction_bytes_limit = setting.write_rate_limit * 60; // 1 minutes written bytes
+        options.soft_pending_compaction_bytes_limit = 4ull << 40;
+        options.hard_pending_compaction_bytes_limit = 8ull << 40;
     }
     else if (!setting.autoSlowDownWrite) {
 		options.level0_slowdown_writes_trigger = 1000;
