@@ -85,6 +85,7 @@ WhichDB 可以是:
 |--universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction|
 |--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
+|--index\_cache\_ratio=|默认 0.002，可以提高精确查找(DB.Get)的性能(0.002可以提高大约10%)，<br/>该值设置得越大，对性能提升的帮助越小<br/>该设置对通过 iterator 进行查找/遍历无任何帮助|
 |--thread\_num=|前台线程数（对数据库执行读/写/更新操作的线程），<br/>线程编号从0开始，对应前闭后开区间 [0, n) |
 |--plan\_config=|参数格式 `configId:读百分比:写百分比:更新百分比`，<br/>和 `--thread_plan_map` 配合，可以<br/>让不同的线程按预定义的读/写/更新比例执行|
 |--thread\_plan\_map=|参数格式 `线程编号范围:configId`，<br/>线程编号范围格式 `min-max`，指闭区间[min,max]，<br/>线程编号范围也可以是单个线程编号<br/>未指定 thread\_plan\_map 时，每个线程的默认 configId 是 0|

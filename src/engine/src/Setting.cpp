@@ -151,6 +151,9 @@ Setting::Setting(int argc,char **argv) {
         else if (arg.startsWith("--index_nest_level=")) {
             terocksdbIndexNestLevel = lcast(arg.substr(strlen("--index_nest_level=")));
         }
+        else if (arg.startsWith("--index_cache_ratio=")) {
+            terocksdbIndexCacheRatio = lcast(arg.substr(strlen("--index_cache_ratio=")));
+        }
         else if (arg.startsWith("--mysql_passwd=")) {
 			extern const char* g_passwd;
 			g_passwd = arg.p + strlen("--mysql_passwd=");
