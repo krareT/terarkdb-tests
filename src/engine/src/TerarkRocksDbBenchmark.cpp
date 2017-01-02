@@ -33,6 +33,12 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     // so do not make target_file_size too large
     options.target_file_size_base = 64 << 20; // 64M
     options.target_file_size_multiplier = set.target_file_size_multiplier;
+
+    // for TerarkZipTable, set to 1 will yield larger SST file.
+    // for rocksdb's official SST,
+    // we set max_subcompactions = 2, see RocksDbBenchmark::RocksDbBenchmark()
+    options.max_subcompactions = 1;
+
     setting.dbdirs.push_back(opt.localTempDir);
 }
 
