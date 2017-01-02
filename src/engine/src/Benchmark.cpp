@@ -250,6 +250,8 @@ Benchmark::Benchmark(Setting &s) : setting(s)
     compactTimes = s.getCompactTimes();
 }
 
+Benchmark::~Benchmark() {}
+
 std::string Benchmark::HandleMessage(const std::string &msg) {
 	std::string empty_str;
 	return empty_str;

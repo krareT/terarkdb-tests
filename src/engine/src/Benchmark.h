@@ -103,6 +103,7 @@ public:
     static tbb::concurrent_queue<std::string> updateDataCq;
 
     Benchmark(Setting &s);
+    virtual ~Benchmark();
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;
     virtual void Close(void) = 0;

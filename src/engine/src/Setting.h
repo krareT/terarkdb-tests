@@ -198,6 +198,7 @@ public:
     std::string alt_engine_name;
 
 	std::string terocksdb_tmpdir;
+	size_t write_rate_limit = 30 << 20; // 30MB/s
 
     int flushThreads = 2;
     int compactThreads = 2;

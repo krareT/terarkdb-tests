@@ -80,9 +80,10 @@ WhichDB 可以是:
 |--disable\_wal|禁用 Write Ahead Log, 这会提高写性能，但出错时会丢失数据|
 |--flush\_threads=|RocksDB 的 Flush 线程数（将 MemTable 刷新到 SST 文件的线程数），<br/>(Flush 线程的优先级高于 Compact)|
 |--num\_levels=|RocksDB 的 Level 数量|
+|--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数失效<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
 |--universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction|
-|--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入|
+|--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
 |--thread\_num=|前台线程数（对数据库执行读/写/更新操作的线程），<br/>线程编号从0开始，对应前闭后开区间 [0, n) |
 |--plan\_config=|参数格式 `configId:读百分比:写百分比:更新百分比`，<br/>和 `--thread_plan_map` 配合，可以<br/>让不同的线程按预定义的读/写/更新比例执行|
 |--thread\_plan\_map=|参数格式 `线程编号范围:configId`，<br/>线程编号范围格式 `min-max`，指闭区间[min,max]，<br/>线程编号范围也可以是单个线程编号<br/>未指定 thread\_plan\_map 时，每个线程的默认 configId 是 0|

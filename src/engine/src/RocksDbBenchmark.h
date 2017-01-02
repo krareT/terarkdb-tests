@@ -27,6 +27,7 @@ private:
 protected:
     rocksdb::Options options;
 public:
+    ~RocksDbBenchmark();
     RocksDbBenchmark(Setting &set);
 
     void Open() override;

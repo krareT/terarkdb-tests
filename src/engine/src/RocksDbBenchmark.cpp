@@ -21,6 +21,7 @@ void RocksDbBenchmark::Open() {
     }
 }
 
+RocksDbBenchmark::~RocksDbBenchmark() {}
 RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     db = nullptr;
     options.create_if_missing = true;
@@ -89,7 +90,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     filter_policy_.reset(set.FLAGS_bloom_bits >= 0 ?
                          rocksdb::NewBloomFilterPolicy(set.FLAGS_bloom_bits, false) : NULL);
     block_based_options.filter_policy = filter_policy_;
-    options.table_factory.reset(NewBlockBasedTableFactory(block_based_options));
+    options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(block_based_options));
 
     options.compression = set.FLAGS_compression_type;
     if (set.FLAGS_min_level_to_compress >= 0) {
@@ -122,7 +123,16 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.max_write_buffer_number = 3;
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 
-    if (!setting.autoSlowDownWrite) {
+    if (setting.write_rate_limit) {
+        // limit write rate being stable
+        options.delayed_write_rate = setting.write_rate_limit;
+        options.max_write_buffer_number = 5;
+        options.level0_slowdown_writes_trigger = 2;
+        options.level0_stop_writes_trigger = 5000; // never stop write
+        options.soft_pending_compaction_bytes_limit = setting.write_rate_limit * 60; // 1 minutes written bytes
+        options.hard_pending_compaction_bytes_limit = 4ull << 40;
+    }
+    else if (!setting.autoSlowDownWrite) {
 		options.level0_slowdown_writes_trigger = 1000;
 		options.level0_stop_writes_trigger = 1000;
 		options.soft_pending_compaction_bytes_limit = 2ull << 40;

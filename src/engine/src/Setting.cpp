@@ -142,6 +142,9 @@ Setting::Setting(int argc,char **argv) {
          else if (arg.startsWith("--universal_compaction=")) {
             rocksdbUniversalCompaction = lcast(arg.substr(strlen("--universal_compaction=")));
         }
+        else if (arg.startsWith("--write_rate_limit=")) {
+          write_rate_limit = arg.substr(strlen("--write_rate_limit=")).c_str();
+        }
         else if (arg.startsWith("--auto_slowdown_write=")) {
             autoSlowDownWrite = lcast(arg.substr(strlen("--auto_slowdown_write=")));
         }
