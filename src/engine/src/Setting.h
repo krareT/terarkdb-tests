@@ -186,6 +186,7 @@ public:
     bool autoSlowDownWrite = true;
 
     int FLAGS_max_compact_wait = 1200;
+    int terocksdbIndexNestLevel = 3;
 
     double keySampleRatio = 1.0; ///< when all keys are too large, just sample a subset
     size_t numFields = size_t(-1);

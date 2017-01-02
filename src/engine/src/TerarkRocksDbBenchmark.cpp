@@ -14,7 +14,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     opt.terarkZipMinLevel = 0;
     opt.localTempDir = set.terocksdb_tmpdir;
     opt.sampleRatio = 0.015;
-    opt.indexNestLevel = 3;
+    opt.indexNestLevel = std::min(9, std::max(2, set.terocksdbIndexNestLevel));
     opt.softZipWorkingMemLimit = 16ull<<30;
     opt.hardZipWorkingMemLimit = 28ull<<30;
 //  printf("local temp dir:%s\n",tmp_dir);
