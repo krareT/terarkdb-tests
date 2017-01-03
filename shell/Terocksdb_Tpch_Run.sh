@@ -28,6 +28,7 @@ export DictZipBlobStore_zipThreads=12
   --key_sample_ratio=0.05 \
   --disable_wal \
   --num_levels=4 \
+  --index_nest_level=2 \
   --compact_threads=2 \
   --universal_compaction=1 \
   --target_file_size_multiplier=5 \
