@@ -82,7 +82,7 @@ WhichDB 可以是:
 |--num\_levels=|RocksDB 的 Level 数量|
 |--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数失效<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
-|--universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction|
+|--use\_universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction|
 |--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
 |--index\_cache\_ratio=|默认 0.002，可以提高精确查找(DB.Get)的性能(0.002可以提高大约10%)，<br/>该值设置得越大，对性能提升的帮助越小<br/>该设置对通过 iterator 进行查找/遍历无任何帮助|
@@ -110,9 +110,7 @@ WhichDB 可以是:
 
 TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 表的数据进行测试。**注意**: TPC-H dbgen 生成的数据库文本文件，记录的分隔符是 '|' 。
 
-TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 44 个字节。为了符合测试要求，我们需要修改该字段的长度。我们基于 tpch\_2\_17 做了[这个修改](https://github.com/rockeet/tpch-dbgen/commit/13bf6a246514bb500ff0ab4991b36735110e3f8f)。
-
-我们增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
+TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 44 个字节。为了符合测试要求，我们允许通过环境变量修改该字段的长度；另外增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
 
 ## 预先生成随机采样的 Query Key
 通过分离 key value，我们可以得到所有的 key，为了测试随机读性能，我们需要把所有的 Key 都放入内存，并且支持在常数时间内随机取一个 Key，要实现这个需求，最简单的做法是使用 std::vector&lt;std::string&gt;，但这样消耗的内存太多，我们使用了一种简单的优化存储 [fstrvec](https://github.com/Terark/terark-db/tree/master/terark-base/src/terark/util/fstrvec.hpp)，然而，但即使这样，把全部的 Key 保存在内存中，在很多情况下也不太现实(TPC-H 短数据lineitem.comment=512字节时，550GB 数据中 Key 占 22GB)。

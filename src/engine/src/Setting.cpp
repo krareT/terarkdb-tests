@@ -139,8 +139,8 @@ Setting::Setting(int argc,char **argv) {
         else if (arg.startsWith("--terocksdb_tmpdir=")) {
             terocksdb_tmpdir = arg.substr(strlen("--terocksdb_tmpdir=")).c_str();
         }
-         else if (arg.startsWith("--universal_compaction=")) {
-            rocksdbUniversalCompaction = lcast(arg.substr(strlen("--universal_compaction=")));
+         else if (arg.startsWith("--use_universal_compaction=")) {
+            rocksdbUniversalCompaction = lcast(arg.substr(strlen("--use_universal_compaction=")));
         }
         else if (arg.startsWith("--write_rate_limit=")) {
             write_rate_limit = lcast(arg.substr(strlen("--write_rate_limit=")));
