@@ -6,14 +6,20 @@ if [ -z "$1" ]; then
 fi
 set -x
 cd ..
-cmake ./CMakeLists.txt
-make -j32
 cd shell
 echo "####Now, running benchmark"
 echo 3 > /proc/sys/vm/drop_caches
-export LD_LIBRARAY_PATH=/opt/gcc-5.4/lib64:/data/software/terark-Linux-x86_64-g++-5.4-bmi2-1/lib:/data/software/terark-db-Linux-x86_64-g++-5.4-bmi2-1/lib:/data/software/terark-zip-rocksdb-Linux-x86_64-g++-5.4-bmi2-1/lib
+if [ -z "$BMI2" ]; then
+	BMI2=1
+fi
+export LD_LIBRARY_PATH=/opt/${CXX}/lib64
+if [ -d ../lib ]; then
+	export LD_LIBRARY_PATH=../lib:$LD_LIBRARY_PATH
+else
+	export LD_LIBRARY_PATH=`cd ..; pwd`/pkg/terarkdb-tests-Linux-x86_64-${CXX}-bmi2-${BMI2}/lib:$LD_LIBRARY_PATH
+fi
 export DictZipBlobStore_zipThreads=12
-../build/Terark_Engine_Test \
+../bin/Terark_Engine_Test \
   terocksdb \
   --action=run \
   --keys_data_path=/disk2/tmp/lineitem.keys.0.06 \

@@ -66,7 +66,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
                 fprintf(stderr, "RocksDB: add dbdir: cap=%6.1fG, %s\n", cap/(1ull<<30), dir.c_str());
             }
             else {
-                fprintf(stderr, "ERROR: invalid dir:cap,...: %s\n", setting.FLAGS_db);
+                fprintf(stderr, "ERROR: invalid dir:cap,...: %s\n", setting.FLAGS_db.c_str());
                 exit(1);
             }
         }
