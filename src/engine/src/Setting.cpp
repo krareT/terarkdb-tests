@@ -154,6 +154,15 @@ Setting::Setting(int argc,char **argv) {
         else if (arg.startsWith("--index_cache_ratio=")) {
             terocksdbIndexCacheRatio = lcast(arg.substr(strlen("--index_cache_ratio=")));
         }
+        else if (arg.startsWith("--enable_auto_compact=")) {
+            FLAGS_enable_auto_compact = !!lcast(arg.substr(strlen("--enable_auto_compact=")));
+        }
+        else if (arg.startsWith("--rocksdb_memtable=")) {
+            FLAGS_rocksdb_memtable = arg.p + strlen("--rocksdb_memtable=");
+        }
+        else if (arg.startsWith("--load_size=")) {
+            FLAGS_load_size = ParseSizeXiB(arg.substr(strlen("--load_size=")).c_str());
+        }
         else if (arg.startsWith("--mysql_passwd=")) {
 			extern const char* g_passwd;
 			g_passwd = arg.p + strlen("--mysql_passwd=");

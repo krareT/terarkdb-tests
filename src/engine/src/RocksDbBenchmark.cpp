@@ -3,6 +3,7 @@
 //
 
 #include "RocksDbBenchmark.h"
+#include <rocksdb/memtablerep.h>
 #include <string>
 #include <terark/fstring.hpp>
 #include <terark/util/linebuf.hpp>
@@ -80,6 +81,24 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         options.wal_dir = setting.waldir;
         setting.dbdirs.push_back(setting.waldir);
     }
+    if (setting.ifRunOrLoad() == "load") {
+        options.allow_concurrent_memtable_write = false;
+        if (setting.FLAGS_rocksdb_memtable) {
+            if (strcmp(setting.FLAGS_rocksdb_memtable, "vector") == 0) {
+                options.memtable_factory.reset(new rocksdb::VectorRepFactory());
+                fprintf(stderr, "RocksDB: use VectorRepFactory\n");
+            }
+            else {
+                fprintf(stderr, "ERROR: invalid FLAGS_rocksdb_memtable(canbe vector or <empty>): %s\n",
+                        setting.FLAGS_rocksdb_memtable);
+                exit(1);
+            }
+        }
+        if (!setting.FLAGS_enable_auto_compact) {
+            options.disable_auto_compactions = true;
+        }
+    }
+
 
     rocksdb::BlockBasedTableOptions block_based_options;
     block_based_options.index_type = rocksdb::BlockBasedTableOptions::kBinarySearch;
@@ -149,6 +168,10 @@ void RocksDbBenchmark::Close() {
 void RocksDbBenchmark::Load() {
     printf("RocksDbBenchmark Loading ...\n"); fflush(stdout);
     Auto_fclose loadFile(fopen(setting.getLoadDataPath().c_str(), "r"));
+    if (loadFile == NULL) {
+        fprintf(stderr, "load error : can not open file %s , check --load_data_path\n", setting.getLoadDataPath().c_str());
+        exit(1);
+    }
     assert(loadFile != NULL);
 //    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
@@ -169,6 +192,9 @@ void RocksDbBenchmark::Load() {
                 fprintf(stderr, "put error: %s\n", s.ToString().c_str());
             }
             bytes += line.size();
+            if (setting.FLAGS_load_size > 0 && bytes > setting.FLAGS_load_size) {
+                break;
+            }
             pushKey(key);
         }
         lines_num += i;

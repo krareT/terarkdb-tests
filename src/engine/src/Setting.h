@@ -205,6 +205,9 @@ public:
     int flushThreads = 2;
     int compactThreads = 2;
     bool rocksdbUniversalCompaction = true;
+    bool FLAGS_enable_auto_compact = true;
+    const char* FLAGS_rocksdb_memtable = nullptr;
+    long FLAGS_load_size = 0;
 
     Setting(int argc, char **argv);
 };
