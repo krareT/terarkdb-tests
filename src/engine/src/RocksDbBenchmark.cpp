@@ -89,13 +89,21 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
                 fprintf(stderr, "RocksDB: use VectorRepFactory\n");
             }
             else {
-                fprintf(stderr, "ERROR: invalid FLAGS_rocksdb_memtable(canbe vector or <empty>): %s\n",
+                fprintf(stderr, "ERROR: invalid rocksdb_memtable(canbe vector or <empty>): %s\n",
                         setting.FLAGS_rocksdb_memtable);
                 exit(1);
             }
         }
         if (!setting.FLAGS_enable_auto_compact) {
             options.disable_auto_compactions = true;
+        }
+    }
+    else {
+        if (setting.FLAGS_rocksdb_memtable) {
+             fprintf(stderr, "INFO: ignore rocksdb_memtable: %s\n", setting.FLAGS_rocksdb_memtable);
+        }
+        if (!setting.FLAGS_enable_auto_compact) {
+            fprintf(stderr, "INFO: ignore enable_auto_compact=0\n");
         }
     }
 
