@@ -214,6 +214,9 @@ void RocksDbBenchmark::Load() {
         fflush(stdout);
         t1 = t2;
         last_bytes = bytes;
+        if (setting.FLAGS_load_size > 0 && bytes > setting.FLAGS_load_size) {
+            break;
+        }
     }
     printf("RocksDbBenchmark Load done, total = %zd lines, start compacting ...\n", lines_num);
     fflush(stdout);
