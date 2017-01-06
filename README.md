@@ -82,7 +82,10 @@ WhichDB 可以是:
 |--num\_levels=|RocksDB 的 Level 数量|
 |--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数失效<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
-|--use\_universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction|
+|--enable\_auto\_compact=|1或0，1表示启用自动compact，0表示禁用自动compact，默认为1|
+|--rocksdb\_memtable=|如果指定该参数，必须是 vector(使用VectorRepFactory)<br/>不指定的话，使用rocksdb的默认memtable<br/> vector memtable 仅在 --action=load 时有用，性能更好|
+|--load\_size=|如果输入文件尺寸过大，指定该参数可以只加载这么多数据就停止，<br/>仅在 --action=load 时有用|
+|--use\_universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction，默认为1|
 |--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
 |--index\_cache\_ratio=|默认 0.002，可以提高精确查找(DB.Get)的性能(0.002可以提高大约10%)，<br/>该值设置得越大，对性能提升的帮助越小<br/>该设置对通过 iterator 进行查找/遍历无任何帮助|
