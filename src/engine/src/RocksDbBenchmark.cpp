@@ -220,14 +220,16 @@ void RocksDbBenchmark::Load() {
             break;
         }
     }
-    printf("RocksDbBenchmark Load done, total = %zd lines, start compacting ...\n", lines_num);
+    printf("RocksDbBenchmark Load done, total = %zd lines, %.3f GB, start compacting ...\n"
+        , lines_num, bytes/1e9);
     fflush(stdout);
     db->CompactRange(NULL, NULL);
     long long t2 = pf.now();
-    printf("RocksDbBenchmark compact done:\n"
+    printf("RocksDbBenchmark compact done: total = %zd lines, size = %.3f GB\n"
         "  load    time = %8.2f seconds, speed = %8.3f MB/s\n"
         "  compact time = %8.2f seconds, speed = %8.3f MB/s\n"
         "  overall time = %8.2f seconds, speed = %8.3f MB/s\n"
+        , lines_num, bytes/1e9
         , pf.sf(t0,t1), bytes/pf.uf(t0,t1)
         , pf.sf(t1,t2), bytes/pf.uf(t1,t2)
         , pf.sf(t0,t2), bytes/pf.uf(t0,t2)
