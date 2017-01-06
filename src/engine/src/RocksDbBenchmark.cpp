@@ -173,6 +173,7 @@ void RocksDbBenchmark::Close() {
     db = NULL;
 }
 
+extern bool g_upload_fake_ops;
 void RocksDbBenchmark::Load() {
     printf("RocksDbBenchmark Loading ...\n"); fflush(stdout);
     Auto_fclose loadFile(fopen(setting.getLoadDataPath().c_str(), "r"));
