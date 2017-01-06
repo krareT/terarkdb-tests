@@ -220,7 +220,8 @@ void RocksDbBenchmark::Load() {
             break;
         }
     }
-    printf("RocksDbBenchmark Load done, total = %zd lines, start compacting ...\n", lines_num);
+    printf("RocksDbBenchmark Load done, total = %zd lines, %.3f GB, start compacting ...\n"
+        , lines_num, bytes/1e9);
     fflush(stdout);
     db->CompactRange(NULL, NULL);
     long long t2 = pf.now();
