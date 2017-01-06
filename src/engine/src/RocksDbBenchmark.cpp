@@ -222,7 +222,14 @@ void RocksDbBenchmark::Load() {
     printf("RocksDbBenchmark Load done, total = %zd lines, start compacting ...\n", lines_num);
     fflush(stdout);
     db->CompactRange(NULL, NULL);
-    printf("RocksDbBenchmark compact done!\n"); fflush(stdout);
+    long long t2 = pf.now();
+    printf("RocksDbBenchmark compact done:\n"
+        "  load    speed = %f'MB/s\n"
+        "  compact speed = %f'MB/s\n"
+        "  overall speed = %f'MB/s\n"
+        , bytes/pf.uf(t0,t1), bytes/pf.uf(t1,t2), bytes/pf(t0,t2)
+        );
+    fflush(stdout);
 }
 
 size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::string &val) {
