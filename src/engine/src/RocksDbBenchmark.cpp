@@ -225,10 +225,12 @@ void RocksDbBenchmark::Load() {
     db->CompactRange(NULL, NULL);
     long long t2 = pf.now();
     printf("RocksDbBenchmark compact done:\n"
-        "  load    speed = %8.3f'MB/s\n"
-        "  compact speed = %8.3f'MB/s\n"
-        "  overall speed = %8.3f'MB/s\n"
-        , bytes/pf.uf(t0,t1), bytes/pf.uf(t1,t2), bytes/pf.uf(t0,t2)
+        "  load    time = %8.2f seconds, speed = %8.3f MB/s\n"
+        "  compact time = %8.2f seconds, speed = %8.3f MB/s\n"
+        "  overall time = %8.2f seconds, speed = %8.3f MB/s\n"
+        , pf.sf(t0,t1), bytes/pf.uf(t0,t1)
+        , pf.sf(t1,t2), bytes/pf.uf(t1,t2)
+        , pf.sf(t0,t2), bytes/pf.uf(t0,t2)
         );
     fflush(stdout);
 }
