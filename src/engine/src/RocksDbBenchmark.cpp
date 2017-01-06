@@ -180,6 +180,7 @@ void RocksDbBenchmark::Load() {
         fprintf(stderr, "load error : can not open file %s , check --load_data_path\n", setting.getLoadDataPath().c_str());
         exit(1);
     }
+    g_upload_fake_ops = true;
     assert(loadFile != NULL);
 //    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
