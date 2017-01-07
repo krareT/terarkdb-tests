@@ -146,10 +146,10 @@ Setting::Setting(int argc,char **argv) {
             rocksdbUniversalCompaction = lcast(arg.substr(strlen("--use_universal_compaction=")));
         }
         else if (arg.startsWith("--write_rate_limit=")) {
-            write_rate_limit = lcast(arg.substr(strlen("--write_rate_limit=")));
+            write_rate_limit = ParseSizeXiB(arg.substr(strlen("--write_rate_limit=")));
         }
         else if (arg.startsWith("--auto_slowdown_write=")) {
-            autoSlowDownWrite = ParseSizeXiB(arg.substr(strlen("--auto_slowdown_write=")));
+            autoSlowDownWrite = lcast(arg.substr(strlen("--auto_slowdown_write=")));
         }
         else if (arg.startsWith("--index_nest_level=")) {
             terocksdbIndexNestLevel = lcast(arg.substr(strlen("--index_nest_level=")));
