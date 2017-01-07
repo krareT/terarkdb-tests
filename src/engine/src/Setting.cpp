@@ -28,6 +28,9 @@ static uint64_t ParseSizeXiB(const char* str) {
     else
         return uint64_t(val);
 }
+static uint64_t ParseSizeXiB(terark::fstring str) {
+  return ParseSizeXiB(str.c_str());
+}
 
 Setting::Setting(int argc,char **argv) {
     using namespace terark;
@@ -146,7 +149,7 @@ Setting::Setting(int argc,char **argv) {
             write_rate_limit = lcast(arg.substr(strlen("--write_rate_limit=")));
         }
         else if (arg.startsWith("--auto_slowdown_write=")) {
-            autoSlowDownWrite = lcast(arg.substr(strlen("--auto_slowdown_write=")));
+            autoSlowDownWrite = ParseSizeXiB(arg.substr(strlen("--auto_slowdown_write=")));
         }
         else if (arg.startsWith("--index_nest_level=")) {
             terocksdbIndexNestLevel = lcast(arg.substr(strlen("--index_nest_level=")));
@@ -155,13 +158,13 @@ Setting::Setting(int argc,char **argv) {
             terocksdbIndexCacheRatio = lcast(arg.substr(strlen("--index_cache_ratio=")));
         }
         else if (arg.startsWith("--enable_auto_compact=")) {
-            FLAGS_enable_auto_compact = !!lcast(arg.substr(strlen("--enable_auto_compact=")));
+            FLAGS_enable_auto_compact = lcast(arg.substr(strlen("--enable_auto_compact=")));
         }
         else if (arg.startsWith("--rocksdb_memtable=")) {
             FLAGS_rocksdb_memtable = arg.p + strlen("--rocksdb_memtable=");
         }
         else if (arg.startsWith("--load_size=")) {
-            FLAGS_load_size = ParseSizeXiB(arg.substr(strlen("--load_size=")).c_str());
+            FLAGS_load_size = ParseSizeXiB(arg.substr(strlen("--load_size=")));
         }
         else if (arg.startsWith("--mysql_passwd=")) {
 			extern const char* g_passwd;
