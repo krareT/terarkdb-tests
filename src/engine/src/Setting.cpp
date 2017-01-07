@@ -271,12 +271,13 @@ std::string BaseSetting::toString() {
     ret << "thread nums:\t"     << getThreadNums() << std::endl;
     {
         std::lock_guard<std::mutex>  _lock(planMtx);
+        using namespace std;
         for(int i = 0; i < planConfigs.size(); i ++) {
-            ret << "plan " << i << " read " << planConfigs[i].read_percent << " insert "\
-                << planConfigs[i].insert_percent << " update " << planConfigs[i].update_percent << std::endl;
+            ret << "plan " << setw(2) << i << " read " << setw(3) << planConfigs[i].read_percent << " insert "\
+                << setw(3) << planConfigs[i].insert_percent << " update " << planConfigs[i].update_percent << std::endl;
         }
         for(const auto &plan : threadPlanMap){
-            ret << "thread " << plan.first << " execute plan " << plan.second << std::endl;
+            ret << "thread " << setw(2) << plan.first << " execute plan " << setw(2) << plan.second << std::endl;
         }
     }
     ret << "stop:\t"            << ifStop() << std::endl;
