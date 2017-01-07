@@ -159,6 +159,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     //  options.soft_pending_compaction_bytes_limit = setting.write_rate_limit * 60; // 1 minutes written bytes
         options.soft_pending_compaction_bytes_limit = 4ull << 40;
         options.hard_pending_compaction_bytes_limit = 8ull << 40;
+        fprintf(stderr, "INFO: rocksdb set option.delayed_write_rate = %zd\n", setting.write_rate_limit);
     }
     else if (!setting.autoSlowDownWrite) {
 		options.level0_slowdown_writes_trigger = 1000;
