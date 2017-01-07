@@ -207,7 +207,7 @@ public:
     bool rocksdbUniversalCompaction = true;
     bool FLAGS_enable_auto_compact = true;
     const char* FLAGS_rocksdb_memtable = nullptr;
-    long FLAGS_load_size = 0;
+    size_t FLAGS_load_size = size_t(-1);
 
     Setting(int argc, char **argv);
 };

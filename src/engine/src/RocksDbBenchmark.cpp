@@ -186,14 +186,15 @@ void RocksDbBenchmark::Load() {
 //    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
     std::string key, value;
-	size_t lines_num = 0;
+    size_t lines_num = 0;
     size_t bytes = 0, last_bytes = 0;
+    size_t limit = setting.FLAGS_load_size;
     profiling pf;
     long long t0 = pf.now();
     long long t1 = t0;
-    while (!feof(loadFile)) {
+    while (bytes < limit && !feof(loadFile)) {
         size_t i = 0;
-        for (; i < 100000 && line.getline(loadFile) > 0; ++i) {
+        for (; i < 100000 && bytes < limit && line.getline(loadFile) > 0; ++i) {
             line.chomp();
             if (getKeyAndValue(line, key, value) == 0)
                 continue;
@@ -202,9 +203,6 @@ void RocksDbBenchmark::Load() {
                 fprintf(stderr, "put error: %s\n", s.ToString().c_str());
             }
             bytes += line.size();
-            if (setting.FLAGS_load_size > 0 && bytes > setting.FLAGS_load_size) {
-                break;
-            }
             pushKey(key);
         }
         lines_num += i;
@@ -216,9 +214,6 @@ void RocksDbBenchmark::Load() {
         fflush(stdout);
         t1 = t2;
         last_bytes = bytes;
-        if (setting.FLAGS_load_size > 0 && bytes > setting.FLAGS_load_size) {
-            break;
-        }
     }
     printf("RocksDbBenchmark Load done, total = %zd lines, %.3f GB, start compacting ...\n"
         , lines_num, bytes/1e9);
