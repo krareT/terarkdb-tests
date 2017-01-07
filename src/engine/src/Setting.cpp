@@ -10,6 +10,7 @@
 #include <rocksdb/env.h>
 #include <terark/lcast.hpp>
 #include <terark/valvec.hpp>
+#include <iomanip>
 
 using terark::lcast;
 
