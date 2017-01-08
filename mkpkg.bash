@@ -30,6 +30,7 @@ for CXX in $CompilerList
 do
 	export CXX
 	if which $CXX; then
+		export PATH=/opt/${CXX}/bin:/bin
 		COMPILER=`${CXX} terark-tools/detect-compiler.cpp -o a && ./a && rm -f a a.exe`
 		UNAME_MachineSystem=`uname -m -s | sed 's:[ /]:-:g'`
 		Suffix=${UNAME_MachineSystem}-${COMPILER}-bmi2-${BMI2}
@@ -52,7 +53,7 @@ do
 		# brain damanged cmake will ignore CMAKE_VERBOSE_MAKEFILE=ON when CMAKE_CXX_COMPILER is defined
 		#-DCMAKE_CXX_COMPILER=`which $CXX`
 		cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=TRUE -DTERARKDB_PATH=$PWD/pkg/terarkdb-tests-${Suffix}
-		sed -i 's:/usr/bin/g++:'$COMPILER:g **/CMakeFiles/**/*.{txt,make}
+		#sed -i 's:/usr/bin/g++:'$COMPILER:g **/CMakeFiles/**/*.{txt,make}
 		make clean
 		make -j32
 		cp build/Terark_Engine_Test pkg/terarkdb-tests-${Suffix}/bin
