@@ -196,7 +196,7 @@ BaseSetting::BaseSetting() :
                 {"--sampling_rate"     , &BaseSetting::strSetSamplingRate},
                 {"--insert_data_path"  , &BaseSetting::strSetInsertDataPath},
                 {"--load_data_path"    , &BaseSetting::strSetLoadDataPath},
-                {"--action"            , &BaseSetting::strSetLoadOrRun},
+                {"--action"            , &BaseSetting::setAction},
                 {"--keys_data_path"    , &BaseSetting::strSetKeysDataPath},
                 {"--compact"           , &BaseSetting::strSetCompactTimes},
                 {"--message"           , &BaseSetting::strSetMessage},
@@ -367,11 +367,11 @@ bool BaseSetting::strSetLoadDataPath(std::string& value) {
     return true;
 }
 
-std::string BaseSetting::ifRunOrLoad(void) const {
+const std::string& BaseSetting::getAction(void) const {
     return action;
 }
 
-bool BaseSetting::strSetLoadOrRun(std::string &value){
+bool BaseSetting::setAction(std::string &value){
     action = value;
     return true;
 }

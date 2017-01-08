@@ -10,7 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include <rocksdb/options.h>
-#include "tbb/concurrent_queue.h"
+#include <tbb/concurrent_queue.h>
 #include <mutex>
 #include <tbb/concurrent_unordered_map.h>
 
@@ -22,14 +22,7 @@ struct PlanConfig{
     PlanConfig(uint32_t r, uint32_t i, uint32_t u)
             : read_percent(r), insert_percent(i), update_percent(u) {}
 };
-struct EnumClassHash
-{
-    template <typename T>
-    std::size_t operator()(T t) const
-    {
-        return static_cast<std::size_t>(t);
-    }
-};
+
 class BaseSetting{
 public:
     enum class OP_TYPE{READ,INSERT,UPDATE};
@@ -52,29 +45,17 @@ private:
 
 public:
     bool strSetInsertDataPath(std::string &);
-
     bool strSetSamplingRate(std::string &);
-
     bool strSetStop(std::string &);
-
     bool strSetReadPercent(std::string &);
-
     bool strSetThreadNums(std::string &);
-
     bool strSetInsertPercent(std::string &);
-
     bool strSetLoadDataPath(std::string &);
-
-    bool strSetLoadOrRun(std::string &);
-
+    bool setAction(std::string &);
     bool strSetKeysDataPath(std::string &);
-
     bool strSetCompactTimes(std::string &);
-
     bool strSetMessage(std::string &);
-
     bool strSetPlanConfigs(std::string &);
-
     bool strSetThreadPlan(std::string&);
 
 protected:
@@ -96,7 +77,7 @@ public:
     bool getPlanConfig(uint32_t, PlanConfig &planConfig);
     std::string getMessage(void);
     bool ifStop(void) const ;
-    std::string ifRunOrLoad(void) const ;
+    const std::string& getAction(void) const ;
     void setStop(void);
     std::string setBaseSetting(std::string &line);
     std::string setBaseSetting(int argc,char **argv);

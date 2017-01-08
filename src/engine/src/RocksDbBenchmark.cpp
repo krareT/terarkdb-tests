@@ -81,7 +81,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         options.wal_dir = setting.waldir;
         setting.dbdirs.push_back(setting.waldir);
     }
-    if (setting.ifRunOrLoad() == "load") {
+    if (setting.getAction() == "load") {
         options.allow_concurrent_memtable_write = false;
         if (setting.FLAGS_rocksdb_memtable) {
             if (strcmp(setting.FLAGS_rocksdb_memtable, "vector") == 0) {

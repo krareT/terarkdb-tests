@@ -3,6 +3,8 @@
 //
 
 #include "TerarkBenchmark.h"
+#include <terark/util/autoclose.hpp>
+#include <terark/util/linebuf.hpp>
 
 void TerarkBenchmark::PrintHeader() {
     fprintf(stdout, "NarkDB Test Begins!");
@@ -41,20 +43,24 @@ void TerarkBenchmark::DoWrite(bool seq) {
     std::cout << "Read data from : " << setting.getLoadDataPath() << std::endl;
     std::string str;
     long long recordnumber = 0;
-    const Schema &rowSchema = tab->rowSchema();
+    const Schema& rowSchema = tab->rowSchema();
+    const Schema& keySchema = tab->getIndexSchema(0);
     valvec<byte_t> row;
     DbContextPtr ctx = tab->createDbContext();
     ctx->syncIndex = setting.FLAGS_sync_index;
-    FILE *loadFile = fopen(setting.getLoadDataPath().c_str(), "r");
-    assert(loadFile != NULL);
-    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
-    char *buf;
-    size_t n = 0;
-    buf = NULL;
-    std::string key;
-    while (getline(&buf, &n, loadFile) != -1) {
-        str = buf;
-        if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', str, &row)) {
+    terark::Auto_fclose loadFile(fopen(setting.getLoadDataPath().c_str(), "r"));
+    if (!loadFile) {
+      fprintf(stderr, "ERROR: fopen(%s, r) = %s\n",
+          setting.getLoadDataPath().c_str(), strerror(errno));
+      exit(1);
+    }
+    terark::LineBuf line;
+    terark::valvec<byte_t> key;
+    std::string strKey;
+    size_t colnum = rowSchema.columnNum();
+    terark::db::ColumnVec cols;
+    while (line.getline(loadFile) > 0) {
+        if (rowSchema.parseDelimText('\t', line, &row) != colnum) {
             std::cerr << "ERROR STR:" << str << std::endl;
             continue;
         }
@@ -63,19 +69,13 @@ void TerarkBenchmark::DoWrite(bool seq) {
             printf("Insert failed: %s\n", ctx->errMsg.c_str());
         }
         assert(VerifyOneKey(rid, row, ctx) == true);
-        key = getKey(str);
-        pushKey(key);
+        rowSchema.parseRow(row, &cols);
+        keySchema.selectParent(cols, &key);
+        strKey.assign((char*)key.data(), key.size());
+        pushKey(strKey);
         recordnumber++;
         if (recordnumber % 100000 == 0)
             std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
-        if (n > 1024 * 1024) {
-            free(buf);
-            buf = NULL;
-            n = 0;
-        }
-    }
-    if (buf != NULL) {
-        free(buf);
     }
     time_t now;
     struct tm *timenow;

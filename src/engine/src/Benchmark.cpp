@@ -181,7 +181,7 @@ extern bool g_upload_fake_ops;
 void Benchmark::loadInsertData(const Setting *setting){
     const char* fpath = setting->getInsertDataPath().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));
-	if (!ifs) {
+    if (!ifs) {
         fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", fpath, strerror(errno));
         return;
     }
@@ -205,6 +205,9 @@ void Benchmark::loadInsertData(const Setting *setting){
     g_upload_fake_ops = true;
     fprintf(stderr, "Benchmark::loadInsertData(%s) %s, lines = %zd\n", fpath
         , setting->ifStop()? "stopped" : "completed", lines);
+
+    return;
+
     if (!setting->ifStop()) {
         fprintf(stderr, "Benchmark::loadInsertData(): all data are loaded, wait for 2 minutes then compact!\n");
         usleep(2*60*1000*1000);
@@ -216,7 +219,7 @@ void Benchmark::loadInsertData(const Setting *setting){
 
 void Benchmark::Run(void) {
     Open();
-    if (setting.ifRunOrLoad() == "load") {
+    if (setting.getAction() == "load") {
         try {
             std::cout << "load" << std::endl;
             allkeys.erase_all();
@@ -226,7 +229,7 @@ void Benchmark::Run(void) {
             std::cout << e.what() << std::endl;
         }
     }
-    else if (setting.ifRunOrLoad() == "compact") {
+    else if (setting.getAction() == "compact") {
         this->Compact();
     }
     else {

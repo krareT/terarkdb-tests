@@ -50,8 +50,6 @@
 #include <boost/algorithm/string.hpp>
 //terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 
-
-
 class Benchmark{
 private:
     typedef bool (Benchmark::*executeFunc_t)(ThreadState *);
@@ -95,7 +93,7 @@ private:
 
     void reportMessage(const std::string &);
 public:
-    void  Run(void);
+    void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
     bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
