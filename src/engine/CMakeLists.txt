@@ -45,7 +45,7 @@ add_executable(Terark_Engine_Test
 		src/ThreadState.cpp src/ThreadState.h
 		src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h
 		src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
-		src/TerarkRocksDbBenchmark.cpp src/TerarkRocksDbBenchmark.h
+		src/TerocksBenchmark.cpp src/TerocksBenchmark.h
 		src/PosixBenchmark.cpp src/PosixBenchmark.h
 		)
 

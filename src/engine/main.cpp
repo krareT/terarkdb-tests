@@ -12,7 +12,7 @@
 #include <src/TerarkBenchmark.h>
 #include <src/WiredTigerBenchmark.h>
 #include <src/RocksDbBenchmark.h>
-#include <src/TerarkRocksDbBenchmark.h>
+#include <src/TerocksBenchmark.h>
 #include <src/PosixBenchmark.h>
 #include <src/Stats.h>
 #include <src/analysis_worker.h>

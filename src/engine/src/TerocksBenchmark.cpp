@@ -2,7 +2,7 @@
 // Created by terark on 16-9-8.
 //
 
-#include "TerarkRocksDbBenchmark.h"
+#include "TerocksBenchmark.h"
 #include <rocksdb/slice_transform.h>
 
 TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(set) {
