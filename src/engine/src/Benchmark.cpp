@@ -186,7 +186,8 @@ void Benchmark::loadInsertData(const Setting *setting){
         fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", fpath, strerror(errno));
         return;
     }
-    fprintf(stderr, "Benchmark::loadInsertData(%s) start\n", fpath);
+    size_t limit = setting->FLAGS_load_size;
+    fprintf(stderr, "Benchmark::loadInsertData(%s) start, limit = %f GB\n", fpath, limit/1e9);
     LineBuf line;
     size_t lines = 0;
     while (lines < setting->skipInsertLines && line.getline(ifs) > 0) {
@@ -196,7 +197,6 @@ void Benchmark::loadInsertData(const Setting *setting){
     terark::profiling pf;
     long long t0 = pf.now();
     size_t bytes = 0;
-    size_t limit = setting->FLAGS_load_size;
     while (bytes < limit && !setting->ifStop() && !feof(ifs)) {
         size_t count = 0;
         while (bytes < limit && updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
