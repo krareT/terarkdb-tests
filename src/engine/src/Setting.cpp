@@ -93,7 +93,7 @@ Setting::Setting(int argc,char **argv) {
                    (n == 0 || n == 1)) {
             FLAGS_histogram = n;
         }
-        else if (sscanf(argv[i], "--use_lsm=%d%c", &n, &junk) == 1 &&
+        else if (sscanf(argv[i], "--use_lsm=%ld%c", &n, &junk) == 1 &&
                  (n == 0 || n == 1)) {
             FLAGS_use_lsm = n;
         }

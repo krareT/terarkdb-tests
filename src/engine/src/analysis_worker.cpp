@@ -7,7 +7,6 @@
 #include "util/system_resource.h"
 #include <terark/io/MemStream.hpp>
 #include <terark/lcast.hpp>
-#include "cppconn/prepared_statement.h"
 #include <mysql.h>
 #include <errmsg.h>
 
@@ -59,9 +58,11 @@ static bool Mysql_connect(MYSQL* conn) {
     conn->reconnect = true;
     unsigned long clientflag = CLIENT_REMEMBER_OPTIONS;
     if (!mysql_real_connect(conn, host, user, g_passwd, db, port, NULL, clientflag)) {
+	//fprintf(stderr, "ERROR: mysql_real_connect failed\n");
+	//return false;
         fprintf(stderr
                 , "ERROR: mysql_real_connect(host=%s, user=%s, passwd=%s, db=%s, port=%d, NULL, CLIENT_REMEMBER_OPTIONS) = %s\n"
-                , "       database connection fault, monitor data will not be uploaded\n"
+                  "       database connection fault, monitor data will not be uploaded\n"
                 , host, user, g_passwd, db, port, mysql_error(conn)
         );
         return false;

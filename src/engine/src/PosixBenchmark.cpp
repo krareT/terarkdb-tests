@@ -4,6 +4,9 @@
 
 #include <dirent.h>
 #include "PosixBenchmark.h"
+#include <terark/util/autoclose.hpp>
+#include <terark/io/FileStream.hpp>
+
 PosixBenchmark::PosixBenchmark(Setting &setting):Benchmark(setting){
 
 }
@@ -52,13 +55,10 @@ bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
         return false;
     std::string read_path = setting.FLAGS_db;
     read_path = read_path + "/" + ts->key;
-    std::unique_ptr<FILE, decltype(&fclose)> read_file(fopen(read_path.c_str(),"r"),fclose);
-    if (read_file.get() == nullptr)
-        return false;
-    auto size = ftell(read_file.get());
-
-    std::unique_ptr<char > buf(new char [size]);
-    if (size != fread(buf.get(),1,size,read_file.get())){
+    terark::FileStream read_file(read_path, "r");
+    size_t size = read_file.fsize();
+    std::unique_ptr<char> buf(new char [size]);
+    if (size != read_file.read(buf.get(), size)){
         fprintf(stderr,"posix read error:%s\n",strerror(errno));
         return false;
     }
