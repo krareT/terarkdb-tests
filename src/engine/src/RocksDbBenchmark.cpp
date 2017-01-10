@@ -231,6 +231,8 @@ void RocksDbBenchmark::Load() {
         , pf.sf(t0,t2), bytes/pf.uf(t0,t2)
         );
     fflush(stdout);
+    extern void stop_test();
+    stop_test();
 }
 
 size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::string &val) {
