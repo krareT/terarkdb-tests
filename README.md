@@ -71,6 +71,7 @@ WhichDB 可以是:
 |--fields\_num=   |每条记录有多少个字段，仅用于数据合法性检查|
 |--fields\_delim= |字段分隔符，不指定该参数时，默认'\t'，TPC-H数据的分隔符是'&#124;'，<br/>shell脚本中需要将'&#124;'放入引号中，否则'&#124;' 会被解释为管道|
 |--insert\_data\_path=|**数据源**的文件名，可以是 shell 替换，例如 `<(zcat data.gz)`|
+|--load\_data\_path=|**数据源**的文件名，可以是 shell 替换，例如 `<(zcat data.gz)`<br/>load 速度比较快，`zcat`的速度可能跟不上，所以，最好使用SSD上存储的未压缩的文件|
 |--keys\_data\_path=|预抽取出来的 key 文件，用来进行随机读|
 |--cache\_size=|RocksDB/wiredtiger 数据库缓存的尺寸，可以使用 K,M,G,T 后缀。<br/>注意：操作系统的 pagecache 需要另外的内存，如果 cache\_size 设置过大，<br/>可能会导致操作系统 pagecache 太小不够用而引起一些问题|
 |--logdir=|用于自定义 RocksDB 的 logdir(记录状态和出错信息)|
@@ -113,7 +114,7 @@ WhichDB 可以是:
 
 TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 表的数据进行测试。**注意**: TPC-H dbgen 生成的数据库文本文件，记录的分隔符是 '|' 。
 
-TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 44 个字节。为了符合测试要求，我们允许通过环境变量修改该字段的长度；另外增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
+TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 27 个字节。为了符合测试要求，我们允许通过环境变量修改该字段的长度；另外增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
 
 ## 预先生成随机采样的 Query Key
 通过分离 key value，我们可以得到所有的 key，为了测试随机读性能，我们需要把所有的 Key 都放入内存，并且支持在常数时间内随机取一个 Key，要实现这个需求，最简单的做法是使用 std::vector&lt;std::string&gt;，但这样消耗的内存太多，我们使用了一种简单的优化存储 [fstrvec](https://github.com/Terark/terark-db/tree/master/terark-base/src/terark/util/fstrvec.hpp)，然而，但即使这样，把全部的 Key 保存在内存中，在很多情况下也不太现实(TPC-H 短数据lineitem.comment=512字节时，550GB 数据中 Key 占 22GB)。
