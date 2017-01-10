@@ -43,11 +43,15 @@ void compact(Setting &setting) {
 Setting *g_settings;
 AnalysisWorker *g_worker;
 
+void stop_test() {
+  g_settings->setStop();
+  g_worker->stop();
+  g_io_service->stop();
+}
+
 void sigint_fuc(int sig) {
-    std::cout << "Ctrl+c" << std::endl;
-    g_settings->setStop();
-    g_worker->stop();
-    g_io_service->stop();
+    fprintf(stderr, "Ctrl + C\n");
+    stop_test();
 }
 
 int main(int argc, char **argv) {

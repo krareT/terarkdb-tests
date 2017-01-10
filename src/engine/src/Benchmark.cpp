@@ -217,12 +217,9 @@ void Benchmark::loadInsertData(const Setting *setting){
         , setting->ifStop() ? "stopped" : "completed"
         , lines, bytes, pf.sf(t0,t1), bytes/pf.uf(t0,t1)
         );
-
-    return;
-
-    if (!setting->ifStop()) {
-        fprintf(stderr, "Benchmark::loadInsertData(): all data are loaded, wait for 2 minutes then compact!\n");
-        usleep(2*60*1000*1000);
+    if (feof(ifs)) {
+        fprintf(stderr, "Benchmark::loadInsertData(): all data are loaded, wait for %f sec then compact!\n", pf.sf(t0,t1)/2);
+        usleep(pf.us(t0,t1)/2);
         fprintf(stderr, "Benchmark::loadInsertData(): start compact ...\n");
         Compact();
         fprintf(stderr, "Benchmark::loadInsertData(): compaction finished!\n");
