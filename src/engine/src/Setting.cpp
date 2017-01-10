@@ -26,6 +26,10 @@ static uint64_t ParseSizeXiB(const char* str) {
         return uint64_t(val * (1ull << 20));
     else if ('g' == scale || 'G' == scale)
         return uint64_t(val * (1ull << 30));
+    else if ('t' == scale || 'T' == scale)
+        return uint64_t(val * (1ull << 40));
+    else if ('p' == scale || 'P' == scale)
+        return uint64_t(val * (1ull << 50));
     else
         return uint64_t(val);
 }
