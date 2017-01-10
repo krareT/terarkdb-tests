@@ -4,6 +4,7 @@
 #include "Benchmark.h"
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
+#include <terark/util/profiling.hpp>
 
 tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
 fstrvec Benchmark::allkeys;
@@ -192,6 +193,8 @@ void Benchmark::loadInsertData(const Setting *setting){
         lines++;
     }
     fprintf(stderr, "Benchmark::loadInsertData(%s) skipped %zd lines\n", fpath, lines);
+    terark::profiling pf;
+    long long t0 = pf.now();
     size_t bytes = 0;
     size_t limit = setting->FLAGS_load_size;
     while (bytes < limit && !setting->ifStop() && !feof(ifs)) {
@@ -206,9 +209,14 @@ void Benchmark::loadInsertData(const Setting *setting){
     //  printf("Benchmark::loadInsertData(): total = %9d   chunklines = %6d\n", lines, count);
         usleep(300000);
     }
+    long long t1 = pf.now();
     g_upload_fake_ops = true;
-    fprintf(stderr, "Benchmark::loadInsertData(%s) %s, lines = %zd\n", fpath
-        , setting->ifStop()? "stopped" : "completed", lines);
+    fprintf(stderr
+        , "Benchmark::loadInsertData(%s) %s, lines = %zd, bytes = %zd, time = %f sec, speed = %f MB/sec\n"
+        , fpath
+        , setting->ifStop() ? "stopped" : "completed"
+        , lines, bytes, pf.sf(t0,t1), bytes/pf.uf(t0,t1)
+        );
 
     return;
 
