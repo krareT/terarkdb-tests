@@ -307,7 +307,22 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
 }
 
 bool RocksDbBenchmark::Compact(void) {
-    db->CompactRange(NULL, NULL);
+    size_t numLevels = size_t(setting.FLAGS_num_levels);
+    fprintf(stderr
+        , "RocksDbBenchmark::Compact(): levels = %zd ...\n"
+        , numLevels
+        );
+    terark::profiling pf;
+    long long t0 = pf.now();
+    rocksdb::CompactRangeOptions cro;
+    cro.exclusive_manual_compaction = false;
+    cro.target_level = numLevels - 1;
+    db->CompactRange(cro, NULL, NULL);
+    long long t1 = pf.now();
+    fprintf(stderr
+        , "RocksDbBenchmark::Compact(): levels = %zd done, time = %f sec!\n"
+        , numLevels, pf.sf(t0,t1)
+        );
     return false;
 }
 
