@@ -192,9 +192,13 @@ void Benchmark::loadInsertData(const Setting *setting){
         lines++;
     }
     fprintf(stderr, "Benchmark::loadInsertData(%s) skipped %zd lines\n", fpath, lines);
-    while (!setting->ifStop() && !feof(ifs)) {
+    size_t bytes = 0;
+    size_t limit = setting->FLAGS_load_size;
+    while (bytes < limit && !setting->ifStop() && !feof(ifs)) {
         size_t count = 0;
-        while (updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+        while (bytes < limit && updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+            line.chomp();
+            bytes += line.size();
             updateDataCq.push(std::string(line.p, line.n));
             count++;
         }
