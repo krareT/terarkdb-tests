@@ -150,6 +150,10 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
     options.max_write_buffer_number = 3;
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 
+    if ("load" == setting.action) {
+      options.max_write_buffer_number = 6;
+    }
+
     if (setting.write_rate_limit) {
         // limit write rate being stable
         options.delayed_write_rate = setting.write_rate_limit;

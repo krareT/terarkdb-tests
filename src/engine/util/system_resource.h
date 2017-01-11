@@ -5,15 +5,16 @@
 #ifndef TERARKDB_TEST_FRAMEWORK_SYSTEM_RESOURCE_H
 #define TERARKDB_TEST_FRAMEWORK_SYSTEM_RESOURCE_H
 
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
-#include "sys/types.h"
-#include "sys/sysinfo.h"
-#include "sys/stat.h"
-#include "ftw.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+//#include <sys/types.h>
+//#include <sys/sysinfo.h>
+//#include <sys/stat.h>
 
-struct sysinfo memInfo;
+#include <string>
+
+//struct sysinfo memInfo;
 
 namespace benchmark {
 

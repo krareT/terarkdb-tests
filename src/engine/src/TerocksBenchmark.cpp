@@ -30,9 +30,8 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
 //    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewPlainTableFactory(pto));
 #endif
     options.table_factory.reset(factory);
-    // rocksdb preallocate space for SST file aggressively
-    // so do not make target_file_size too large
-    options.target_file_size_base = 64 << 20; // 64M
+
+    options.target_file_size_base = 512 << 20; // 512M
     options.target_file_size_multiplier = set.target_file_size_multiplier;
 
     // for TerarkZipTable, set to 1 will yield larger SST file.
