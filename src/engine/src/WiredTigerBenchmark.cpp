@@ -3,25 +3,11 @@
 //
 
 #include "WiredTigerBenchmark.h"
-size_t WiredTigerBenchmark::getKeyAndValue(std::string &str,std::string &key,std::string &val){
-    std::vector<std::string> strvec;
-    boost::split(strvec,str,boost::is_any_of("\t"));
-    key.clear();
-    val.clear();
-    assert(key.size() + val.size() == 0);
-    if ( strvec.size() < 8)
-        return 0;
-    key = strvec[2] + strvec[7];
-    for(int i = 0; i < strvec.size(); i ++){
-        if (i == 2 || i == 7)
-            continue;
-        val.append(strvec[i]);
-    }
-    val = str;
-    return strvec.size();
-}
-bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
+#include "../port/port_posix.h"
+#include <terark/util/autoclose.hpp>
+#include <terark/util/linebuf.hpp>
 
+bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     std::string &rkey = thread->key;
     std::string &rstr = thread->str;
     if (!getRandomKey(rstr,thread->randGenerator)){
@@ -88,11 +74,11 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
         fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
         exit(1);
     }
-    if ( !updateDataCq.try_pop(rstr)) {
+    if (!updateDataCq.try_pop(rstr)) {
         cursor->close(cursor);
         return false;
     }
-    ret = getKeyAndValue(rstr,rkey,rval);
+    ret = setting.splitKeyValue(rstr, &rkey, &rval);
     if (ret == 0) {
         cursor->close(cursor);
         return false;
@@ -188,6 +174,7 @@ void WiredTigerBenchmark::Open(){
         session->close(session, NULL);
     }
 }
+
 void WiredTigerBenchmark::DoWrite(bool seq) {
     std::cout << "DoWrite!" << std::endl;
     std::stringstream txn_config;
@@ -208,27 +195,20 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
         fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
         exit(1);
     }
-
-    std::string str;
     long long recordnumber = 0;
-    FILE *file = fopen(setting.getLoadDataPath().c_str(),"r");
-    posix_fadvise(fileno(file),0,0,POSIX_FADV_SEQUENTIAL);
-//        LineBuf line;
+    terark::Auto_close_fp file(fopen(setting.getLoadDataPath().c_str(), "r"));
+    if (!file) {
+      fprintf(stderr, "ERROR: fopen(%s, r) = %s\n"
+          , setting.getLoadDataPath().c_str(), strerror(errno));
+      exit(1);
+    }
+    terark::LineBuf line;
     std::string key;
     std::string val;
-    char *buf = NULL;
-    size_t n = 0;
-    while( -1 != getline(&buf,&n,file)) {
-        str = buf;
-        if ( n > 1024 * 1024){
-            free(buf);
-            buf = NULL;
-            n = 0;
-        }
-        ret = getKeyAndValue(str,key,val);
+    while (line.getline(file) > 0) {
+        ret = setting.splitKeyValue(line, &key, &val);
         if (ret == 0)
             continue;
-
         cursor->set_key(cursor, key.c_str());
         cursor->set_value(cursor,val.c_str());
         //std::cout << "key:" << key << std::endl;
@@ -242,10 +222,6 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
         if (recordnumber % 100000 == 0)
             std::cout << "Record number: " << recordnumber << std::endl;
     }
-    if ( buf != NULL){
-        free(buf);
-        buf = NULL;
-    }
     cursor->close(cursor);
     time_t now;
     struct tm *timenow;
@@ -253,6 +229,7 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
     timenow = localtime(&now);
     printf("recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
 }
+
 void WiredTigerBenchmark::PrintHeader() {
     const int kKeySize = 16;
     PrintEnvironment();
@@ -270,6 +247,7 @@ void WiredTigerBenchmark::PrintHeader() {
     PrintWarnings();
     fprintf(stdout, "------------------------------------------------\n");
 }
+
 void WiredTigerBenchmark::PrintWarnings() {
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
     fprintf(stdout,
@@ -290,6 +268,7 @@ void WiredTigerBenchmark::PrintWarnings() {
         fprintf(stdout, "WARNING: Snappy compression is not effective\n");
     }
 }
+
 void WiredTigerBenchmark::PrintEnvironment() {
     int wtmaj, wtmin, wtpatch;
     const char *wtver = wiredtiger_version(&wtmaj, &wtmin, &wtpatch);

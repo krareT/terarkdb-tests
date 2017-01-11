@@ -210,7 +210,8 @@ Setting::splitKeyValue(fstring row, std::string* key, std::string* val) const {
   byte_t delim = byte_t(fieldsDelim);
   row.split(delim, &strvec);
   key->resize(0);
-  val->resize(0);
+  if (val)
+    val->resize(0);
   if (strvec.size() < numFields)
     return 0;
   for (size_t field: keyFields) {
@@ -218,20 +219,22 @@ Setting::splitKeyValue(fstring row, std::string* key, std::string* val) const {
     key->push_back(delim);
   }
   key->pop_back();
-  size_t normFields = std::min(strvec.size(), numFields);
-  auto isKeyField = keyFieldsBits.bldata();
-  size_t i = 0;
-  for (; i < normFields; i++) {
-    if (!terark_bit_test(isKeyField, i)) {
+  if (val) {
+    size_t normFields = std::min(strvec.size(), numFields);
+    auto isKeyField = keyFieldsBits.bldata();
+    size_t i = 0;
+    for (; i < normFields; i++) {
+      if (!terark_bit_test(isKeyField, i)) {
+        val->append(strvec[i].data(), strvec[i].size());
+        val->push_back(delim);
+      }
+    }
+    for (; i < strvec.size(); ++i) {
       val->append(strvec[i].data(), strvec[i].size());
       val->push_back(delim);
     }
+    val->pop_back();
   }
-  for (; i < strvec.size(); ++i) {
-    val->append(strvec[i].data(), strvec[i].size());
-    val->push_back(delim);
-  }
-  val->pop_back();
   return strvec.size();
 }
 

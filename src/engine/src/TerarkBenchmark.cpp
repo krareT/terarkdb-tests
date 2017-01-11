@@ -7,7 +7,7 @@
 #include <terark/util/linebuf.hpp>
 
 TerarkBenchmark::TerarkBenchmark(const Setting &setting1)
-: tab(NULL), Benchmark(setting1) {
+: Benchmark(setting1) {
   indexId = size_t(-1);
   colgroupId = size_t(-1);
 }
@@ -30,9 +30,9 @@ void TerarkBenchmark::Load(void) {
 }
 
 std::string TerarkBenchmark::getKey(std::string &str) {
-    std::vector<std::string> strvec;
-    boost::split(strvec, str, boost::is_any_of("\t"));
-    return strvec[2] + '\0' + strvec[7];
+  std::string key;
+  setting.splitKeyValue(str, &key, NULL);
+  return key;
 }
 
 void TerarkBenchmark::Open() {
