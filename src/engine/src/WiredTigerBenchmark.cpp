@@ -291,13 +291,13 @@ void WiredTigerBenchmark::PrintEnvironment() {
             if (sep == NULL) {
                 continue;
             }
-            Slice key = TrimSpace(Slice(line, sep - 1 - line));
-            Slice val = TrimSpace(Slice(sep + 1));
+            fstring key = fstring(line, sep - 1 - line).trim();
+            fstring val = fstring(sep + 1).trim();
             if (key == "model name") {
                 ++num_cpus;
-                cpu_type = val.ToString();
+                cpu_type = val.str();
             } else if (key == "cache size") {
-                cache_size = val.ToString();
+                cache_size = val.str();
             }
         }
         fclose(cpuinfo);
