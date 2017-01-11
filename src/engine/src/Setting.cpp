@@ -194,6 +194,9 @@ Setting::Setting(int argc,char **argv) {
 }
 
 BaseSetting::BaseSetting() :
+        planConfigs{
+                {90, 5, 5}
+        },
         setFuncMap{
                 {"--stop"              , &BaseSetting::strSetStop },
                 {"--thread_num"        , &BaseSetting::strSetThreadNums},
@@ -206,9 +209,6 @@ BaseSetting::BaseSetting() :
                 {"--message"           , &BaseSetting::strSetMessage},
                 {"--plan_config"       , &BaseSetting::strSetPlanConfigs},
                 {"--thread_plan_map"   , &BaseSetting::strSetThreadPlan},
-        },
-        planConfigs{
-                {90, 5, 5}
         }
 {
     compactTimes = 0;
