@@ -187,7 +187,7 @@ void RocksDbBenchmark::Load() {
 //    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
     std::string key, value;
-    size_t lines_num = 0;
+    size_t lines = 0, last_lines = 0;
     size_t bytes = 0, last_bytes = 0;
     size_t limit = setting.FLAGS_load_size;
     profiling pf;
@@ -206,18 +206,20 @@ void RocksDbBenchmark::Load() {
             bytes += line.size();
             pushKey(key);
         }
-        lines_num += i;
+        lines += i;
         long long t2 = pf.now();
-        printf("line:%zuw, bytes:%9.3fG, records/sec: { cur = %6.2fw  avg = %6.2fw }, bytes/sec: { cur = %6.2fM  avg = %6.2fM }\n",
-               i / 10000, bytes / 1e9, lines_num * 1e5 / pf.ns(t1, t2),
-               lines_num * 1e5 / pf.ns(t0, t2), (bytes - last_bytes) / pf.uf(t1, t2), bytes / pf.uf(t0, t2)
+        printf("line:%zuw, bytes:%9.3fG, records/sec: { cur = %6.2fM  avg = %6.2fM }, bytes/sec: { cur = %6.2fM  avg = %6.2fM }\n"
+            , i / 10000, bytes / 1e9
+            , (lines - last_lines) / pf.uf(t1, t2), lines / pf.uf(t0, t2)
+            , (bytes - last_bytes) / pf.uf(t1, t2), bytes / pf.uf(t0, t2)
         );
         fflush(stdout);
         t1 = t2;
+        last_lines = lines;
         last_bytes = bytes;
     }
     printf("RocksDbBenchmark Load done, total = %zd lines, %.3f GB, start compacting ...\n"
-        , lines_num, bytes/1e9);
+        , lines, bytes/1e9);
     fflush(stdout);
     db->CompactRange(NULL, NULL);
     long long t2 = pf.now();
@@ -225,7 +227,7 @@ void RocksDbBenchmark::Load() {
         "  load    time = %8.2f seconds, speed = %8.3f MB/s\n"
         "  compact time = %8.2f seconds, speed = %8.3f MB/s\n"
         "  overall time = %8.2f seconds, speed = %8.3f MB/s\n"
-        , lines_num, bytes/1e9
+        , lines, bytes/1e9
         , pf.sf(t0,t1), bytes/pf.uf(t0,t1)
         , pf.sf(t1,t2), bytes/pf.uf(t1,t2)
         , pf.sf(t0,t2), bytes/pf.uf(t0,t2)
