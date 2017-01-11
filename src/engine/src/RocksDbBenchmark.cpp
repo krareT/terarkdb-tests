@@ -152,6 +152,8 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
 
 void RocksDbBenchmark::setRocksDBOptions(Setting& set) {
   using rocksdb::BlockBasedTableOptions;
+  using rocksdb::NewBlockBasedTableFactory;
+  using rocksdb::NewBloomFilterPolicy;
   BlockBasedTableOptions bbo;
   bbo.index_type = BlockBasedTableOptions::kBinarySearch;
   if (setting.FLAGS_cache_size > 0) {
