@@ -33,14 +33,14 @@ private:
     Benchmark *benchmark;
 };
 class Server {
+    tcp::acceptor acceptor_;
+    tcp::socket socket_;
     Setting &setting;
     Benchmark *benchmark;
 public:
     Server(boost::asio::io_service&, short port, Setting&, Benchmark*);
 private:
     void do_accept();
-    tcp::acceptor acceptor_;
-    tcp::socket socket_;
 };
 
 #endif //TERARKDB_TEST_FRAMEWORK_TCPSERVER_H
