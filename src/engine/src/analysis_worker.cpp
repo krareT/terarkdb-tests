@@ -51,6 +51,12 @@ static bool Mysql_connect(MYSQL* conn) {
     const char* host = "rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com";
     const char* user = "terark_benchmark";
     const char* db = "benchmark";
+    if (const char* env = getenv("MYSQL_SERVER")) {
+        host = env;
+    }
+    if (const char* env = getenv("MYSQL_USER")) {
+        user = env;
+    }
     int port = 3306;
     my_bool myTrue = true;
     mysql_init(conn);
