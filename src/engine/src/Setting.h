@@ -87,7 +87,6 @@ public:
 class Setting : public BaseSetting {
 public:
     uint64_t FLAGS_block_size;
-    enum rocksdb::CompressionType FLAGS_compression_type = rocksdb::kSnappyCompression;
     uint32_t FLAGS_min_level_to_compress;
     uint64_t FLAGS_num_levels = 7;
     //BaseSetting baseSetting;

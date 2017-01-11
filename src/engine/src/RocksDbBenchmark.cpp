@@ -163,7 +163,6 @@ void RocksDbBenchmark::setRocksDBOptions(const Setting &set) {
   }
   options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(bbo));
 
-  options.compression = set.FLAGS_compression_type;
   if (set.FLAGS_min_level_to_compress >= 0) {
       assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
       options.compression_per_level.resize(set.FLAGS_num_levels);
@@ -172,7 +171,7 @@ void RocksDbBenchmark::setRocksDBOptions(const Setting &set) {
       }
       for (int i = set.FLAGS_min_level_to_compress;
            i < set.FLAGS_num_levels; i++) {
-          options.compression_per_level[i] = set.FLAGS_compression_type;
+          options.compression_per_level[i] = rocksdb::kSnappyCompression;
       }
   }
   for (int i = 0; i < options.compression_per_level.size(); i++) {
