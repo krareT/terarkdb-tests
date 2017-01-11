@@ -6,6 +6,15 @@
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
 
+TerarkBenchmark::TerarkBenchmark(const Setting &setting1)
+: tab(NULL), Benchmark(setting1) {
+  indexId = size_t(-1);
+  colgroupId = size_t(-1);
+}
+TerarkBenchmark::~TerarkBenchmark() {
+    assert(tab == NULL);
+}
+
 void TerarkBenchmark::PrintHeader() {
     fprintf(stdout, "NarkDB Test Begins!");
 }
@@ -166,6 +175,7 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
 
 bool TerarkBenchmark::Compact() {
     tab->compact();
+    return true;
 }
 
 std::string TerarkBenchmark::HandleMessage(const std::string &msg) {

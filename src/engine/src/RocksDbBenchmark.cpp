@@ -4,8 +4,7 @@
 
 #include "RocksDbBenchmark.h"
 #include <rocksdb/memtablerep.h>
-#include <string>
-#include <terark/fstring.hpp>
+#include <rocksdb/table.h>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/autoclose.hpp>
 #include <terark/util/profiling.hpp>
@@ -13,17 +12,18 @@
 using namespace terark;
 
 void RocksDbBenchmark::Open() {
-    printf("rocksdb::DB::Open(%s)\n", setting.FLAGS_db.c_str());
-    rocksdb::Status s = rocksdb::DB::Open(options, setting.FLAGS_db, &db);
-    if (!s.ok()) {
-        fprintf(stderr, "FATAL: rocksdb::DB::Open(%s) = %s\n",
-                setting.FLAGS_db.c_str(), s.ToString().c_str());
-        exit(1);
-    }
+  const std::string& dbname = setting.FLAGS_db;
+  printf("rocksdb::DB::Open(%s)\n", dbname.c_str());
+  rocksdb::Status s = rocksdb::DB::Open(options, dbname, &db);
+  if (!s.ok()) {
+    fprintf(stderr, "FATAL: rocksdb::DB::Open(%s) = %s\n",
+        dbname.c_str(), s.ToString().c_str());
+    exit(1);
+  }
 }
 
 RocksDbBenchmark::~RocksDbBenchmark() {}
-RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
+RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
     db = nullptr;
     options.create_if_missing = true;
 // new features to add
@@ -107,32 +107,8 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         }
     }
 
-
-    rocksdb::BlockBasedTableOptions block_based_options;
-    block_based_options.index_type = rocksdb::BlockBasedTableOptions::kBinarySearch;
-    block_based_options.block_cache = setting.FLAGS_cache_size >= 0 ?
-                                      rocksdb::NewLRUCache(setting.FLAGS_cache_size) : NULL;
-    block_based_options.block_size = set.FLAGS_block_size;
-
-    filter_policy_.reset(set.FLAGS_bloom_bits >= 0 ?
-                         rocksdb::NewBloomFilterPolicy(set.FLAGS_bloom_bits, false) : NULL);
-    block_based_options.filter_policy = filter_policy_;
-    options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(block_based_options));
-
-    options.compression = set.FLAGS_compression_type;
-    if (set.FLAGS_min_level_to_compress >= 0) {
-        assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
-        options.compression_per_level.resize(set.FLAGS_num_levels);
-        for (int i = 0; i < set.FLAGS_min_level_to_compress; i++) {
-            options.compression_per_level[i] = rocksdb::kNoCompression;
-        }
-        for (int i = set.FLAGS_min_level_to_compress;
-             i < set.FLAGS_num_levels; i++) {
-            options.compression_per_level[i] = set.FLAGS_compression_type;
-        }
-    }
-    for (int i = 0; i < options.compression_per_level.size(); i++) {
-        printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
+    if ("rocksdb" == set.BenchmarkName) {
+      setRocksDBOptions(set);
     }
 
     options.max_open_files = set.FLAGS_open_files;
@@ -166,11 +142,42 @@ RocksDbBenchmark::RocksDbBenchmark(Setting &set) : Benchmark(set) {
         fprintf(stderr, "INFO: rocksdb set option.delayed_write_rate = %zd\n", setting.write_rate_limit);
     }
     else if (!setting.autoSlowDownWrite) {
-		options.level0_slowdown_writes_trigger = 1000;
-		options.level0_stop_writes_trigger = 1000;
-		options.soft_pending_compaction_bytes_limit = 2ull << 40;
-		options.hard_pending_compaction_bytes_limit = 4ull << 40;
+        options.level0_slowdown_writes_trigger = 1000;
+        options.level0_stop_writes_trigger = 1000;
+        options.soft_pending_compaction_bytes_limit = 2ull << 40;
+        options.hard_pending_compaction_bytes_limit = 4ull << 40;
     }
+}
+
+void RocksDbBenchmark::setRocksDBOptions(const Setting &set) {
+  using rocksdb::BlockBasedTableOptions;
+  BlockBasedTableOptions bbo;
+  bbo.index_type = BlockBasedTableOptions::kBinarySearch;
+  if (setting.FLAGS_cache_size > 0) {
+    bbo.block_cache = rocksdb::NewLRUCache(setting.FLAGS_cache_size);
+  }
+  bbo.block_size = set.FLAGS_block_size;
+
+  if (set.FLAGS_bloom_bits) {
+    bbo.filter_policy = rocksdb::NewBloomFilterPolicy(set.FLAGS_bloom_bits, false);
+  }
+  options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(bbo));
+
+  options.compression = set.FLAGS_compression_type;
+  if (set.FLAGS_min_level_to_compress >= 0) {
+      assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
+      options.compression_per_level.resize(set.FLAGS_num_levels);
+      for (int i = 0; i < set.FLAGS_min_level_to_compress; i++) {
+          options.compression_per_level[i] = rocksdb::kNoCompression;
+      }
+      for (int i = set.FLAGS_min_level_to_compress;
+           i < set.FLAGS_num_levels; i++) {
+          options.compression_per_level[i] = set.FLAGS_compression_type;
+      }
+  }
+  for (int i = 0; i < options.compression_per_level.size(); i++) {
+      printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
+  }
 }
 
 void RocksDbBenchmark::Close() {
@@ -188,7 +195,6 @@ void RocksDbBenchmark::Load() {
     }
     g_upload_fake_ops = true;
     assert(loadFile != NULL);
-//    posix_fadvise(fileno(loadFile), 0, 0, POSIX_FADV_SEQUENTIAL);
     LineBuf line;
     std::string key, value;
     size_t lines = 0, last_lines = 0;
@@ -201,7 +207,7 @@ void RocksDbBenchmark::Load() {
         size_t i = 0;
         for (; i < 100000 && bytes < limit && line.getline(loadFile) > 0; ++i) {
             line.chomp();
-            if (getKeyAndValue(line, key, value) == 0)
+            if (setting.splitKeyValue(line, &key, &value) == 0)
                 continue;
             rocksdb::Status s = db->Put(write_options, key, value);
             if (!s.ok()) {
@@ -241,31 +247,6 @@ void RocksDbBenchmark::Load() {
     stop_test();
 }
 
-size_t RocksDbBenchmark::getKeyAndValue(fstring str, std::string &key, std::string &val) {
-    thread_local valvec<fstring> strvec;
-    strvec.erase_all();
-    byte_t delim = byte_t(setting.fieldsDelim);
-    str.split(delim, &strvec);
-    key.resize(0);
-    val.resize(0);
-    if (strvec.size() < setting.numFields)
-        return 0;
-    auto& kf = setting.keyFields;
-    for (size_t field: kf) {
-        key.append(strvec[field].data(), strvec[field].size());
-        key.push_back(delim);
-    }
-    key.pop_back();
-    for (size_t i = 0; i < strvec.size(); i++) {
-        if (std::find(kf.begin(), kf.end(), i) != kf.end())
-            continue;
-        val.append(strvec[i].data(), strvec[i].size());
-        val.push_back(delim);
-    }
-    val.pop_back();
-    return strvec.size();
-}
-
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
     if (!getRandomKey(ts->key, ts->randGenerator))
         return false;
@@ -298,7 +279,7 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
     if (!updateDataCq.try_pop(ts->str)){
 	    return false;
     }
-    auto ret = getKeyAndValue(ts->str, ts->key, ts->value);
+    auto ret = setting.splitKeyValue(ts->str, &ts->key, &ts->value);
     if (ret == 0){
      	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:getKeyAndValue false\n");
 	    return false;

@@ -6,8 +6,7 @@
 #define TERARKDB_TEST_FRAMEWORK_TERARKROCKSDBBENCHMARK_H
 
 #include "RocksDbBenchmark.h"
-#include <table/terark_zip_table.h>
-class TerarkRocksDbBenchmark : public RocksDbBenchmark{
+class TerarkRocksDbBenchmark : public RocksDbBenchmark {
 private:
     virtual std::string HandleMessage(const std::string &msg) override;
     bool setTerarkZipMinLevel(const std::string &);
@@ -21,7 +20,7 @@ private:
     bool setEstimateCompressionRatio(const std::string &);
     std::string getEstimateCompressionRatio(void);
 public:
-    TerarkRocksDbBenchmark(Setting &set);
+    TerarkRocksDbBenchmark(const Setting &set);
 };
 
 

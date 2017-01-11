@@ -6,9 +6,8 @@
 #include <terark/util/linebuf.hpp>
 #include <terark/util/profiling.hpp>
 
-tbb::concurrent_queue<std::string> Benchmark::updateDataCq;
-fstrvec Benchmark::allkeys;
-tbb::spin_rw_mutex Benchmark::allkeysRwMutex;
+using namespace terark;
+
 void Benchmark::updateSamplingPlan(std::vector<bool> &plan, uint8_t percent) {
     if (percent > 100)
         return ;
@@ -250,7 +249,7 @@ void Benchmark::Run(void) {
     Close();
 };
 
-Benchmark::Benchmark(Setting &s) : setting(s)
+Benchmark::Benchmark(const Setting &s) : setting(s)
 , executeFuncMap{&Benchmark::ReadOneKey,
                  &Benchmark::InsertOneKey,
                  &Benchmark::UpdateOneKey,

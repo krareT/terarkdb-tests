@@ -10,47 +10,21 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "db/db_impl.h"
-#include "db/version_set.h"
-#include "include/leveldb/cache.h"
-#include "include/leveldb/db.h"
-#include "include/leveldb/env.h"
-#include "include/leveldb/write_batch.h"
-#include "port/port.h"
-#include "util/crc32c.h"
-#include "util/histogram.h"
-#include "util/mutexlock.h"
-#include "util/random.h"
-#include "util/testutil.h"
 
 #include <iostream>
 #include <fstream>
 #include <string.h>
 #include <string>
-#include "terark/db/db_table.hpp"
-#include <terark/io/MemStream.hpp>
-#include <terark/io/DataIO.hpp>
-#include <terark/io/RangeStream.hpp>
-#include <terark/lcast.hpp>
-#include <terark/util/autofree.hpp>
+#include <thread>
+#include <tbb/concurrent_vector.h>
 #include <terark/util/fstrvec.hpp>
 #include "ThreadState.h"
-//#include "terark/util/linebuf.hpp"
-#include <port/port_posix.h>
-#include <src/Setting.h>
-#include <thread>
-#include "src/leveldb.h"
-#include <tbb/concurrent_vector.h>
-#include <stdint.h>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
+#include "Setting.h"
+
 //terarkdb -insert_data_path=/mnt/hdd/data/xab --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
-#include <fcntl.h>
-#include <unistd.h>
-#include <boost/algorithm/string.hpp>
 //terarkdb -update_data_path=/mnt/hdd/data/xab --benchmarks=fillrandom --num=45 --sync_index=1 --db=./experiment/new_wiki --resource_data=/dev/stdin --threads=1 --keys_data=/home/terark/Documents/data/wiki_keys
 
-class Benchmark{
+class Benchmark : boost::noncopyable {
 private:
     typedef bool (Benchmark::*executeFunc_t)(ThreadState *);
     typedef bool (Benchmark::*samplingFunc_t)(ThreadState *,BaseSetting::OP_TYPE);
@@ -88,8 +62,8 @@ private:
     bool executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type);
     bool executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
-    static terark::fstrvec allkeys;
-    static tbb::spin_rw_mutex allkeysRwMutex;
+    terark::fstrvec allkeys;
+    tbb::spin_rw_mutex allkeysRwMutex;
 
     void reportMessage(const std::string &);
 public:
@@ -98,9 +72,9 @@ public:
     bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting &setting;
-    static tbb::concurrent_queue<std::string> updateDataCq;
+    tbb::concurrent_queue<std::string> updateDataCq;
 
-    Benchmark(Setting &s);
+    Benchmark(const Setting&);
     virtual ~Benchmark();
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;

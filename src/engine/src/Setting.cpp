@@ -185,6 +185,15 @@ Setting::Setting(int argc,char **argv) {
         fprintf(stderr, "ERROR: missing argument --key_fields=...\n");
         exit(1);
     }
+    keyFieldsBits.resize_fill(numFields, false);
+    for (size_t i = 0; i < keyFields.size(); ++i) {
+      size_t field = keyFields[i];
+      if (field >= numFields) {
+        fprintf(stderr, "ERROR: bad key field: %zd, num_fields = %zd\n", field, numFields);
+        exit(1);
+      }
+      keyFieldsBits.set1(field);
+    }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
     BaseSetting::BenchmarkName.assign(argv[1]);
@@ -192,6 +201,40 @@ Setting::Setting(int argc,char **argv) {
     std::cout << toString() << std::endl;
     std::cout << "wait" << std::endl;
 }
+
+size_t
+Setting::splitKeyValue(fstring row, std::string* key, std::string* val) const {
+  using namespace terark;
+  thread_local valvec<fstring> strvec;
+  strvec.erase_all();
+  byte_t delim = byte_t(fieldsDelim);
+  row.split(delim, &strvec);
+  key->resize(0);
+  val->resize(0);
+  if (strvec.size() < numFields)
+    return 0;
+  for (size_t field: keyFields) {
+    key->append(strvec[field].data(), strvec[field].size());
+    key->push_back(delim);
+  }
+  key->pop_back();
+  size_t normFields = std::min(strvec.size(), numFields);
+  auto isKeyField = keyFieldsBits.bldata();
+  size_t i = 0;
+  for (; i < normFields; i++) {
+    if (!terark_bit_test(isKeyField, i)) {
+      val->append(strvec[i].data(), strvec[i].size());
+      val->push_back(delim);
+    }
+  }
+  for (; i < strvec.size(); ++i) {
+    val->append(strvec[i].data(), strvec[i].size());
+    val->push_back(delim);
+  }
+  val->pop_back();
+  return strvec.size();
+}
+
 
 BaseSetting::BaseSetting() :
         planConfigs{
@@ -301,7 +344,7 @@ std::string BaseSetting::toString() {
 }
 std::string BaseSetting::setBaseSetting(std::string &line) {
     std::vector<std::string> strvec;
-    boost::split(strvec,line,boost::is_any_of(" \t"));
+    fstring(line).split(' ', &strvec);
     std::string message;
     if (strvec.size() == 0)
         message += "Empty Input\n";

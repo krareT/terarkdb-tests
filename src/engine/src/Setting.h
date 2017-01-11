@@ -2,17 +2,17 @@
 // Created by terark on 16-8-1.
 //
 
-#ifndef TERARKDB_TEST_FRAMEWORK_SETTING_H
-#define TERARKDB_TEST_FRAMEWORK_SETTING_H
+#pragma once
 
-#include <string>
 #include <atomic>
-#include <boost/algorithm/string.hpp>
-#include <unordered_map>
-#include <rocksdb/options.h>
-#include <tbb/concurrent_queue.h>
 #include <mutex>
+#include <unordered_map>
+#include <tbb/concurrent_queue.h>
 #include <tbb/concurrent_unordered_map.h>
+#include <terark/fstring.hpp>
+#include <terark/bitmap.hpp>
+
+using terark::fstring;
 
 struct PlanConfig{
     uint32_t read_percent = 100;
@@ -180,8 +180,8 @@ public:
     std::string waldir;
     std::string alt_engine_name;
 
-	std::string terocksdb_tmpdir;
-	size_t write_rate_limit = 30 << 20; // 30MB/s
+    std::string terocksdb_tmpdir;
+    size_t write_rate_limit = 30 << 20; // 30MB/s
 
     int flushThreads = 2;
     int compactThreads = 2;
@@ -191,7 +191,8 @@ public:
     size_t FLAGS_load_size = size_t(-1);
 
     Setting(int argc, char **argv);
+    size_t splitKeyValue(fstring row, std::string* key, std::string* val) const;
+
+private:
+    terark::febitvec keyFieldsBits;
 };
-
-
-#endif //TERARKDB_TEST_FRAMEWORK_SETTING_H

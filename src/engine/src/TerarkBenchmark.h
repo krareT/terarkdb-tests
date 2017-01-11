@@ -5,7 +5,6 @@
 #ifndef TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H
 #define TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H
 
-#include "terark/db/db_table.hpp"
 #include "Benchmark.h"
 using namespace terark;
 using namespace db;
@@ -15,10 +14,8 @@ private:
     size_t indexId;
     size_t colgroupId;
 public:
-    TerarkBenchmark(Setting &setting1) : tab(NULL), Benchmark(setting1){};
-    ~TerarkBenchmark() {
-        assert(tab == NULL);
-    }
+    TerarkBenchmark(const Setting &);
+    ~TerarkBenchmark();
 private:
     ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSPlan) override;
     void PrintHeader();

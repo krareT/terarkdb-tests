@@ -4,8 +4,12 @@
 
 #include "TerocksBenchmark.h"
 #include <rocksdb/slice_transform.h>
+#include <rocksdb/table.h>
+#include <table/terark_zip_table.h>
 
-TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(set) {
+using namespace rocksdb;
+
+TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(const Setting &set) : RocksDbBenchmark(set) {
     std::cout <<"TR Benchmark" << std::endl;
     rocksdb::TerarkZipTableOptions opt;
     if (set.terocksdb_tmpdir.empty()) {
@@ -20,7 +24,7 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting &set) : RocksDbBenchmark(
     opt.hardZipWorkingMemLimit = 28ull<<30;
 //  printf("local temp dir:%s\n",tmp_dir);
 #if 1
-    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, rocksdb::NewBlockBasedTableFactory());
+    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());
 #else
 //    options.prefix_extractor.reset(rocksdb::NewFixedPrefixTransform(2)); // fuck fuck
 //    rocksdb::PlainTableOptions pto;

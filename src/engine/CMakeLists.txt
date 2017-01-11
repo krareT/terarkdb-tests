@@ -36,7 +36,7 @@ add_executable(Terark_Engine_Test
         table/table_builder.cc table/table.cc table/two_level_iterator.cc util/arena.cc util/bloom.cc
         util/cache.cc util/coding.cc util/comparator.cc util/crc32c.cc util/env.cc util/env_posix.cc
         util/filter_policy.cc util/hash.cc util/histogram.cc util/logging.cc util/options.cc util/status.cc
-        port/port_posix.cc ./util/testutil.cc src/Setting.cpp src/Setting.h src/leveldb.h
+        port/port_posix.cc ./util/testutil.cc src/Setting.cpp src/Setting.h
         src/TcpServer.cpp src/TcpServer.h
         src/Stats.cpp src/Stats.h
 		src/Benchmark.cpp src/Benchmark.h
