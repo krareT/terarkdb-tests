@@ -5,6 +5,7 @@
 #include "RocksDbBenchmark.h"
 #include <rocksdb/memtablerep.h>
 #include <rocksdb/table.h>
+#include <rocksdb/filter_policy.h>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/autoclose.hpp>
 #include <terark/util/profiling.hpp>
@@ -126,7 +127,7 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
     options.max_write_buffer_number = 3;
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 
-    if ("load" == setting.action) {
+    if ("load" == setting.getAction()) {
       options.max_write_buffer_number = 6;
     }
 
@@ -159,9 +160,9 @@ void RocksDbBenchmark::setRocksDBOptions(const Setting &set) {
   bbo.block_size = set.FLAGS_block_size;
 
   if (set.FLAGS_bloom_bits) {
-    bbo.filter_policy = rocksdb::NewBloomFilterPolicy(set.FLAGS_bloom_bits, false);
+    bbo.filter_policy = NewBloomFilterPolicy(set.FLAGS_bloom_bits, false);
   }
-  options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(bbo));
+  options.table_factory.reset(NewBlockBasedTableFactory(bbo));
 
   if (set.FLAGS_min_level_to_compress >= 0) {
       assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
