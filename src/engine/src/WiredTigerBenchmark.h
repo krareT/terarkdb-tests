@@ -6,7 +6,6 @@
 #define TERARKDB_TEST_FRAMEWORK_WIREDTIGERBENCHMARK_H
 #include "Benchmark.h"
 
-using namespace leveldb;
 class WiredTigerBenchmark : public Benchmark{
 private:
     WT_CONNECTION *conn_;

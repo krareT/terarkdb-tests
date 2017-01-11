@@ -50,8 +50,9 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
     };
     valvec<fstring> dircaps;
     fstring(setting.FLAGS_db).split(',', &dircaps);
+    auto& setting_dbdirs = const_cast<std::vector<std::string>>(setting.dbdirs);
     if (dircaps.size() > 1) {
-        setting.dbdirs.clear();
+        setting_dbdirs.clear();
         for (size_t i = 0; i < dircaps.size(); ++i) {
             fstring dircap = dircaps[i];
             const char* colon = dircap.strstr(":");
@@ -64,7 +65,7 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
                 }
                 std::string dir(dircap.data(), colon);
                 options.db_paths.push_back({dir, uint64_t(cap)});
-                setting.dbdirs.push_back(dir);
+                setting_dbdirs.push_back(dir);
                 fprintf(stderr, "RocksDB: add dbdir: cap=%6.1fG, %s\n", cap/(1ull<<30), dir.c_str());
             }
             else {
@@ -76,11 +77,11 @@ RocksDbBenchmark::RocksDbBenchmark(const Setting &set) : Benchmark(set) {
     }
     if (setting.logdir.size()) {
         options.db_log_dir = setting.logdir;
-        setting.dbdirs.push_back(setting.logdir);
+        setting_dbdirs.push_back(setting.logdir);
     }
     if (setting.waldir.size()) {
         options.wal_dir = setting.waldir;
-        setting.dbdirs.push_back(setting.waldir);
+        setting_dbdirs.push_back(setting.waldir);
     }
     if (setting.getAction() == "load") {
         options.allow_concurrent_memtable_write = false;

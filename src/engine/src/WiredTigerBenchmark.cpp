@@ -116,7 +116,7 @@ void WiredTigerBenchmark::Open(){
     config << ",extensions=[libwiredtiger_snappy.so]";
 #endif
     //config << ",verbose=[lsm]";
-    Env::Default()->CreateDir(setting.FLAGS_db);
+    system(("mkdir -p " + setting.FLAGS_db).c_str());
     printf("WT config : %s\n",config.str().c_str());
     wiredtiger_open(setting.FLAGS_db.c_str(), NULL, config.str().c_str(), &conn_);
     assert(conn_ != NULL);
@@ -262,7 +262,7 @@ void WiredTigerBenchmark::PrintWarnings() {
     // See if snappy is working by attempting to compress a compressible string
     const char text[] = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
     std::string compressed;
-    if (!port::Snappy_Compress(text, sizeof(text), &compressed)) {
+    if (!leveldb::port::Snappy_Compress(text, sizeof(text), &compressed)) {
         fprintf(stdout, "WARNING: Snappy compression is not enabled\n");
     } else if (compressed.size() >= sizeof(text)) {
         fprintf(stdout, "WARNING: Snappy compression is not effective\n");
@@ -291,8 +291,10 @@ void WiredTigerBenchmark::PrintEnvironment() {
             if (sep == NULL) {
                 continue;
             }
-            fstring key = fstring(line, sep - 1 - line).trim();
-            fstring val = fstring(sep + 1).trim();
+            fstring key(line, sep - 1 - line);
+            fstring val(sep + 1);
+            key.trim();
+            val.trim();
             if (key == "model name") {
                 ++num_cpus;
                 cpu_type = val.str();
