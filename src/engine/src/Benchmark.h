@@ -71,10 +71,10 @@ public:
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
     bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
-    const Setting &setting;
+    Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;
 
-    Benchmark(const Setting&);
+    Benchmark(Setting&);
     virtual ~Benchmark();
     virtual void Open(void) = 0;
     virtual void Load(void) = 0;

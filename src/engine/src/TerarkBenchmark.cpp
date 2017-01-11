@@ -6,7 +6,7 @@
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
 
-TerarkBenchmark::TerarkBenchmark(const Setting &setting1)
+TerarkBenchmark::TerarkBenchmark(Setting& setting1)
 : Benchmark(setting1) {
   indexId = size_t(-1);
   colgroupId = size_t(-1);

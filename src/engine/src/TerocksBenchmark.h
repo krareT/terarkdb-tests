@@ -20,7 +20,7 @@ private:
     bool setEstimateCompressionRatio(const std::string &);
     std::string getEstimateCompressionRatio(void);
 public:
-    TerarkRocksDbBenchmark(const Setting &set);
+    TerarkRocksDbBenchmark(Setting& set);
 };
 
 

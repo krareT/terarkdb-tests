@@ -10,12 +10,12 @@ private:
     rocksdb::DB *db;
     rocksdb::WriteOptions write_options;
     rocksdb::ReadOptions read_options;
-    void setRocksDBOptions(const Setting &set);
+    void setRocksDBOptions(Setting& set);
 protected:
     rocksdb::Options options;
 public:
     ~RocksDbBenchmark();
-    RocksDbBenchmark(const Setting &set);
+    RocksDbBenchmark(Setting& set);
     void Open() override;
     void Load() override;
     void Close() override;

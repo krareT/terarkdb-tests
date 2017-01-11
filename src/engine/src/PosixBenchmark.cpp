@@ -7,7 +7,7 @@
 #include <terark/util/autoclose.hpp>
 #include <terark/io/FileStream.hpp>
 
-PosixBenchmark::PosixBenchmark(const Setting &setting):Benchmark(setting){
+PosixBenchmark::PosixBenchmark(Setting& setting):Benchmark(setting){
 
 }
 

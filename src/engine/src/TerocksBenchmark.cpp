@@ -9,7 +9,7 @@
 
 using namespace rocksdb;
 
-TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(const Setting &set) : RocksDbBenchmark(set) {
+TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting& set) : RocksDbBenchmark(set) {
     std::cout <<"TR Benchmark" << std::endl;
     rocksdb::TerarkZipTableOptions opt;
     if (set.terocksdb_tmpdir.empty()) {

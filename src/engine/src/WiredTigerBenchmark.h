@@ -15,7 +15,7 @@ private:
     int sync_;
 
 public:
-    WiredTigerBenchmark(const Setting &setting1) : Benchmark(setting1) {
+    WiredTigerBenchmark(Setting& setting1) : Benchmark(setting1) {
     }
     ~WiredTigerBenchmark() {
     }

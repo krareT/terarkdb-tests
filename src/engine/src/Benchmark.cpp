@@ -249,7 +249,7 @@ void Benchmark::Run(void) {
     Close();
 };
 
-Benchmark::Benchmark(const Setting &s) : setting(s)
+Benchmark::Benchmark(Setting& s) : setting(s)
 , executeFuncMap{&Benchmark::ReadOneKey,
                  &Benchmark::InsertOneKey,
                  &Benchmark::UpdateOneKey,

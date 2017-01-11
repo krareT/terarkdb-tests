@@ -14,7 +14,7 @@ private:
     size_t indexId;
     size_t colgroupId;
 public:
-    TerarkBenchmark(const Setting &);
+    TerarkBenchmark(Setting& );
     ~TerarkBenchmark();
 private:
     ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSPlan) override;

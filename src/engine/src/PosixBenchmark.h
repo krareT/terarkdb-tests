@@ -16,7 +16,7 @@ private:
     virtual bool UpdateOneKey(ThreadState *) override;
     virtual bool InsertOneKey(ThreadState *)  override ;
 public:
-    PosixBenchmark(const Setting &setting);
+    PosixBenchmark(Setting& setting);
     virtual ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSamplingPlan) override;
     virtual bool Compact(void) override;
 
