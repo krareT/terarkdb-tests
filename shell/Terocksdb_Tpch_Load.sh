@@ -39,8 +39,8 @@ export DictZipBlobStore_zipThreads=24
   --disable_wal \
   --num_levels=4 \
   --index_nest_level=2 \
-  --compact_threads=2 \
+  --compact_threads=1 \
   --use_universal_compaction=1 \
-  --target_file_size_multiplier=5 \
+  --target_file_size_multiplier=10 \
   --mysql_passwd=$1
 

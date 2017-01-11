@@ -13,22 +13,20 @@ else
 	echo building licenced version
 fi
 
-if [ -z "${BMI2}" ]; then
-	echo env var BMI2 is required
-	exit 1
-fi
-
 CompilerList="g++-4.7 g++-4.8 g++-4.9 g++-6 g++-6.1 g++-6.2 g++-5.3 g++-5.4 clang++"
 #CompilerList="g++-4.8 g++-4.9 g++-6 g++-6.1 g++-6.2 g++-5.3 g++-5.4 clang++"
 #CompilerList="g++-6.2 g++-5.3 g++-5.4 clang++"
 #CompilerList="g++-6.1 g++-5.3 clang++"
 #CompilerList="g++-5.3 clang++"
-#CompilerList="g++-4.8"
+CompilerList="g++-4.8"
 #CompilerList="g++-4.9"
-CompilerList="g++-4.9 g++-5.4"
-for CXX in $CompilerList
+#CompilerList="g++-4.9 g++-5.4"
+for BMI2 in 0 1
 do
+  for CXX in $CompilerList
+  do
 	export CXX
+	export BMI2
 	if which $CXX; then
 		export PATH=/opt/${CXX}/bin:/bin
 		COMPILER=`${CXX} terark-tools/detect-compiler.cpp -o a && ./a && rm -f a a.exe`
@@ -64,5 +62,6 @@ do
 	else
 		echo Not found compiler: $CXX
 	fi
+  done
 done
 
