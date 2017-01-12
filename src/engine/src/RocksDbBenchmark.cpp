@@ -216,7 +216,6 @@ void RocksDbBenchmark::Load() {
                 fprintf(stderr, "put error: %s\n", s.ToString().c_str());
             }
             bytes += line.size();
-            pushKey(key);
         }
         lines += i;
         long long t2 = pf.now();
