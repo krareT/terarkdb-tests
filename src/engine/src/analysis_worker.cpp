@@ -157,7 +157,7 @@ template<class... Args>
 bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     if (ofs.is_open()) {
         const char* delim = "";
-        const char* a[]{(ofs << delim << Escape_arg(args), delim = "\t")...};
+        const char* a[]{(ofs << delim << Escape_arg(args), delim = ",")...};
         (void)(a);
         ofs << "\n";
         return !g_hasConn;
