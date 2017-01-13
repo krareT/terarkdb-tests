@@ -143,7 +143,7 @@ WhichDB 可以是:
   </tr>
   <tr>
    <td>${prefix}-cpu.txt</td>
-   <td>cpu 监控，数据格式：  time, cpu%, iowait%</td>
+   <td>cpu 监控，数据格式：  time, cpu%, iowait</td>
   </tr>
   <tr>
    <td>${prefix}-memory.txt</td>
