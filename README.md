@@ -108,34 +108,29 @@ WhichDB 可以是:
 <table><tbody>
 <tr><th>环境变量名</th><th>说明</th></tr>
 <tr>
- <td>`DictZipBlobStore_zipThreads`</td>
- <td>该变量未设置时(默认)，相当于 8
-
-如果机器的 CPU 数量小于 8 ，就是实际的 CPU 数量；
-
-如果设为 0，表示不使用多线程压缩；
-
-非0时，总是使用多线程压缩，读、压缩、写线程是分离的，
-
-默认值可以工作的不错，如果需要，可以进行精细控制，
-
+ <td>DictZipBlobStore_zipThreads</td>
+ <td>该变量未设置时(默认)，相当于 8<br/>
+如果机器的 CPU 数量小于 8 ，就是实际的 CPU 数量；<br/>
+如果设为 0，表示不使用多线程压缩；</br>
+非0时，总是使用多线程压缩，读、压缩、写线程是分离的，<br/>
+默认值可以工作的不错，如果需要，可以进行精细控制，<br/>
 对于TPC-H数据，8个线程的压缩速度可以达到200MB/s
  </td>
 </tr>
 <tr>
- <td>`MYSQL_SERVER`</td>
+ <td>MYSQL_SERVER</td>
  <td>该变量未设置时(默认)，使用 Terark 的 Mysql Server </td>
 </tr>
 <tr>
- <td>`MYSQL_PORT`</td>
+ <td>MYSQL_PORT</td>
  <td>该变量未设置时(默认)，使用 Mysql 默认的端口 3306 </td>
 </tr>
 <tr>
- <td>`MYSQL_USER`</td>
+ <td>MYSQL_USER</td>
  <td>该变量未设置时(默认)，使用 Terark 默认的 user</td>
 </tr>
 <tr>
- <td>`MONITOR_STAT_FILE_PREFIX`</td>
+ <td>MONITOR_STAT_FILE_PREFIX</td>
  <td>将系统资源监控数据写入文本文件，有多个文件，该变量指定这些文件名的前缀
    <table><tbody>
   <tr>
