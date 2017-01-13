@@ -10,6 +10,7 @@
 //#include <terark/util/autoclose.hpp>
 #include <mysql.h>
 #include <errmsg.h>
+#include <fstream>
 
 using terark::lcast;
 using terark::fstring;
@@ -123,7 +124,7 @@ template<class... Args>
 bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
     if (g_statFile.is_open()) {
         const char* delim = "";
-        int a[]{(g_statFile << delim << args, delim = " ")...};
+        const char* a[]{(g_statFile << delim << args, delim = " ")...};
         (void)(a);
         g_statFile << "\n";
         return !g_hasConn;
@@ -218,7 +219,7 @@ void AnalysisWorker::run() {
     if (const char* fname = getenv("MONITOR_STAT_FILE")) {
         g_statFile.open(fname);
         if (!g_statFile.is_open()) {
-          fprintf(stderr, "open file %s failed = %s\n", strerror(errno));
+          fprintf(stderr, "open file %s failed = %s\n", fname, strerror(errno));
           return;
         }
     }

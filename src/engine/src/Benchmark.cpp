@@ -249,14 +249,15 @@ void Benchmark::Run(void) {
     Close();
 };
 
-Benchmark::Benchmark(Setting& s) : setting(s)
-, executeFuncMap{&Benchmark::ReadOneKey,
+Benchmark::Benchmark(Setting& s)
+: executeFuncMap{&Benchmark::ReadOneKey,
                  &Benchmark::InsertOneKey,
                  &Benchmark::UpdateOneKey,
         }
 , samplingFuncMap{&Benchmark::executeOneOperationWithoutSampling,
                   &Benchmark::executeOneOperationWithSampling,
         }
+, setting(s)
 {
     compactTimes = s.getCompactTimes();
 }

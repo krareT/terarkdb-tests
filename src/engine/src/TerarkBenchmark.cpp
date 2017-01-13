@@ -97,7 +97,7 @@ bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPt
     valvec<byte> inside;
     ctx->getValue(rid, &inside);
     assert(inside.size() == outside.size());
-    for (int i = 0; i < inside.size(); i++) {
+    for (size_t i = 0; i < inside.size(); i++) {
         if (inside[i] != outside[i])
             return false;
     }

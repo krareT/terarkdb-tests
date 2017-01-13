@@ -169,16 +169,16 @@ void RocksDbBenchmark::setRocksDBOptions(Setting& set) {
   if (set.FLAGS_min_level_to_compress >= 0) {
       assert(set.FLAGS_min_level_to_compress <= set.FLAGS_num_levels);
       options.compression_per_level.resize(set.FLAGS_num_levels);
-      for (int i = 0; i < set.FLAGS_min_level_to_compress; i++) {
+      for (size_t i = 0; i < set.FLAGS_min_level_to_compress; i++) {
           options.compression_per_level[i] = rocksdb::kNoCompression;
       }
-      for (int i = set.FLAGS_min_level_to_compress;
+      for (size_t i = set.FLAGS_min_level_to_compress;
            i < set.FLAGS_num_levels; i++) {
           options.compression_per_level[i] = rocksdb::kSnappyCompression;
       }
   }
-  for (int i = 0; i < options.compression_per_level.size(); i++) {
-      printf("options.compression_per_level[%d]=%d\n", i, options.compression_per_level[i]);
+  for (size_t i = 0; i < options.compression_per_level.size(); i++) {
+      printf("options.compression_per_level[%zd]=%d\n", i, options.compression_per_level[i]);
   }
 }
 
@@ -232,7 +232,7 @@ void RocksDbBenchmark::Load() {
     printf("RocksDbBenchmark Load done, total = %zd lines, %.3f GB, start compacting ...\n"
         , lines, bytes/1e9);
     fflush(stdout);
-    db->CompactRange(NULL, NULL);
+    Compact();
     long long t2 = pf.now();
     printf("RocksDbBenchmark compact done: total = %zd lines, size = %.3f GB\n"
         "  load    time = %8.2f seconds, speed = %8.3f MB/s\n"

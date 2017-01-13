@@ -34,8 +34,6 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
 }
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     std::string &rkey = thread->key;
-    std::string &rval = thread->value;
-    std::string &rstr = thread->str;
     if (!getRandomKey(rkey,thread->randGenerator)){
         return false;
     }

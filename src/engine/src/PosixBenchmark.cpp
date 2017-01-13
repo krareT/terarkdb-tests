@@ -7,8 +7,9 @@
 #include <terark/util/autoclose.hpp>
 #include <terark/io/FileStream.hpp>
 
-PosixBenchmark::PosixBenchmark(Setting& setting):Benchmark(setting){
+using terark::FileStream;
 
+PosixBenchmark::PosixBenchmark(Setting& setting):Benchmark(setting){
 }
 
 void PosixBenchmark::Open(void) {
@@ -55,7 +56,7 @@ bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
         return false;
     std::string read_path = setting.FLAGS_db;
     read_path = read_path + "/" + ts->key;
-    terark::FileStream read_file(read_path, "r");
+    FileStream read_file(read_path, "r");
     size_t size = read_file.fsize();
     std::unique_ptr<char> buf(new char [size]);
     if (size != read_file.read(buf.get(), size)){
@@ -72,13 +73,13 @@ bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
     }
     ts->key = setting.FLAGS_db + ts->key;
     std::unique_ptr<FILE, decltype(&fclose)> update_file(fopen(ts->key.c_str(),"r"),fclose);
-    auto size = ftell(update_file.get());
+    size_t size = FileStream::fpsize(update_file.get());
     std::unique_ptr<char> buf(new char[size]);
-    if ( size != fread(buf.get(),1,size,update_file.get())){
+    if (size != fread(buf.get(),1,size,update_file.get())){
         fprintf(stderr,"posix update read error:%s\n",strerror(errno));
         return false;
     }
-    if ( size != fwrite(buf.get(),1,size,update_file.get())){
+    if (size != fwrite(buf.get(),1,size,update_file.get())){
         fprintf(stderr,"posix update write error:%s\n",strerror(errno));
         return false;
     }
@@ -94,7 +95,7 @@ bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
     ts->str = setting.FLAGS_db;
     ts->str = ts->str + "/" + ts->key;
     std::unique_ptr<FILE, decltype(&fclose)> insert_target_file(fopen(ts->str.c_str(),"w+"),fclose);
-    auto size = ftell(insert_source_file.get());
+    size_t size = FileStream::fpsize(insert_source_file.get());
     std::unique_ptr<char> buf(new char[size]);
     if (size != fread(buf.get(),1,size,insert_source_file.get())){
         fprintf(stderr,"posix insert read error:%s\n",strerror(errno));

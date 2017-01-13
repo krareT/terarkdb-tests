@@ -323,7 +323,7 @@ std::string BaseSetting::toString() {
     {
         std::lock_guard<std::mutex>  _lock(planMtx);
         using namespace std;
-        for(int i = 0; i < planConfigs.size(); i ++) {
+        for(size_t i = 0; i < planConfigs.size(); i ++) {
             ret << "plan " << setw(2) << i << " read " << setw(3) << planConfigs[i].read_percent << " insert "\
                 << setw(3) << planConfigs[i].insert_percent << " update " << planConfigs[i].update_percent << std::endl;
         }
