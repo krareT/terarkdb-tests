@@ -135,7 +135,7 @@ WhichDB 可以是:
    <table><tbody>
   <tr>
    <td>${prefix}-ops.txt</td>
-   <td>cpu 操作监控（读、写、更新数量）</td>
+   <td>db 操作监控（读、写、更新数量）</td>
   </tr>
   <tr>
    <td>${prefix}-cpu.txt</td>
