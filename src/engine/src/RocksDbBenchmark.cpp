@@ -9,6 +9,7 @@
 #include <terark/util/linebuf.hpp>
 #include <terark/util/autoclose.hpp>
 #include <terark/util/profiling.hpp>
+#include <terark/num_to_str.hpp>
 
 using namespace terark;
 
