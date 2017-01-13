@@ -44,9 +44,6 @@ char* g_passwd = getenv("MYSQL_PASSWD");
 static MYSQL g_conn;
 static bool  g_hasConn = false;
 
-// also write monitor stat to file
-static std::ofstream g_statFile;
-
 static bool Mysql_connect(MYSQL* conn) {
     if(g_passwd == NULL || strlen(g_passwd) == 0) {
         printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
@@ -93,6 +90,28 @@ static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
     }
     return stmt;
 }
+
+// also write monitor stat to file
+static std::ofstream ofs_ops, ofs_memory, ofs_cpu, ofs_dbsize, ofs_diskinfo;
+static bool open_stat_files(std::string fprefix) {
+  auto open1 = [&](std::ofstream& ofs, const char* suffix) -> bool {
+    std::string fpath = fprefix + "-" + suffix + ".txt";
+    ofs.open(fpath);
+    if (!ofs.is_open()) {
+      fprintf(stderr, "ERROR: ofstream(%s) = %s\n", fpath.c_str(), strerror(errno));
+      return false;
+    }
+    return true;
+  };
+  return 1
+  && open1(ofs_ops     , "ops"     )
+  && open1(ofs_memory  , "memory"  )
+  && open1(ofs_cpu     , "cpu"     )
+  && open1(ofs_dbsize  , "dbsize"  )
+  && open1(ofs_diskinfo, "diskinfo")
+  ;
+}
+
 static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo;
 static void prepair_all_stmt() {
     ps_ops = prepare(&g_conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
@@ -121,12 +140,12 @@ void Bind_arg(MYSQL_BIND &b, fstring val) {
     b.buffer = (void*)val.data();
 }
 template<class... Args>
-bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
-    if (g_statFile.is_open()) {
+bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
+    if (ofs.is_open()) {
         const char* delim = "";
-        const char* a[]{(g_statFile << delim << args, delim = " ")...};
+        const char* a[]{(ofs << delim << args, delim = " ")...};
         (void)(a);
-        g_statFile << "\n";
+        ofs << "\n";
         return !g_hasConn;
     }
     else if (!g_hasConn) {
@@ -161,26 +180,26 @@ static void upload_sys_stat(terark::AutoGrownMemIO& buf,
     g_prev_sys_stat_bucket = bucket;
     int arr[4];
     benchmark::getPhysicalMemoryUsage(arr);
-    Exec_stmt(ps_memory, bucket, arr[0], arr[1], arr[2], arr[3], engine_name);
+    Exec_stmt(ofs_memory, ps_memory, bucket, arr[0], arr[1], arr[2], arr[3], engine_name);
     buf.printf("    total memory = %5.2f GiB", arr[0]/1024.0);
 
     double cpu[2];
     benchmark::getCPUPercentage(cpu);
     if(cpu > 0){
-        Exec_stmt(ps_cpu, bucket, cpu[0], cpu[1], engine_name);
+        Exec_stmt(ofs_cpu, ps_cpu, bucket, cpu[0], cpu[1], engine_name);
     }
     buf.printf("    cpu usage = %5.2f iowait = %5.2f", cpu[0], cpu[1]);
 
     int dbsizeKB = benchmark::getDiskUsageByKB(dbdirs);
     if(dbsizeKB > 0) {
-        Exec_stmt(ps_dbsize, bucket, dbsizeKB, engine_name);
+        Exec_stmt(ofs_dbsize, ps_dbsize, bucket, dbsizeKB, engine_name);
     }
     buf.printf("    dbsize = %5.2f GiB", dbsizeKB/1024.0/1024);
 
     std::string diskinfo;
     benchmark::getDiskFileInfo(dbdirs, diskinfo);
     if(diskinfo.length() > 0) {
-        Exec_stmt(ps_diskinfo, bucket, fstring(diskinfo), engine_name);
+        Exec_stmt(ofs_diskinfo, ps_diskinfo, bucket, fstring(diskinfo), engine_name);
     }
 }
 
@@ -190,7 +209,7 @@ void TimeBucket::add(terark::AutoGrownMemIO& buf,uint64_t start, uint64_t end, i
     if(next_bucket > current_bucket) {
         int ops = operation_count * 100 / (10 * sampleRate); // sample rate : (0, 100]
         buf.rewind();
-        Exec_stmt(ps_ops, current_bucket, ops, type, engine_name);
+        Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
         buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
         upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
         printf("%s\n", buf.begin());
@@ -216,17 +235,14 @@ void AnalysisWorker::stop() {
 bool g_upload_fake_ops = false;
 
 void AnalysisWorker::run() {
-    if (const char* fname = getenv("MONITOR_STAT_FILE")) {
-        g_statFile.open(fname);
-        if (!g_statFile.is_open()) {
-          fprintf(stderr, "open file %s failed = %s\n", fname, strerror(errno));
+    if (const char* fprefix = getenv("MONITOR_STAT_FILE_PREFIX")) {
+        if (!open_stat_files(fprefix)) {
           return;
         }
     }
     g_hasConn = Mysql_connect(&g_conn);
     if (!g_hasConn) {
-        if (!g_statFile.is_open()) {
-            shoud_stop = true;
+        if (!ofs_ops.is_open()) {
             return;
         }
     }
@@ -277,7 +293,7 @@ void AnalysisWorker::run() {
                 buf.rewind();
                 if (g_upload_fake_ops) {
                     int ops = 0, op_type = 2;
-                    Exec_stmt(ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
+                    Exec_stmt(ofs_ops, ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
                     buf.printf("upload statistic time bucket[%d], OPS = %7d, type = %d", curr_bucket, ops, op_type);
                 }
                 else {
