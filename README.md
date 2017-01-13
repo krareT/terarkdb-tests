@@ -105,9 +105,63 @@ WhichDB 可以是:
 ### 环境变量
 有一些全局参数是通过环境变量控制的：
 
-|环境变量名|说明|
-|----------|----|
-|DictZipBlobStore\_zipThreads|该变量未设置时(默认)，相当于 8 ，<br/>如果机器的 CPU 数量小于 8 ，就是实际的 CPU 数量；<br/>如果设为 0，表示不使用多线程压缩；<br/>非0时，总是使用多线程压缩，读、压缩、写线程是分离的，<br/>默认值可以工作的不错，如果需要，可以进行精细控制，<br/>对于TPC-H数据，8个线程的压缩速度可以达到200MB/s|
+<table><tbody>
+<tr><th>环境变量名</th><th>说明</th></tr>
+<tr>
+ <td>`DictZipBlobStore_zipThreads`</td>
+ <td>该变量未设置时(默认)，相当于 8
+
+如果机器的 CPU 数量小于 8 ，就是实际的 CPU 数量；
+
+如果设为 0，表示不使用多线程压缩；
+
+非0时，总是使用多线程压缩，读、压缩、写线程是分离的，
+
+默认值可以工作的不错，如果需要，可以进行精细控制，
+
+对于TPC-H数据，8个线程的压缩速度可以达到200MB/s
+ </td>
+</tr>
+<tr>
+ <td>`MYSQL_SERVER`</td>
+ <td>该变量未设置时(默认)，使用 Terark 的 Mysql Server </td>
+</tr>
+<tr>
+ <td>`MYSQL_PORT`</td>
+ <td>该变量未设置时(默认)，使用 Mysql 默认的端口 3306 </td>
+</tr>
+<tr>
+ <td>`MYSQL_USER`</td>
+ <td>该变量未设置时(默认)，使用 Terark 默认的 user</td>
+</tr>
+<tr>
+ <td>`MONITOR_STAT_FILE_PREFIX`</td>
+ <td>将系统资源监控数据写入文本文件，有多个文件，该变量指定这些文件名的前缀
+   <table><tbody>
+  <tr>
+   <td>${prefix}-ops.txt</td>
+   <td>cpu 操作监控（读、写、更新数量）</td>
+  </tr>
+  <tr>
+   <td>${prefix}-cpu.txt</td>
+   <td>cpu 监控数据</td>
+  </tr>
+  <tr>
+   <td>${prefix}-memory.txt</td>
+   <td>内存 监控数据</td>
+  </tr>
+  <tr>
+   <td>${prefix}-dbsize.txt</td>
+   <td>db尺寸</td>
+  </tr>
+  <tr>
+   <td>${prefix}-diskinfo.txt</td>
+   <td>db尺寸详细信息</td>
+  </tr>
+  </tbody></table>
+ </td>
+</tbody></table>
+
 
 ## TPC-H 测试数据
 我们对 TPC-H 的 dbgen 做了一些修改，改变文本字段的长度，用来生成我们需要的数据。

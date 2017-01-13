@@ -54,13 +54,16 @@ static bool Mysql_connect(MYSQL* conn) {
     const char* host = "rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com";
     const char* user = "terark_benchmark";
     const char* db = "benchmark";
+    int port = 3306;
     if (const char* env = getenv("MYSQL_SERVER")) {
         host = env;
     }
     if (const char* env = getenv("MYSQL_USER")) {
         user = env;
     }
-    int port = 3306;
+    if (const char* env = getenv("MYSQL_PORT")) {
+        port = atoi(env);
+    }
     my_bool myTrue = true;
     mysql_init(conn);
     mysql_options(conn, MYSQL_OPT_RECONNECT, &myTrue); // brain dead reconnect has a fucking bug
