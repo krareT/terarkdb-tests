@@ -159,10 +159,14 @@ std::string Escape_arg(fstring val) {
 template<class... Args>
 bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     if (ofs.is_open()) {
-        const char* delim = "";
-        const char* a[]{(ofs << delim << Escape_arg(args), delim = ",")...};
-        (void)(a);
+        long  i = 0;
+        const long a[]{(
+            i + 1 < sizeof...(Args) ? ofs << Escape_arg(args) : ofs,
+            i + 2 < sizeof...(Args) ? ofs << "," : ofs,
+            i++
+        )...};
         ofs << "\n";
+        (void)(a);
         return !g_hasConn;
     }
     else if (!g_hasConn) {

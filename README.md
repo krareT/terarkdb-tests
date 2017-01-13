@@ -132,26 +132,34 @@ WhichDB 可以是:
 <tr>
  <td>MONITOR_STAT_FILE_PREFIX</td>
  <td>将系统资源监控数据写入文本文件，有多个文件，该变量指定这些文件名的前缀
-   <table><tbody>
+  <br/>这些文本文件都是CSV格式（逗号分隔字段）
+  <table><tbody>
   <tr>
    <td>${prefix}-ops.txt</td>
-   <td>db 操作监控（读、写、更新数量）</td>
+   <td>db 操作监控（读、写、更新数量），数据格式：<br/>
+   time, op_num, op_type<br/>
+   op_type: 0 表示读，1 表示写，2 表示更新  
+   </td>
   </tr>
   <tr>
    <td>${prefix}-cpu.txt</td>
-   <td>cpu 监控数据</td>
+   <td>cpu 监控，数据格式：  time, cpu%, iowait%</td>
   </tr>
   <tr>
    <td>${prefix}-memory.txt</td>
-   <td>内存 监控数据</td>
+   <td>内存 监控，数据格式（单位是KB）：<br/>
+    time, total, free, cached, resident
+   </td>
   </tr>
   <tr>
    <td>${prefix}-dbsize.txt</td>
-   <td>db尺寸</td>
+   <td>db尺寸，数据格式： time, dbsizeKB</td>
   </tr>
   <tr>
    <td>${prefix}-diskinfo.txt</td>
-   <td>db尺寸详细信息</td>
+   <td>db尺寸详细信息，数据格式： time, description<br/>
+   description 详细描述每个 db 目录的尺寸
+   </td>
   </tr>
   </tbody></table>
  </td>
