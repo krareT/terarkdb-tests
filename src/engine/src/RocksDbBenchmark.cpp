@@ -246,6 +246,7 @@ void RocksDbBenchmark::Load() {
     fflush(stdout);
     extern void stop_test();
     stop_test();
+    Close();
 }
 
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {

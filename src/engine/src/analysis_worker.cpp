@@ -147,7 +147,7 @@ double Escape_arg(const double& val) {
   return val;
 }
 std::string Escape_arg(fstring val) {
-  std::string esc(val.size()*3);
+  std::string esc(val.size()*3, '\0');
   size_t len = mysql_escape_string(&esc[0], val.data(), val.size());
   esc.resize(len);
   return esc;
