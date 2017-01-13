@@ -23,7 +23,9 @@ void RocksDbBenchmark::Open() {
   }
 }
 
-RocksDbBenchmark::~RocksDbBenchmark() {}
+RocksDbBenchmark::~RocksDbBenchmark() {
+  TERARK_RT_assert(nullptr == db, std::logic_error);
+}
 RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
     db = nullptr;
     options.create_if_missing = true;
