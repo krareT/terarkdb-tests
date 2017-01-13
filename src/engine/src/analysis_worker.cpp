@@ -139,11 +139,25 @@ void Bind_arg(MYSQL_BIND &b, fstring val) {
     b.buffer_type = MYSQL_TYPE_VAR_STRING;
     b.buffer = (void*)val.data();
 }
+
+int Escape_arg(const int &val) {
+  return val;
+}
+double Escape_arg(const double& val) {
+  return val;
+}
+std::string Escape_arg(fstring val) {
+  std::string esc(val.size()*3);
+  size_t len = mysql_escape_string(&esc[0], val.data(), val.size());
+  esc.resize(len);
+  return esc;
+}
+
 template<class... Args>
 bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     if (ofs.is_open()) {
         const char* delim = "";
-        const char* a[]{(ofs << delim << args, delim = " ")...};
+        const char* a[]{(ofs << delim << Escape_arg(args), delim = "\t")...};
         (void)(a);
         ofs << "\n";
         return !g_hasConn;
