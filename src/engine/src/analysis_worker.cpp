@@ -7,6 +7,7 @@
 #include "util/system_resource.h"
 #include <terark/io/MemStream.hpp>
 #include <terark/lcast.hpp>
+//#include <terark/util/autoclose.hpp>
 #include <mysql.h>
 #include <errmsg.h>
 
@@ -40,6 +41,10 @@ static int findTimeBucket(uint64_t time) {
 
 char* g_passwd = getenv("MYSQL_PASSWD");
 static MYSQL g_conn;
+static bool  g_hasConn = false;
+
+// also write monitor stat to file
+static std::ofstream g_statFile;
 
 static bool Mysql_connect(MYSQL* conn) {
     if(g_passwd == NULL || strlen(g_passwd) == 0) {
@@ -116,6 +121,16 @@ void Bind_arg(MYSQL_BIND &b, fstring val) {
 }
 template<class... Args>
 bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
+    if (g_statFile.is_open()) {
+        const char* delim = "";
+        int a[]{(g_statFile << delim << args, delim = " ")...};
+        (void)(a);
+        g_statFile << "\n";
+        return !g_hasConn;
+    }
+    else if (!g_hasConn) {
+        return false;
+    }
     MYSQL_BIND  b[sizeof...(Args)];
     memset(&b, 0, sizeof(b));
     int i = 0;
@@ -200,26 +215,38 @@ void AnalysisWorker::stop() {
 bool g_upload_fake_ops = false;
 
 void AnalysisWorker::run() {
-    if (!Mysql_connect(&g_conn)) {
-        shoud_stop = true;
-        return;
+    if (const char* fname = getenv("MONITOR_STAT_FILE")) {
+        g_statFile.open(fname);
+        if (!g_statFile.is_open()) {
+          fprintf(stderr, "open file %s failed = %s\n", strerror(errno));
+          return;
+        }
     }
-#if 0
-    struct timespec t;
-    clock_gettime(CLOCK_REALTIME, &t);
-    int filter_time = t.tv_sec - 60*60*24*60;
-    std::string tables[] = {"engine_test_ops_10s",
-                            "engine_test_memory_10s",
-                            "engine_test_cpu_10s",
-                            "engine_test_dbsize_10s",
-                            "engine_test_diskinfo_10s"
-    };
-    for(std::string& table: tables) {
-        std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
-        mysql_real_query(&g_conn, sql.c_str(), sql.size());
+    g_hasConn = Mysql_connect(&g_conn);
+    if (!g_hasConn) {
+        if (!g_statFile.is_open()) {
+            shoud_stop = true;
+            return;
+        }
     }
-#endif
-    prepair_all_stmt();
+    else {
+  #if 0
+      struct timespec t;
+      clock_gettime(CLOCK_REALTIME, &t);
+      int filter_time = t.tv_sec - 60*60*24*60;
+      std::string tables[] = {"engine_test_ops_10s",
+                              "engine_test_memory_10s",
+                              "engine_test_cpu_10s",
+                              "engine_test_dbsize_10s",
+                              "engine_test_diskinfo_10s",
+      };
+      for(std::string& table: tables) {
+          std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
+          mysql_real_query(&g_conn, sql.c_str(), sql.size());
+      }
+  #endif
+      prepair_all_stmt();
+    }
 
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
     TimeBucket read_bucket(engine_name.c_str(), setting->dbdirs);
@@ -231,16 +258,16 @@ void AnalysisWorker::run() {
         bool b1 = Stats::readTimeDataCq.try_pop(read_result);
         bool b2 = Stats::createTimeDataCq.try_pop(insert_result);
         bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
-        if(b1){
+        if (b1) {
             read_bucket.add(buf, read_result.first, read_result.second, setting->getSamplingRate(), 1);
         }
-        if(b2){
+        if (b2) {
             insert_bucket.add(buf, insert_result.first, insert_result.second, setting->getSamplingRate(), 2);
         }
-        if(b3){
+        if (b3) {
             update_bucket.add(buf, update_result.first, update_result.second, setting->getSamplingRate(), 3);
         }
-        if(!b1 && !b2 && !b3){
+        if (!b1 && !b2 && !b3) {
             timespec ts1;
             clock_gettime(CLOCK_REALTIME, &ts1);
             unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
@@ -261,10 +288,12 @@ void AnalysisWorker::run() {
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }
-    mysql_stmt_close(ps_ops);
-    mysql_stmt_close(ps_memory);
-    mysql_stmt_close(ps_cpu);
-    mysql_stmt_close(ps_dbsize);
-    mysql_stmt_close(ps_diskinfo);
-    mysql_close(&g_conn);
+    if (g_hasConn) {
+        mysql_stmt_close(ps_ops);
+        mysql_stmt_close(ps_memory);
+        mysql_stmt_close(ps_cpu);
+        mysql_stmt_close(ps_dbsize);
+        mysql_stmt_close(ps_diskinfo);
+        mysql_close(&g_conn);
+    }
 }
