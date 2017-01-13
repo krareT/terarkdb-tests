@@ -23,19 +23,20 @@ export DictZipBlobStore_zipThreads=24
   terocksdb \
   --action=load \
   --alt_engine_name=terocksdb_load \
-  --keys_data_path=/disk2/tmp/lineitem.keys.0.06 \
   --load_data_path=<(zcat /data/tpch_data/lineitem_512b.tbl.gz) \
   --db=/newssd1/terocksdb_tpch:400G,/newssd2/terocksdb_tpch:400G,/experiment/terocksdb_tpch:300G,/datainssd/terocksdb_tpch:300G \
   --logdir=/data/terocksdb_tpch.logdir \
   --waldir=/data/terocksdb_tpch.waldir \
   --terocksdb_tmpdir=/newssd2/terocksdb_tpch.tmpdir \
   --rocksdb_memtable=vector \
+  --write_rate_limit=0 \
+  --auto_slowdown_write=0 \
   --enable_auto_compact=0 \
   --load_size=30G \
+  --write_buffer_size=1G \
   --fields_delim="|" \
   --fields_num=16 \
   --key_fields=0,1,2 \
-  --key_sample_ratio=0.05 \
   --disable_wal \
   --num_levels=4 \
   --index_nest_level=2 \
