@@ -65,7 +65,7 @@ protected:
     std::string toString();
 
 public:
-    static std::string BenchmarkName;
+    std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
     uint8_t getSamplingRate(void) const ;
@@ -168,6 +168,12 @@ public:
     int FLAGS_max_compact_wait = 1200;
     int terocksdbIndexNestLevel = 3;
 
+    size_t checksumLevel = 1;
+    size_t terocksdbZipMinLevel = 0;
+    size_t terocksdbZipWorkingMemSoftLimit = 16ull<<30; // 16G
+    size_t terocksdbZipWorkingMemHardLimit = 32ull<<30; // 32G
+    size_t terocksdbSmallTaskMemory = 1200ull<<20; // 1.2G
+    double terocksdbSampleRatio = 0.015;
     double terocksdbIndexCacheRatio = 0.002;
     double keySampleRatio = 1.0; ///< when all keys are too large, just sample a subset
     size_t numFields = size_t(-1);

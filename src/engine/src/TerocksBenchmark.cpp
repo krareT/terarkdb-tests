@@ -15,13 +15,14 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting& set) : RocksDbBenchmark(
     if (set.terocksdb_tmpdir.empty()) {
         throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");
     }
-    opt.terarkZipMinLevel = 0;
+    opt.terarkZipMinLevel = set.terocksdbZipMinLevel;
     opt.localTempDir = set.terocksdb_tmpdir;
-    opt.sampleRatio = 0.015;
+    opt.sampleRatio = set.terocksdbSampleRatio;
+    opt.checksumLevel = set.checksumLevel;
     opt.indexNestLevel = std::min(9, std::max(2, set.terocksdbIndexNestLevel));
     opt.indexCacheRatio = set.terocksdbIndexCacheRatio;
-    opt.softZipWorkingMemLimit = 16ull<<30;
-    opt.hardZipWorkingMemLimit = 28ull<<30;
+    opt.softZipWorkingMemLimit = set.terocksdbZipWorkingMemSoftLimit;
+    opt.hardZipWorkingMemLimit = set.terocksdbZipWorkingMemHardLimit;
 //  printf("local temp dir:%s\n",tmp_dir);
 #if 1
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());

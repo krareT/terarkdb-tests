@@ -14,8 +14,6 @@
 
 using terark::lcast;
 
-std::string BaseSetting::BenchmarkName;
-
 static uint64_t ParseSizeXiB(const char* str) {
     char* endp = NULL;
     double val = strtod(str, &endp);
@@ -159,6 +157,24 @@ Setting::Setting(int argc,char **argv) {
         else if (arg.startsWith("--index_nest_level=")) {
             terocksdbIndexNestLevel = lcast(arg.substr(strlen("--index_nest_level=")));
         }
+        else if (arg.startsWith("--zip_work_mem_soft_limit=")) {
+            terocksdbZipWorkingMemSoftLimit = ParseSizeXiB(arg.substr(strlen("--zip_work_mem_soft_limit=")));
+        }
+        else if (arg.startsWith("--zip_work_mem_hard_limit=")) {
+            terocksdbZipWorkingMemHardLimit = ParseSizeXiB(arg.substr(strlen("--zip_work_mem_hard_limit=")));
+        }
+        else if (arg.startsWith("--small_task_mem=")) {
+            terocksdbSmallTaskMemory = ParseSizeXiB(arg.substr(strlen("--small_task_mem=")));
+        }
+        else if (arg.startsWith("--checksum_level=")) {
+            checksumLevel = lcast(arg.substr(strlen("--checksum_level=")));
+        }
+        else if (arg.startsWith("--terocksdb_sample_ratio=")) {
+            terocksdbSampleRatio = lcast(arg.substr(strlen("--terocksdb_sample_ratio=")));
+        }
+        else if (arg.startsWith("--terocksdb_zip_min_level=")) {
+            terocksdbZipMinLevel = lcast(arg.substr(strlen("--terocksdb_zip_min_level=")));
+        }
         else if (arg.startsWith("--index_cache_ratio=")) {
             terocksdbIndexCacheRatio = lcast(arg.substr(strlen("--index_cache_ratio=")));
         }
@@ -196,7 +212,7 @@ Setting::Setting(int argc,char **argv) {
     }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc,argv);
-    BaseSetting::BenchmarkName.assign(argv[1]);
+    BenchmarkName.assign(argv[1]);
     assert(!FLAGS_db.empty());
     std::cout << toString() << std::endl;
     std::cout << "wait" << std::endl;
@@ -317,7 +333,7 @@ void BaseSetting::setStop(void){
 }
 std::string BaseSetting::toString() {
     std::stringstream ret;
-    ret << "benchmark name:\t"  << BaseSetting::BenchmarkName << std::endl;
+    ret << "benchmark name:\t"  << BenchmarkName << std::endl;
     ret << "sampling rate:\t"   << static_cast<int >(getSamplingRate()) << std::endl;
     ret << "thread nums:\t"     << getThreadNums() << std::endl;
     {
