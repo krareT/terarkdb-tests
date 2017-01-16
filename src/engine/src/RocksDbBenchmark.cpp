@@ -208,7 +208,7 @@ void RocksDbBenchmark::Load() {
     profiling pf;
     long long t0 = pf.now();
     long long t1 = t0;
-    while (bytes < limit && !feof(loadFile)) {
+    while (bytes < limit && !feof(loadFile) && !setting.ifStop()) {
         size_t i = 0;
         for (; i < 100000 && bytes < limit && line.getline(loadFile) > 0; ++i) {
             line.chomp();

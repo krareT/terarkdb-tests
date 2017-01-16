@@ -49,7 +49,7 @@ void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
 
 void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
-    std::thread loadInsertDataThread(&Benchmark::loadInsertData, this, &setting);
+    std::thread loadInsertDataThread(&Benchmark::loadInsertData, this);
     while (!setting.ifStop()){
         //check sampling rate
         int samplingRate = setting.getSamplingRate();
@@ -178,25 +178,25 @@ bool Benchmark::pushKey(std::string &key) {
 
 extern bool g_upload_fake_ops;
 
-void Benchmark::loadInsertData(const Setting *setting){
-    const char* fpath = setting->getInsertDataPath().c_str();
+void Benchmark::loadInsertData(){
+    const char* fpath = setting.getInsertDataPath().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));
     if (!ifs) {
         fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", fpath, strerror(errno));
         return;
     }
-    size_t limit = setting->FLAGS_load_size;
+    size_t limit = setting.FLAGS_load_size;
     fprintf(stderr, "Benchmark::loadInsertData(%s) start, limit = %f GB\n", fpath, limit/1e9);
     LineBuf line;
     size_t lines = 0;
-    while (lines < setting->skipInsertLines && line.getline(ifs) > 0) {
+    while (lines < setting.skipInsertLines && line.getline(ifs) > 0) {
         lines++;
     }
     fprintf(stderr, "Benchmark::loadInsertData(%s) skipped %zd lines\n", fpath, lines);
     terark::profiling pf;
     long long t0 = pf.now();
     size_t bytes = 0;
-    while (bytes < limit && !setting->ifStop() && !feof(ifs)) {
+    while (bytes < limit && !setting.ifStop() && !feof(ifs)) {
         size_t count = 0;
         while (bytes < limit && updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
             line.chomp();
@@ -213,7 +213,7 @@ void Benchmark::loadInsertData(const Setting *setting){
     fprintf(stderr
         , "Benchmark::loadInsertData(%s) %s, lines = %zd, bytes = %zd, time = %f sec, speed = %f MB/sec\n"
         , fpath
-        , setting->ifStop() ? "stopped" : "completed"
+        , setting.ifStop() ? "stopped" : "completed"
         , lines, bytes, pf.sf(t0,t1), bytes/pf.uf(t0,t1)
         );
     if (feof(ifs)) {

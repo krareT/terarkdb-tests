@@ -41,7 +41,7 @@ private:
     uint8_t compactTimes;
     void loadKeys(double keySampleRatio);
     void backupKeys(const std::string& fname);
-    void loadInsertData(const Setting *setting);
+    void loadInsertData();
     static void ThreadBody(Benchmark *bm,ThreadState* state){
         bm->ReadWhileWriting(state);
     }
