@@ -106,10 +106,10 @@ struct leveldb_filterpolicy_t : public FilterPolicy {
     return (*name_)(state_);
   }
 
-  virtual void CreateFilter(const Slice* keys, int n, std::string* dst) const {
+  virtual void CreateFilter(const Slice* keys, size_t n, std::string* dst) const {
     std::vector<const char*> key_pointers(n);
     std::vector<size_t> key_sizes(n);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
       key_pointers[i] = keys[i].data();
       key_sizes[i] = keys[i].size();
     }

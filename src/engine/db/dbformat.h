@@ -131,7 +131,7 @@ class InternalFilterPolicy : public FilterPolicy {
  public:
   explicit InternalFilterPolicy(const FilterPolicy* p) : user_policy_(p) { }
   virtual const char* Name() const;
-  virtual void CreateFilter(const Slice* keys, int n, std::string* dst) const;
+  virtual void CreateFilter(const Slice* keys, size_t n, std::string* dst) const;
   virtual bool KeyMayMatch(const Slice& key, const Slice& filter) const;
 };
 
