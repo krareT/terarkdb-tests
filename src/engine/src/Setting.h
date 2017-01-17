@@ -167,6 +167,7 @@ public:
 
     int FLAGS_max_compact_wait = 1200;
     int terocksdbIndexNestLevel = 3;
+    bool terocksdbUseAsyncKeyValueReader = true;
 
     size_t checksumLevel = 1;
     size_t terocksdbZipMinLevel = 0;
