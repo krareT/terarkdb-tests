@@ -23,7 +23,6 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting& set) : RocksDbBenchmark(
     opt.indexCacheRatio = set.terocksdbIndexCacheRatio;
     opt.softZipWorkingMemLimit = set.terocksdbZipWorkingMemSoftLimit;
     opt.hardZipWorkingMemLimit = set.terocksdbZipWorkingMemHardLimit;
-    opt.useAsyncKeyValueReader = set.terocksdbUseAsyncKeyValueReader;
 //  printf("local temp dir:%s\n",tmp_dir);
 #if 1
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());

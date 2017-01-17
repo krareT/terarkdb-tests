@@ -172,9 +172,6 @@ Setting::Setting(int argc,char **argv) {
         else if (arg.startsWith("--terocksdb_sample_ratio=")) {
             terocksdbSampleRatio = lcast(arg.substr(strlen("--terocksdb_sample_ratio=")));
         }
-        else if (arg.startsWith("--terocksdb_async_read_kv=")) {
-            terocksdbUseAsyncKeyValueReader = lcast(arg.substr(strlen("--terocksdb_async_read_kv=")));
-        }
         else if (arg.startsWith("--terocksdb_zip_min_level=")) {
             terocksdbZipMinLevel = lcast(arg.substr(strlen("--terocksdb_zip_min_level=")));
         }
