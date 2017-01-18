@@ -85,16 +85,16 @@ WhichDB 可以是:
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
 |--enable\_auto\_compact=|1或0，1表示启用自动compact，0表示禁用自动compact，默认为1|
 |--rocksdb\_memtable=|如果指定该参数，必须是 vector(使用VectorRepFactory)<br/>不指定的话，使用rocksdb的默认memtable<br/> vector memtable 仅在 --action=load 时有用，性能更好|
-|--load\_size=|如果输入文件尺寸过大，指定该参数可以只加载这么多数据就停止，<br/>仅在 --action=load 时有用|
+|--load\_size=|如果输入文件尺寸过大，指定该参数可以只加载这么多数据就停止写操作<br/>(`--action=run`的时候，读操作仍会继续)|
 |--use\_universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction，默认为1|
 |--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
-|`--zip_work_mem_soft_limit=`|默认 16G，值越大，越有利于提高大尺寸 SST 的压缩速度(并发度会提高)|
-|`--zip_work_mem_hard_limit=`|默认 32G，...|
-|`--small_task_mem=`|默认 2G，内存用量小于该尺寸的压缩任务，会忽略 zip_work_mem_soft_limit, 直接执行<br/>当所有压缩线程的总内存用量达到 zip_work_mem_hard_limit 时，仍必须等待|
-|`--checksum_level=`|默认 1，仅检查 metadata ，<br/>设为 2 会在每条记录上增加一个 4 bytes 的 checksum，<br/>设为 3 时，SST 整体计算并验证 checksum|
-|`--terocksdb_sample_ratio=`|默认 0.015，terark全局压缩的采样率|
-|`--terocksdb_zip_min_level=`|默认 0，只有 level 大于等于此值时，才使用 terark SST，<br/>否则使用 rocksdb 自身的 BlockBasedTable|
+|--zip\_work\_mem\_soft\_limit=|默认 16G，值越大，越有利于提高大尺寸 SST 的压缩速度(并发度会提高)|
+|--zip\_work\_mem\_hard\_limit=|默认 32G，...|
+|--small\_task\_mem=|默认 2G，内存用量小于该尺寸的压缩任务，会忽略 zip\_work\_mem\_soft\_limit, 直接执行<br/>当所有压缩线程的总内存用量达到 zip_work_mem_hard_limit 时，仍必须等待|
+|--checksum\_level=|默认 1，仅检查 metadata ，<br/>设为 2 会在每条记录上增加一个 4 bytes 的 checksum，<br/>设为 3 时，SST 整体计算并验证 checksum|
+|--terocksdb\_sample\_ratio=|默认 0.015，terark全局压缩的采样率|
+|--terocksdb\_zip\_min\_level=|默认 0，只有 level 大于等于此值时，才使用 terark SST，<br/>否则使用 rocksdb 自身的 BlockBasedTable|
 |--index\_cache\_ratio=|默认 0.002，可以提高精确查找(DB.Get)的性能(0.002可以提高大约10%)，<br/>该值设置得越大，对性能提升的帮助越小<br/>该设置对通过 iterator 进行查找/遍历无任何帮助|
 |--thread\_num=|前台线程数（对数据库执行读/写/更新操作的线程），<br/>线程编号从0开始，对应前闭后开区间 [0, n) |
 |--plan\_config=|参数格式 `configId:读百分比:写百分比:更新百分比`，<br/>和 `--thread_plan_map` 配合，可以<br/>让不同的线程按预定义的读/写/更新比例执行|
