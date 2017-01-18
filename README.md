@@ -81,6 +81,7 @@ WhichDB 可以是:
 |--disable\_wal|禁用 Write Ahead Log, 这会提高写性能，但出错时会丢失数据|
 |--flush\_threads=|RocksDB 的 Flush 线程数（将 MemTable 刷新到 SST 文件的线程数），<br/>(Flush 线程的优先级高于 Compact)|
 |--num\_levels=|RocksDB 的 Level 数量|
+|--write\_buffer\_size=|默认 1G|
 |--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数失效<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
 |--enable\_auto\_compact=|1或0，1表示启用自动compact，0表示禁用自动compact，默认为1|
@@ -91,7 +92,7 @@ WhichDB 可以是:
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
 |--zip\_work\_mem\_soft\_limit=|默认 16G，值越大，越有利于提高大尺寸 SST 的压缩速度(并发度会提高)|
 |--zip\_work\_mem\_hard\_limit=|默认 32G，...|
-|--small\_task\_mem=|默认 2G，内存用量小于该尺寸的压缩任务，会忽略 zip\_work\_mem\_soft\_limit, 直接执行<br/>当所有压缩线程的总内存用量达到 zip_work_mem_hard_limit 时，仍必须等待|
+|--small\_task\_mem=|默认 2G，内存用量小于该尺寸的压缩任务，会忽略 zip\_work\_mem\_soft\_limit, 直接执行<br/>当所有压缩线程的总内存用量达到 zip\_work\_mem\_hard\_limit 时，仍必须等待|
 |--checksum\_level=|默认 1，仅检查 metadata ，<br/>设为 2 会在每条记录上增加一个 4 bytes 的 checksum，<br/>设为 3 时，SST 整体计算并验证 checksum|
 |--terocksdb\_sample\_ratio=|默认 0.015，terark全局压缩的采样率|
 |--terocksdb\_zip\_min\_level=|默认 0，只有 level 大于等于此值时，才使用 terark SST，<br/>否则使用 rocksdb 自身的 BlockBasedTable|
