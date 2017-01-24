@@ -8,11 +8,11 @@
 
 class WiredTigerBenchmark : public Benchmark{
 private:
-    WT_CONNECTION *conn_;
+    WT_CONNECTION *conn_ = NULL;
     std::string uri_;
-    int db_num_;
-    int num_;
-    int sync_;
+    int db_num_ = 0;
+    int num_ = 0;
+    int sync_ = 0;
 
 public:
     WiredTigerBenchmark(Setting& setting1) : Benchmark(setting1) {

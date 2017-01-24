@@ -70,7 +70,7 @@ Setting::Setting(int argc,char **argv) {
             waldir = arg.substr(strlen("--waldir=")).str();
         }
         else if (arg.startsWith("--db=")) {
-            FLAGS_db = argv[i] + 5;
+            FLAGS_db = arg.substr(strlen("--db=")).str();
         }
         else if (arg.startsWith("--skip_insert_lines=")) {
             skipInsertLines = lcast(arg.substr(strlen("--skip_insert_lines=")));
@@ -188,9 +188,13 @@ Setting::Setting(int argc,char **argv) {
             FLAGS_load_size = ParseSizeXiB(arg.substr(strlen("--load_size=")));
         }
         else if (arg.startsWith("--mysql_passwd=")) {
-			extern const char* g_passwd;
-			g_passwd = arg.p + strlen("--mysql_passwd=");
+            extern const char* g_passwd;
+            g_passwd = arg.p + strlen("--mysql_passwd=");
         }
+    }
+    if (FLAGS_db.empty()) {
+        fprintf(stderr, "ERROR: missing argument --db=...\n");
+        exit(1);
     }
     dbdirs = {FLAGS_db};
     if (size_t(-1) == numFields) {
@@ -211,7 +215,7 @@ Setting::Setting(int argc,char **argv) {
       keyFieldsBits.set1(field);
     }
     setThreadNums(FLAGS_threads);
-    setBaseSetting(argc,argv);
+    setBaseSetting(argc, argv);
     BenchmarkName.assign(argv[1]);
     assert(!FLAGS_db.empty());
     std::cout << toString() << std::endl;

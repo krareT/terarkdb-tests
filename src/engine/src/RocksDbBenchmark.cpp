@@ -137,7 +137,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 
     if ("load" == setting.getAction()) {
-      options.max_write_buffer_number = 6;
+      options.max_write_buffer_number = 4;
     }
 
     if (setting.write_rate_limit) {

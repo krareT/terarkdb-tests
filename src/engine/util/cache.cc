@@ -174,6 +174,7 @@ LRUCache::LRUCache()
   // Make empty circular linked list
   lru_.next = &lru_;
   lru_.prev = &lru_;
+  capacity_ = 0;
 }
 
 LRUCache::~LRUCache() {

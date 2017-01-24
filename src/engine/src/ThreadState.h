@@ -36,6 +36,7 @@ struct ThreadState {
     whichSamplingPlan(wsp)
     {
         STOP.store(false);
+        session = NULL;
         ctx = (*tab)->createDbContext();
         ctx->syncIndex = true;
         seed = tid;
@@ -56,6 +57,7 @@ struct ThreadState {
             : tid(index),
               whichSamplingPlan(wsp) {
         STOP.store(false);
+        session = NULL;
         seed = tid;
         randGenerator.seed(seed);
     }
