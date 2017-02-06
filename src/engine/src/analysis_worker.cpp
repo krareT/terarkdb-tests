@@ -336,6 +336,7 @@ void upload_command_and_env(fstring engine_name) {
   }
   time_t now = time(NULL);
   Exec_stmt(stmt, engine_name, int(now), cmd, env);
+  mysql_stmt_close(stmt);
 }
 
 void AnalysisWorker::run() {
