@@ -27,8 +27,8 @@ struct ThreadState {
     terark::valvec<terark::byte > row;
     terark::valvec<terark::llong> idvec;
     PlanConfig planConfig;
-    std::vector<BaseSetting::OP_TYPE > executePlan[2];
-    std::atomic<uint8_t > whichPlan;
+    std::vector<OP_TYPE> executePlan[2];
+    std::atomic<uint8_t> whichPlan;
 
     ThreadState(int index,std::atomic<std::vector<uint8_t >*>* wep,
     std::atomic<std::vector<bool >*>* wsp,terark::db::DbTablePtr *tab)

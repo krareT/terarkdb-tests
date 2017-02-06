@@ -79,22 +79,22 @@ void Benchmark::RunBenchmark(void){
     loadInsertDataThread.join();
 }
 
-bool Benchmark::executeOneOperationWithSampling(ThreadState *state, BaseSetting::OP_TYPE type){
+bool Benchmark::executeOneOperationWithSampling(ThreadState *state, OP_TYPE type){
     struct timespec start,end;
     clock_gettime(CLOCK_REALTIME,&start);
     bool ret = (this->*executeFuncMap[int(type)])(state);
-    if (ret || type == BaseSetting::OP_TYPE::READ) {
+    if (ret || type == OP_TYPE::SEARCH) {
         clock_gettime(CLOCK_REALTIME, &end);
-        state->stats.FinishedSingleOp(type, &start, &end);
+        state->stats.FinishedSingleOp(type, start, end);
     }
     return ret;
 }
 
-bool Benchmark::executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type){
+bool Benchmark::executeOneOperationWithoutSampling(ThreadState *state, OP_TYPE type){
     return ((this->*executeFuncMap[int(type)])(state));
 }
 
-bool Benchmark::executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type){
+bool Benchmark::executeOneOperation(ThreadState* state,OP_TYPE type){
     assert(executeFuncMap[int(type)] != 0);
     std::vector<bool> *samplingPlan = (*(state->whichSamplingPlan)).load();
     if (samplingRecord[int(type)] >= samplingPlan->size()){
@@ -275,12 +275,12 @@ void Benchmark::reportMessage(const std::string &msg) {
     setting.sendMessageToSetting(msg);
 }
 
-void Benchmark::updatePlan(const PlanConfig &pc, std::vector<BaseSetting::OP_TYPE>& plan) {
+void Benchmark::updatePlan(const PlanConfig &pc, std::vector<OP_TYPE>& plan) {
     uint32_t total_size = pc.update_percent + pc.read_percent + pc.insert_percent;
     plan.resize(total_size);
-    fill_n(plan.begin(),pc.read_percent,BaseSetting::OP_TYPE::READ);
-    fill_n(plan.begin() + pc.read_percent,pc.insert_percent,BaseSetting::OP_TYPE::INSERT);
-    fill_n(plan.begin() + pc.read_percent + pc.insert_percent,pc.update_percent,BaseSetting::OP_TYPE::UPDATE);
+    fill_n(plan.begin(),pc.read_percent,OP_TYPE::SEARCH);
+    fill_n(plan.begin() + pc.read_percent,pc.insert_percent,OP_TYPE::INSERT);
+    fill_n(plan.begin() + pc.read_percent + pc.insert_percent,pc.update_percent,OP_TYPE::UPDATE);
     std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
 }
 

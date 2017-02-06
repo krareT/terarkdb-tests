@@ -23,9 +23,10 @@ struct PlanConfig{
             : read_percent(r), insert_percent(i), update_percent(u) {}
 };
 
+enum class OP_TYPE{SEARCH, INSERT, UPDATE};
+
 class BaseSetting{
 public:
-    enum class OP_TYPE{READ,INSERT,UPDATE};
 private:
     std::vector<PlanConfig> planConfigs;
     std::mutex planMtx;

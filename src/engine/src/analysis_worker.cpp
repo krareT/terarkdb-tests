@@ -43,6 +43,41 @@ static int findTimeBucket(uint64_t time) {
 char* g_passwd = getenv("MYSQL_PASSWD");
 static MYSQL g_conn;
 static bool  g_hasConn = false;
+static const int g_latencyTimePeriodsUS[] = {
+        10,
+        20,
+        30,
+        50,
+       100,
+       200,
+       300,
+       500,
+      1000, //    1ms
+      2000,
+      3000,
+      5000,
+     10000, //   10ms
+     20000,
+     30000,
+     50000,
+    100000, //  100ms
+    200000,
+    300000,
+    500000,
+   1000000, // 1000ms, 1s
+   2000000,
+   3000000,
+   5000000,
+   INT_MAX,
+};
+#define dimof(array) (sizeof(array)/sizeof(array[0]))
+
+struct LatencyStat {
+    int cnts[dimof(g_latencyTimePeriodsUS)];
+    LatencyStat() : cnts{0} {}
+    void reset() { memset(cnts, 0, sizeof(cnts)); }
+};
+LatencyStat g_latencyStat;
 
 static bool Mysql_connect(MYSQL* conn) {
     if(g_passwd == NULL || strlen(g_passwd) == 0) {
@@ -95,7 +130,7 @@ static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
 }
 
 // also write monitor stat to file
-static std::ofstream ofs_ops, ofs_memory, ofs_cpu, ofs_dbsize, ofs_diskinfo;
+static std::ofstream ofs_ops, ofs_memory, ofs_cpu, ofs_dbsize, ofs_diskinfo, ofs_latency;
 static bool open_stat_files(std::string fprefix) {
   auto open1 = [&](std::ofstream& ofs, const char* suffix) -> bool {
     std::string fpath = fprefix + "-" + suffix + ".txt";
@@ -112,16 +147,18 @@ static bool open_stat_files(std::string fprefix) {
   && open1(ofs_cpu     , "cpu"     )
   && open1(ofs_dbsize  , "dbsize"  )
   && open1(ofs_diskinfo, "diskinfo")
+  && open1(ofs_latency , "latency" )
   ;
 }
 
-static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo;
+static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo, *ps_latency;
 static void prepair_all_stmt() {
     ps_ops = prepare(&g_conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
     ps_memory = prepare(&g_conn, "INSERT INTO engine_test_memory_10s(time_bucket, total_memory, free_memory, cached_memory, used_memory, engine_name) VALUES(?, ?, ?, ?, ?, ?)");
     ps_cpu = prepare(&g_conn, "INSERT INTO engine_test_cpu_10s(time_bucket, `usage`, `iowait`, engine_name) VALUES(?, ?, ?, ?)");
     ps_dbsize = prepare(&g_conn, "INSERT INTO engine_test_dbsize_10s(time_bucket, `dbsize`, `engine_name`) VALUES(?, ?, ?)");
     ps_diskinfo = prepare(&g_conn, "INSERT INTO engine_test_diskinfo_10s(time_bucket, `diskinfo`, `engine_name`) VALUES(?, ?, ?)");
+    ps_latency = prepare(&g_conn, "INSERT INTO engine_test_latency_10s(time_bucket, op_type, latency_us, cnt, `engine_name`) VALUES(?, ?, ?, ?, ?)");
 }
 
 void Bind_arg(MYSQL_BIND &b, const int &val) {
@@ -136,7 +173,7 @@ void Bind_arg(MYSQL_BIND& b, const double& val) {
     b.buffer_type = MYSQL_TYPE_DOUBLE;
     b.buffer = (void*)&val;
 }
-void Bind_arg(MYSQL_BIND &b, fstring val) {
+void Bind_arg(MYSQL_BIND& b, fstring val) {
     memset(&b, 0, sizeof(b));
     b.buffer_length = val.size();
     b.buffer_type = MYSQL_TYPE_VAR_STRING;
@@ -181,7 +218,7 @@ bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     if (err) {
         fprintf(stderr, "WARN: %s = %s\n", BOOST_CURRENT_FUNCTION, stmt->last_error);
         if (CR_SERVER_LOST == err) {
-        //    mysql_ping(stmt->mysql); // brain dead mysql
+        //  mysql_ping(stmt->mysql); // brain dead mysql
             Mysql_connect(&g_conn);
             prepair_all_stmt();
         }
@@ -224,21 +261,33 @@ static void upload_sys_stat(terark::AutoGrownMemIO& buf,
     }
 }
 
-void TimeBucket::add(terark::AutoGrownMemIO& buf,uint64_t start, uint64_t end, int sampleRate, int type) {
+void TimeBucket::add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, int sampleRate, int type) {
     // when meet the next bucket, upload previous one first, default step is 10 seconds
     int next_bucket = findTimeBucket(start);
     if(next_bucket > current_bucket) {
         int ops = operation_count * 100 / (10 * sampleRate); // sample rate : (0, 100]
         buf.rewind();
         Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
+        for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
+          auto latency = g_latencyTimePeriodsUS[i];
+          auto cnt = g_latencyStat.cnts[i];
+          if (cnt) {
+            Exec_stmt(ofs_latency, ps_latency,
+                current_bucket, type, latency, cnt, engine_name);
+          }
+        }
         buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
         upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
         printf("%s\n", buf.begin());
+        g_latencyStat.reset();
         operation_count = 1;
         current_bucket = next_bucket;
     }else{
         operation_count++;
     }
+    uint32_t latencyUS = uint32_t((end - start) / 1000);
+    size_t idx = terark::lower_bound_0(g_latencyTimePeriodsUS, dimof(g_latencyTimePeriodsUS)-1, latencyUS);
+    g_latencyStat.cnts[idx]++;
 }
 
 AnalysisWorker::AnalysisWorker(Setting* setting) {
@@ -277,6 +326,7 @@ void AnalysisWorker::run() {
                               "engine_test_cpu_10s",
                               "engine_test_dbsize_10s",
                               "engine_test_diskinfo_10s",
+                              "engine_test_latency_10s",
       };
       for(std::string& table: tables) {
           std::string sql = "DELETE FROM " + table + " WHERE time_bucket < " + lcast(filter_time);
@@ -293,9 +343,9 @@ void AnalysisWorker::run() {
     terark::AutoGrownMemIO buf;
     shoud_stop = false;
     while(!shoud_stop) {
-        bool b1 = Stats::readTimeDataCq.try_pop(read_result);
-        bool b2 = Stats::createTimeDataCq.try_pop(insert_result);
-        bool b3 = Stats::updateTimeDataCq.try_pop(update_result);
+        bool b1 = Stats::opsDataCq[int(OP_TYPE::SEARCH)].try_pop(read_result);
+        bool b2 = Stats::opsDataCq[int(OP_TYPE::INSERT)].try_pop(insert_result);
+        bool b3 = Stats::opsDataCq[int(OP_TYPE::UPDATE)].try_pop(update_result);
         if (b1) {
             read_bucket.add(buf, read_result.first, read_result.second, setting->getSamplingRate(), 1);
         }
@@ -332,6 +382,7 @@ void AnalysisWorker::run() {
         mysql_stmt_close(ps_cpu);
         mysql_stmt_close(ps_dbsize);
         mysql_stmt_close(ps_diskinfo);
+        mysql_stmt_close(ps_latency);
         mysql_close(&g_conn);
     }
 }

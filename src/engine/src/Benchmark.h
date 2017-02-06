@@ -27,10 +27,10 @@
 class Benchmark : boost::noncopyable {
 private:
     typedef bool (Benchmark::*executeFunc_t)(ThreadState *);
-    typedef bool (Benchmark::*samplingFunc_t)(ThreadState *,BaseSetting::OP_TYPE);
-    const executeFunc_t executeFuncMap[3]; // index is BaseSetting::OP_TYPE
+    typedef bool (Benchmark::*samplingFunc_t)(ThreadState *,OP_TYPE);
+    const executeFunc_t executeFuncMap[3]; // index is OP_TYPE
     const samplingFunc_t samplingFuncMap[2]; // index is bool
-    uint8_t samplingRecord[3] = {0, 0, 0}; // index is BaseSetting::OP_TYPE
+    uint8_t samplingRecord[3] = {0, 0, 0}; // index is OP_TYPE
     std::atomic<std::vector<uint8_t > *> executePlanAddr;
     std::atomic<std::vector<bool> *> samplingPlanAddr;
     std::vector<bool> samplingPlan[2];
@@ -51,16 +51,16 @@ private:
         bm->Compact();
     }
     void checkExecutePlan();
-    void updatePlan(const PlanConfig &pc,std::vector<BaseSetting::OP_TYPE > &plan);
+    void updatePlan(const PlanConfig &pc,std::vector<OP_TYPE > &plan);
     void updateSamplingPlan(std::vector<bool> &plan, uint8_t percent);
     void shufflePlan(std::vector<uint8_t > &plan);
     void adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > *> *whichSPlan);
 
     void adjustSamplingPlan(uint8_t samplingRate);
     void RunBenchmark(void);
-    bool executeOneOperationWithSampling(ThreadState *state, BaseSetting::OP_TYPE type);
-    bool executeOneOperationWithoutSampling(ThreadState *state, BaseSetting::OP_TYPE type);
-    bool executeOneOperation(ThreadState* state,BaseSetting::OP_TYPE type);
+    bool executeOneOperationWithSampling(ThreadState *state, OP_TYPE type);
+    bool executeOneOperationWithoutSampling(ThreadState *state, OP_TYPE type);
+    bool executeOneOperation(ThreadState* state,OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
     terark::fstrvec allkeys;
     tbb::spin_rw_mutex allkeysRwMutex;

@@ -3,25 +3,11 @@
 //
 
 #include "Stats.h"
-tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> Stats::readTimeDataCq;
-tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> Stats::createTimeDataCq;
-tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> Stats::updateTimeDataCq;
+tbb::concurrent_queue<std::pair<uint64_t ,uint64_t >> Stats::opsDataCq[3];
 
-void Stats::readPlusOne(struct timespec *start,struct timespec *end){
-    readTimeDataCq.push(std::make_pair(
-            1000000000LL * start->tv_sec + start->tv_nsec,
-            1000000000LL * end->tv_sec + end->tv_nsec)
-    );
-}
-void Stats::updatePlusOne(struct timespec *start,struct timespec *end){
-    updateTimeDataCq.push(std::make_pair(
-            1000000000LL * start->tv_sec + start->tv_nsec,
-            1000000000LL * end->tv_sec + end->tv_nsec)
-    );
-}
-void Stats::createPlusOne(struct timespec *start,struct timespec *end){
-    createTimeDataCq.push(std::make_pair(
-            1000000000LL * start->tv_sec + start->tv_nsec,
-            1000000000LL * end->tv_sec + end->tv_nsec)
-    );
+void Stats::FinishedSingleOp(OP_TYPE type, const timespec& beg, const timespec& end) {
+  opsDataCq[intptr_t(type)].push(std::make_pair(
+      1000000000LL * beg.tv_sec + beg.tv_nsec,
+      1000000000LL * end.tv_sec + end.tv_nsec)
+      );
 }
