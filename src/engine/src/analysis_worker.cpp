@@ -265,12 +265,13 @@ void TimeBucket::add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, 
     // when meet the next bucket, upload previous one first, default step is 10 seconds
     int next_bucket = findTimeBucket(start);
     if(next_bucket > current_bucket) {
-        int ops = operation_count * 100 / (10 * sampleRate); // sample rate : (0, 100]
+        // * 100 / (10 * sampleRate) // sampleRate : (0, 100]
+        int ops = int(operation_count * 10.0 / sampleRate);
         buf.rewind();
         Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
         for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
           auto latency = g_latencyTimePeriodsUS[i];
-          auto cnt = g_latencyStat.cnts[i];
+          auto cnt = int(g_latencyStat.cnts[i] * 100.0 / sampleRate);
           if (cnt) {
             Exec_stmt(ofs_latency, ps_latency,
                 current_bucket, type, latency, cnt, engine_name);
@@ -285,7 +286,7 @@ void TimeBucket::add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, 
     }else{
         operation_count++;
     }
-    uint32_t latencyUS = uint32_t((end - start) / 1000);
+    uint32_t latencyUS = uint32_t((end - start) * 0.001);
     size_t idx = terark::lower_bound_0(g_latencyTimePeriodsUS, dimof(g_latencyTimePeriodsUS)-1, latencyUS);
     g_latencyStat.cnts[idx]++;
 }
