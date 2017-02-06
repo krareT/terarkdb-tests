@@ -318,8 +318,11 @@ void upload_command_and_env(fstring engine_name) {
   MYSQL_STMT* stmt = prepare(&g_conn, "insert into engine_test_command(engine_name, time, command_line, env) values (?,?,?,?)");
   std::string cmd, env;
   for (char** ppEnv = environ; *ppEnv; ++ppEnv) {
-      env += *ppEnv;
+    fstring arg = *ppEnv;
+    if (!arg.startsWith("LS_COLORS=")) {
+      env.append(arg.data(), arg.size());
       env += "\n";
+    }
   }
   for (int i = 0; i < g_argc; ++i) {
     fstring arg = g_argv[i];
