@@ -54,6 +54,9 @@ void sigint_fuc(int sig) {
     stop_test();
 }
 
+char** g_argv;
+int g_argc;
+
 int main(int argc, char **argv) {
     //Stats::readTimeDataCq
     signal(SIGINT, sigint_fuc);
@@ -61,6 +64,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: %s WhichDB options\n", argv[0]);
         return 1;
     }
+	g_argv = argv;
+	g_argc = argc;
     const fstring whichDB = argv[1];
     Setting setting(argc, argv);
     g_settings = &setting;

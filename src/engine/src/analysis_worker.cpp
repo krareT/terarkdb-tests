@@ -194,21 +194,7 @@ std::string Escape_arg(fstring val) {
 }
 
 template<class... Args>
-bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
-    if (ofs.is_open()) {
-        long  i = 0;
-        const long a[]{(
-            i + 1 < sizeof...(Args) ? ofs << Escape_arg(args) : ofs,
-            i + 2 < sizeof...(Args) ? ofs << "," : ofs,
-            i++
-        )...};
-        ofs << "\n";
-        (void)(a);
-        return !g_hasConn;
-    }
-    else if (!g_hasConn) {
-        return false;
-    }
+bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
     MYSQL_BIND  b[sizeof...(Args)];
     memset(&b, 0, sizeof(b));
     int i = 0;
@@ -225,6 +211,25 @@ bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
         return false;
     }
     return true;
+}
+
+template<class... Args>
+bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
+    if (ofs.is_open()) {
+        long  i = 0;
+        const long a[]{(
+            i + 1 < sizeof...(Args) ? ofs << Escape_arg(args) : ofs,
+            i + 2 < sizeof...(Args) ? ofs << "," : ofs,
+            i++
+        )...};
+        ofs << "\n";
+        (void)(a);
+        return !g_hasConn;
+    }
+    else if (!g_hasConn) {
+        return false;
+    }
+    return Exec_stmt(stmt, args...);
 }
 
 static int g_prev_sys_stat_bucket = 0;
@@ -305,6 +310,25 @@ void AnalysisWorker::stop() {
 
 bool g_upload_fake_ops = false;
 
+extern char** g_argv;
+extern int g_argc;
+extern "C" char **environ;
+
+void upload_command_and_env(fstring engine_name) {
+  MYSQL_STMT* stmt = prepare(&g_conn, "insert into engine_test_command(engine_name, time, command_line, env) values (?,?,?,?)");
+  std::string cmd, env;
+  for (char** ppEnv = environ; *ppEnv; ++ppEnv) {
+      env += *ppEnv;
+      env += "\n";
+  }
+  for (int i = 0; i < g_argc; ++i) {
+    cmd += g_argv[i];
+    cmd += "\n";
+  }
+  time_t now = time(NULL);
+  Exec_stmt(stmt, engine_name, int(now), cmd, env);
+}
+
 void AnalysisWorker::run() {
     if (const char* fprefix = getenv("MONITOR_STAT_FILE_PREFIX")) {
         if (!open_stat_files(fprefix)) {
@@ -335,6 +359,7 @@ void AnalysisWorker::run() {
       }
   #endif
       prepair_all_stmt();
+      upload_command_and_env(engine_name);
     }
 
     std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
