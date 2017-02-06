@@ -322,8 +322,14 @@ void upload_command_and_env(fstring engine_name) {
       env += "\n";
   }
   for (int i = 0; i < g_argc; ++i) {
-    cmd += g_argv[i];
-    cmd += "\n";
+    fstring arg = g_argv[i];
+    if (arg.startsWith("--mysql_passwd")) {
+      cmd.append("--mysql_passwd=******\n");
+    }
+    else {
+      cmd.append(arg.data(), arg.size());
+      cmd += "\n";
+    }
   }
   time_t now = time(NULL);
   Exec_stmt(stmt, engine_name, int(now), cmd, env);
