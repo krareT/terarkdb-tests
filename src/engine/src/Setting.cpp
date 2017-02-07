@@ -212,7 +212,7 @@ Setting::Setting(int argc,char **argv) {
     setBaseSetting(argc, argv);
     BenchmarkName.assign(argv[1]);
     assert(!FLAGS_db.empty());
-    fprintf(stderr, "----%s\n%s\n----%s\n"
+    fprintf(stderr, "----%s\n%s----%s\n\n"
         , BOOST_CURRENT_FUNCTION
         , toString().c_str()
         , BOOST_CURRENT_FUNCTION

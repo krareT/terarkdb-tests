@@ -1,6 +1,3 @@
-#include <sstream>
-#include <iostream>
-#include <fstream>
 #include <string.h>
 #include <db/db_impl.h>
 #include <db/version_set.h>
@@ -21,19 +18,19 @@ using terark::fstring;
 
 boost::asio::io_service* g_io_service;
 void tcpServer(Setting *setting, Benchmark *bm) {
-    std::cout << "------------Tcp Server start-------------" << std::endl;
+    fprintf(stderr, "------------Tcp Server start-------------\n");
     try {
         Server server(*g_io_service, 6666, *setting, bm);
         g_io_service->run();
     }
     catch (std::exception &e) {
-        std::cerr << e.what() << std::endl;
+        fprintf(stderr, "ERROR: %s\n", e.what());
     }
 }
 
 void compact(Setting &setting) {
     DbTablePtr tab = DbTable::open(setting.FLAGS_db);
-    std::cout << "press any key to compact" << std::endl;
+    fprintf(stderr, "press any key to compact\n");
     getchar();
     tab->compact();
     tab->safeStopAndWaitForCompress();
