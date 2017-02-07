@@ -133,8 +133,6 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
         return false;
     }
     auto randomIndex = rg() % allkeys.size();
-    static std::mutex mtx;
-    std::unique_lock<std::mutex> lock(mtx);
     const char*  p = allkeys.beg_of(randomIndex);
     const size_t n = allkeys.slen(randomIndex);
     key.assign(p, n);
