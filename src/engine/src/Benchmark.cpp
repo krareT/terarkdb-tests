@@ -51,18 +51,14 @@ void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
     std::thread loadInsertDataThread(&Benchmark::loadInsertData, this);
     while (!setting.ifStop()){
-        //check sampling rate
         int samplingRate = setting.getSamplingRate();
-        if ( old_samplingRate != samplingRate){
+        if (old_samplingRate != samplingRate){
             old_samplingRate = samplingRate;
             adjustSamplingPlan(samplingRate);
         }
-        //check thread num
         int threadNum = setting.getThreadNums();
         adjustThreadNum(threadNum, &samplingPlanAddr);
-        //check execute plan
         checkExecutePlan();
-        //check compact
         auto ct = setting.getCompactTimes();
         if ( ct != compactTimes){
             compactTimes = ct;
@@ -73,7 +69,6 @@ void Benchmark::RunBenchmark(void){
             });
             compactThread.detach();
         }
-        //check message
         auto handle_message_times = 5;
         while (handle_message_times--)
             reportMessage(HandleMessage(setting.getMessage()));
