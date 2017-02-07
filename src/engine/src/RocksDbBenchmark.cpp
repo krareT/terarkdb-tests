@@ -22,6 +22,22 @@ void RocksDbBenchmark::Open() {
         dbname.c_str(), s.ToString().c_str());
     exit(1);
   }
+  const auto& opt = db->GetOptions();
+  typedef long long ll;
+  fprintf(stderr,
+R"EOS(RocksDbBenchmark::Open():
+  opt.level0_file_num_compaction_trigger  = %lld
+  opt.level0_slowdown_writes_trigger      = %lld
+  opt.level0_stop_writes_trigger          = %lld
+  opt.soft_pending_compaction_bytes_limit = %lld
+  opt.hard_pending_compaction_bytes_limit = %lld
+)EOS"
+, (ll)opt.level0_file_num_compaction_trigger
+, (ll)opt.level0_slowdown_writes_trigger
+, (ll)opt.level0_stop_writes_trigger
+, (ll)opt.soft_pending_compaction_bytes_limit
+, (ll)opt.hard_pending_compaction_bytes_limit
+   );
 }
 
 RocksDbBenchmark::~RocksDbBenchmark() {
