@@ -28,7 +28,7 @@ void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > 
         state->planConfig.update_percent = 0;
         updatePlan(state->planConfig,state->executePlan[0]);
         state->whichPlan.store(0,std::memory_order_relaxed);
-        threads.emplace_back([&](){this->ReadWhileWriting(state);}, state);
+        threads.emplace_back(std::thread([&](){ReadWhileWriting(state);}), state);
     }
     while (target < threads.size()){
         //delete thread
