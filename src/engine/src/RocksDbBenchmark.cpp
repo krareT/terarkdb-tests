@@ -169,9 +169,9 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
         fprintf(stderr, "INFO: rocksdb set option.delayed_write_rate = %zd\n", setting.write_rate_limit);
     }
     else if (!setting.autoSlowDownWrite) {
-        options.max_write_buffer_number = 5;
-        options.level0_slowdown_writes_trigger = 1000;
-        options.level0_stop_writes_trigger = 1000;
+        options.max_write_buffer_number = 6;
+        options.level0_slowdown_writes_trigger = 1<<30;
+        options.level0_stop_writes_trigger = 1<<30;
         options.soft_pending_compaction_bytes_limit = 0;
         options.hard_pending_compaction_bytes_limit = 0;
         options.min_write_buffer_number_to_merge = 1;
