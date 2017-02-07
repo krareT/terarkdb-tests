@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
         bm.reset(new RocksDbBenchmark(setting));
     }
     else if (whichDB == "terark_rocksdb" || whichDB == "terocksdb") {
-        bm.reset(new TerarkRocksDbBenchmark(setting));
+        bm.reset(new TerocksBenchmark(setting));
         g_worker->engine_name = "terocksdb";
     }
     else if (whichDB == "posix") {
