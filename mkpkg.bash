@@ -39,6 +39,7 @@ do
 		cp -fr ../terark-db/pkg/terark-db-${Suffix}/bin                 pkg/terarkdb-tests-${Suffix}/tools
 		cp -fr ../terark-db/pkg/terark-db-${Suffix}/include/terark      pkg/terarkdb-tests-${Suffix}/include
 		cp -fr ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/* pkg/terarkdb-tests-${Suffix}
+		cp -fa /opt/$COMPILER/bin/ldb                      pkg/terarkdb-tests-${Suffix}/bin
 		cp -fa /opt/$COMPILER/lib64/librocksdb.so*         pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /opt/$COMPILER/lib64/libsnappy*.so*         pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /opt/$COMPILER/lib64/libtbb*.so*            pkg/terarkdb-tests-${Suffix}/lib
