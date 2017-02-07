@@ -131,6 +131,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
         options.compaction_options_universal.allow_trivial_move = true;
     //  options.compaction_options_universal.size_ratio = 10; // 10%
     }
+    fprintf(stderr, "INFO: set.rocksdbUniversalCompaction = %d\n", set.rocksdbUniversalCompaction);
     options.max_background_flushes = set.flushThreads;
     options.max_subcompactions = 2;
     options.max_write_buffer_number = 3;
@@ -147,16 +148,18 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
         options.level0_slowdown_writes_trigger = 2;
         options.level0_stop_writes_trigger = 5000; // never stop write
     //  options.soft_pending_compaction_bytes_limit = setting.write_rate_limit * 60; // 1 minutes written bytes
-        options.soft_pending_compaction_bytes_limit = 4ull << 40;
-        options.hard_pending_compaction_bytes_limit = 8ull << 40;
+        options.soft_pending_compaction_bytes_limit = 0;
+        options.hard_pending_compaction_bytes_limit = 0;
         fprintf(stderr, "INFO: rocksdb set option.delayed_write_rate = %zd\n", setting.write_rate_limit);
     }
     else if (!setting.autoSlowDownWrite) {
         options.max_write_buffer_number = 5;
         options.level0_slowdown_writes_trigger = 1000;
         options.level0_stop_writes_trigger = 1000;
-        options.soft_pending_compaction_bytes_limit = 16ull << 40;
-        options.hard_pending_compaction_bytes_limit = 32ull << 40;
+        options.soft_pending_compaction_bytes_limit = 0;
+        options.hard_pending_compaction_bytes_limit = 0;
+        options.min_write_buffer_number_to_merge = 1;
+        options.level0_file_num_compaction_trigger = 6;
         fprintf(stderr, "INFO: rocksdb disabled auto slowdown write\n");
     }
 }
