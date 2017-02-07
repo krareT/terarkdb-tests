@@ -124,7 +124,9 @@ void Benchmark::loadKeys() {
         if (str.size())
             allkeys.push_back(str);
     }
+    allkeys.shrink_to_fit();
     keysFile.close();
+    std::cout << "Load Keys: allkeys.size() = " << allkeys.size() << std::endl;
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
@@ -132,6 +134,8 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
         return false;
     }
     auto randomIndex = rg() % allkeys.size();
+    static std::mutex mtx;
+    std::unique_lock<std::mutex> lock(mtx);
     const char*  p = allkeys.beg_of(randomIndex);
     const size_t n = allkeys.slen(randomIndex);
     key.assign(p, n);
@@ -203,7 +207,6 @@ void Benchmark::Run(void) {
     }
     else {
         loadKeys();
-        std::cout << "allKeys size:" << allkeys.size() << std::endl;
         RunBenchmark();
     }
     Close();
