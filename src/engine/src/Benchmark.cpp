@@ -104,18 +104,18 @@ bool Benchmark::executeOneOperation(ThreadState* state,OP_TYPE type){
 }
 
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
-    std::cout << "Thread " << thread->tid << " run Benchmark::ReadWhileWriting() start..." << std::endl;
+    fprintf(stderr, "Thread %2d run Benchmark::ReadWhileWriting() start...\n", thread->tid);
     while (!thread->STOP.load()) {
         const auto &executePlan = thread->executePlan[thread->whichPlan.load(std::memory_order_relaxed)];
         for (auto type : executePlan) {
             executeOneOperation(thread,type);
         }
     }
-    std::cout << "Thread " << thread->tid << " run Benchmark::ReadWhileWriting() exit" << std::endl;
+    fprintf(stderr, "Thread %2d run Benchmark::ReadWhileWriting() exit...\n", thread->tid);
 }
 
 void Benchmark::loadKeys() {
-    std::cout << "Load Keys: " << setting.getKeysDataPath() << std::endl;
+    fprintf(stderr, "Benchmark::loadKeys(): %s\n", setting.getKeysDataPath().c_str());
     std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
     std::string str;
@@ -125,7 +125,7 @@ void Benchmark::loadKeys() {
     }
     allkeys.shrink_to_fit();
     keysFile.close();
-    std::cout << "Load Keys: allkeys.size() = " << allkeys.size() << std::endl;
+    fprintf(stderr, "Benchmark::loadKeys(): allkeys.size() = %zd\n", allkeys.size());
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
@@ -194,11 +194,11 @@ void Benchmark::Run(void) {
     Open();
     if (setting.getAction() == "load") {
         try {
-            std::cout << "load" << std::endl;
             allkeys.erase_all();
             Load();
-        } catch (const std::exception &e) {
-            std::cout << e.what() << std::endl;
+        }
+        catch (const std::exception& e) {
+            fprintf(stderr, "ERROR: %s: %s", BOOST_CURRENT_FUNCTION, e.what());
         }
     }
     else if (setting.getAction() == "compact") {
@@ -209,7 +209,7 @@ void Benchmark::Run(void) {
         RunBenchmark();
     }
     Close();
-};
+}
 
 Benchmark::Benchmark(Setting& s)
 : executeFuncMap{&Benchmark::ReadOneKey,

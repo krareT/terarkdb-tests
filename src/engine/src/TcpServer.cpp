@@ -3,6 +3,7 @@
 //
 
 #include "TcpServer.h"
+#include <boost/algorithm/string.hpp>
 
 Session::Session(tcp::socket socket) : socket_(std::move(socket)) {
   setting = NULL;
@@ -30,7 +31,7 @@ void Session::read_line_handler(const boost::system::error_code& ec,std::size_t 
     std::istream is(&buf_);
     std::string line;
     std::getline(is, line);
-    std::cout << "Get:" << line << std::endl;
+    fprintf(stderr, "Get: %s\n", line.c_str());
     std::string message;
     message = setting->setBaseSetting(line);
     message += "\nEND\r\n";
@@ -43,9 +44,9 @@ void Session::do_write(std::string &message) {
   [this, self,message](boost::system::error_code ec, std::size_t transferred_byte)
   {
     if (transferred_byte == message.size())
-      std::cout << "Reply finish!" << std::endl;
+      fprintf(stderr, "Reply finish!\n");
     else {
-      std::cout << "Send:" << transferred_byte << std::endl;
+      fprintf(stderr, "Send: %zd\n",  transferred_byte);
       std::string msg = message.substr(transferred_byte);
       do_write(msg);
     }

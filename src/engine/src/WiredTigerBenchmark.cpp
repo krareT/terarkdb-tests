@@ -6,6 +6,7 @@
 #include "../port/port_posix.h"
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
+#include <fstream>
 
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     std::string &rkey = thread->key;
@@ -45,7 +46,7 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     }
     cursor->set_key(cursor, rkey.c_str());
     if (cursor->search(cursor) != 0){
-        std::cerr << "cursor search error :" << rkey << std::endl;
+        fprintf(stderr, "ERROR: cursor search: %s\n", rkey.c_str());
         cursor->close(cursor);
         return false;
     }
@@ -55,7 +56,7 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     cursor->set_value(cursor,val);
     ret = cursor->insert(cursor);
     if (ret != 0){
-        std::cerr << "cursor insert error :" << rkey << std::endl;
+        fprintf(stderr, "ERROR: cursor insert: %s\n", rkey.c_str());
         cursor->close(cursor);
         return false;
     }
@@ -85,7 +86,7 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     cursor->set_value(cursor,rval.c_str());
     ret = cursor->insert(cursor);
     if (ret != 0) {
-        fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
+        fprintf(stderr, "insert error: %s\n", wiredtiger_strerror(ret));
         cursor->close(cursor);
         return false;
     }
@@ -173,7 +174,7 @@ void WiredTigerBenchmark::Open(){
 }
 
 void WiredTigerBenchmark::DoWrite(bool seq) {
-    std::cout << "DoWrite!" << std::endl;
+    fprintf(stderr, "WiredTigerBenchmark::DoWrite(%d) start\n", seq);
     std::stringstream txn_config;
     txn_config.str("");
     txn_config << "isolation=snapshot";
@@ -189,7 +190,7 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
     conn_->open_session(conn_, NULL, NULL, &session);
     int ret = session->open_cursor(session, uri_.c_str(), NULL, cur_config.str().c_str(), &cursor);
     if (ret != 0) {
-        fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+        fprintf(stderr, "ERROR: open_cursor: %s\n", wiredtiger_strerror(ret));
         exit(1);
     }
     long long recordnumber = 0;
@@ -208,7 +209,6 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
             continue;
         cursor->set_key(cursor, key.c_str());
         cursor->set_value(cursor,val.c_str());
-        //std::cout << "key:" << key << std::endl;
         int ret = cursor->insert(cursor);
         if (ret != 0) {
             fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
@@ -216,14 +216,14 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
         }
         recordnumber++;
         if (recordnumber % 100000 == 0)
-            std::cout << "Record number: " << recordnumber << std::endl;
+            fprintf(stderr, "Record number: %lld\n", recordnumber);
     }
     cursor->close(cursor);
     time_t now;
     struct tm *timenow;
     time(&now);
     timenow = localtime(&now);
-    printf("recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
+    fprintf(stderr, "recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
 }
 
 void WiredTigerBenchmark::PrintHeader() {

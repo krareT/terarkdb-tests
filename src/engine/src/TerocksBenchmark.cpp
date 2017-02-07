@@ -6,11 +6,12 @@
 #include <rocksdb/slice_transform.h>
 #include <rocksdb/table.h>
 #include <table/terark_zip_table.h>
+#include <fstream>
 
 using namespace rocksdb;
 
 TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
-    std::cout << BOOST_CURRENT_FUNCTION << std::endl;
+    fprintf(stderr, "%s\n", BOOST_CURRENT_FUNCTION);
     rocksdb::TerarkZipTableOptions opt;
     if (set.terocksdb_tmpdir.empty()) {
         throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");

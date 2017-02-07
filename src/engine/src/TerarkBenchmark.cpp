@@ -5,6 +5,7 @@
 #include "TerarkBenchmark.h"
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
+#include <fstream>
 
 TerarkBenchmark::TerarkBenchmark(Setting& setting1)
 : Benchmark(setting1) {
@@ -38,7 +39,7 @@ std::string TerarkBenchmark::getKey(std::string &str) {
 void TerarkBenchmark::Open() {
     PrintHeader();
     assert(tab == NULL);
-    std::cout << "Open database " << setting.FLAGS_db << std::endl;
+    fprintf(stderr, "Open database %s\n", setting.FLAGS_db.c_str());
     tab = CompositeTable::open(setting.FLAGS_db);
     assert(tab != NULL);
     indexId = tab->getIndexId("cur_title,cur_timestamp");
@@ -49,7 +50,7 @@ void TerarkBenchmark::Open() {
 }
 
 void TerarkBenchmark::DoWrite(bool seq) {
-    std::cout << "Read data from : " << setting.getLoadDataPath() << std::endl;
+    fprintf(stderr, "Read data from : %s\n", setting.getLoadDataPath().c_str());
     std::string str;
     long long recordnumber = 0;
     const Schema& rowSchema = tab->rowSchema();
@@ -70,7 +71,7 @@ void TerarkBenchmark::DoWrite(bool seq) {
     terark::db::ColumnVec cols;
     while (line.getline(loadFile) > 0) {
         if (rowSchema.parseDelimText('\t', line, &row) != colnum) {
-            std::cerr << "ERROR STR:" << str << std::endl;
+            fprintf(stderr, "ERROR STR: %s\n", str.c_str());
             continue;
         }
         llong rid = ctx->upsertRow(row);
@@ -83,7 +84,7 @@ void TerarkBenchmark::DoWrite(bool seq) {
         strKey.assign((char*)key.data(), key.size());
         recordnumber++;
         if (recordnumber % 100000 == 0)
-            std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
+            fprintf(stderr, "Insert reocord number: %lldw\n", recordnumber / 10000);
     }
     time_t now;
     struct tm *timenow;
@@ -106,14 +107,13 @@ bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPt
 bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey, thread->randGenerator)) {
-        std::cout << "allkeys empty" << std::endl;
+        fprintf(stderr, "TerarkBenchmark::ReadOneKey(): allkeys is empty\n");
         return false;
     }
     tab->indexSearchExact(indexId, rkey, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
-    if (thread->idvec.size() == 0){        
-            // std::cerr << "read error: keys not exist ! key = " << rkey << std::endl;
-            return false;
+    if (thread->idvec.size() == 0){
+        return false;
     }
     thread->ctx->getValue(thread->idvec[0], &(thread->row));
     return true;
@@ -122,14 +122,13 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
 bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey, thread->randGenerator)) {
-        std::cout << "allkeys empty" << std::endl;
+        fprintf(stderr, "TerarkBenchmark::ReadOneKey(): allkeys is empty\n");
         return false;
     }
     fstring key(rkey);
     tab->indexSearchExact(indexId, key, &(thread->idvec), thread->ctx.get());
     //assert(idvec.size() <= 1);
     if (thread->idvec.size() == 0) {
-        // std::cerr << "update error: keys not exist ! key = " << rkey << std::endl;
         return false;
     }
     thread->ctx->getValue(thread->idvec[0], &(thread->row));
@@ -140,7 +139,6 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
             return false;
         }
     } catch (const std::exception &e) {
-        //std::cerr << "update error :" << e.what() << std::endl;
         return false;
     }
     return true;
@@ -150,11 +148,9 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
     static const Schema &rowSchema = tab->rowSchema();
     std::string &rstr = thread->str;
     if (!updateDataCq.try_pop(rstr)) {
-        //std::cerr << "cq empty" << std::endl;
         return false;
     }
     if (rowSchema.columnNum() != rowSchema.parseDelimText('\t', rstr, &(thread->row))) {
-        //std::cerr << "InsertOneKey error:" << rstr << std::endl;
         return false;
     }
     try {
@@ -164,7 +160,6 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
         }
     } 
     catch (const std::exception &e) {
-        //std::cerr << "insert error:" << e.what() << std::endl;
         return false;
     }
     thread->key = getKey(rstr);

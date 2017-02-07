@@ -29,7 +29,7 @@ void PosixBenchmark::Close(void) {
 
 void PosixBenchmark::Load(void) {
     DIR *dir;
-    std::cout << "PosixBenchmakr::Load to :" + setting.getLoadDataPath() << std::endl;
+    fprintf(stderr, "PosixBenchmakr::Load to : %s\n", setting.getLoadDataPath().c_str());
     dir = opendir(setting.getLoadDataPath().c_str());
     if (dir == NULL){
         throw std::invalid_argument(strerror(errno) + setting.getLoadDataPath());
@@ -42,7 +42,7 @@ void PosixBenchmark::Load(void) {
         throw std::logic_error("system error:no bash to use!\n");
 
     std::string cp_cmd = "cp " + setting.getLoadDataPath() + " " + setting.FLAGS_db + "/" + " -r";
-    std::cout << cp_cmd << std::endl;
+    fprintf(stderr, "%s\n", cp_cmd.c_str());
     ret = system(cp_cmd.c_str());
     if (ret == -1)
         throw std::runtime_error("cp_cmd execute failed,child ,can't create child process.\n");

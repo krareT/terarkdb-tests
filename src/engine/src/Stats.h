@@ -6,11 +6,7 @@
 #define TERARKDB_TEST_FRAMEWORK_STATS_H
 
 #include "Setting.h"
-#include <boost/circular_buffer.hpp>
-#include <tbb/spin_rw_mutex.h>
 #include <tbb/concurrent_queue.h>
-#include <iostream>
-#include <string>
 
 class Stats {
 public:

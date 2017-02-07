@@ -2,14 +2,13 @@
 // Created by terark on 16-8-1.
 //
 
-#include <include/leveldb/env.h>
 #include "Setting.h"
-#include <iostream>
+#include <include/leveldb/env.h>
 #include <include/leveldb/options.h>
-#include <sstream>
 #include <rocksdb/env.h>
 #include <terark/lcast.hpp>
 #include <terark/valvec.hpp>
+#include <sstream>
 #include <iomanip>
 
 using terark::lcast;
@@ -213,8 +212,11 @@ Setting::Setting(int argc,char **argv) {
     setBaseSetting(argc, argv);
     BenchmarkName.assign(argv[1]);
     assert(!FLAGS_db.empty());
-    std::cout << toString() << std::endl;
-    std::cout << "wait" << std::endl;
+    fprintf(stderr, "----%s\n%s\n----%s\n"
+        , BOOST_CURRENT_FUNCTION
+        , toString().c_str()
+        , BOOST_CURRENT_FUNCTION
+        );
 }
 
 size_t
