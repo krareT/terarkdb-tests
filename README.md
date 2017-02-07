@@ -88,7 +88,7 @@ WhichDB 可以是:
 |--rocksdb\_memtable=|如果指定该参数，必须是 vector(使用VectorRepFactory)<br/>不指定的话，使用rocksdb的默认memtable<br/> vector memtable 仅在 --action=load 时有用，性能更好|
 |--load\_size=|如果输入文件尺寸过大，指定该参数可以只加载这么多数据就停止写操作<br/>(`--action=run`的时候，读操作仍会继续)|
 |--use\_universal\_compaction=|1或0，1表示使用univeral compaction，0表示使用 Level based compaction，默认为1|
-|--auto\_slowdown\_write=|1或0，为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
+|--auto\_slowdown\_write=|1或0，默认1; 为1时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
 |--zip\_work\_mem\_soft\_limit=|默认 16G，值越大，越有利于提高大尺寸 SST 的压缩速度(并发度会提高)|
 |--zip\_work\_mem\_hard\_limit=|默认 32G，...|
