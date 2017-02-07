@@ -21,7 +21,6 @@ void Benchmark::shufflePlan(std::vector<uint8_t > &plan){
 }
 void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > *> *whichSPlan) {
     while (target > threads.size()){
-        //Add new thread.
         ThreadState* state = newThreadState(whichSPlan);
         state->planConfig.read_percent = 100;
         state->planConfig.insert_percent = 0;
@@ -105,14 +104,14 @@ bool Benchmark::executeOneOperation(ThreadState* state,OP_TYPE type){
 }
 
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
-    std::cout << "Thread " << thread->tid << " start!" << std::endl;
+    std::cout << "Thread " << thread->tid << " run Benchmark::ReadWhileWriting() start..." << std::endl;
     while (!thread->STOP.load()) {
         const auto &executePlan = thread->executePlan[thread->whichPlan.load(std::memory_order_relaxed)];
         for (auto type : executePlan) {
             executeOneOperation(thread,type);
         }
     }
-    std::cout << "Thread " << thread->tid << " stop!" << std::endl;
+    std::cout << "Thread " << thread->tid << " run Benchmark::ReadWhileWriting() exit" << std::endl;
 }
 
 void Benchmark::loadKeys() {
