@@ -58,11 +58,6 @@ Setting::Setting(int argc,char **argv) {
         else if (arg.startsWith("--fields_delim=")) {
             fieldsDelim = arg[strlen("--fields_delim=")];
         }
-        else if (arg.startsWith("--key_sample_ratio=")) {
-            keySampleRatio = lcast(arg.substr(strlen("--key_sample_ratio=")));
-            keySampleRatio = std::min(keySampleRatio, 1.0);
-            keySampleRatio = std::max(keySampleRatio, 0.0001);
-        }
         else if (arg.startsWith("--logdir=")) {
             logdir = arg.substr(strlen("--logdir=")).str();
         }

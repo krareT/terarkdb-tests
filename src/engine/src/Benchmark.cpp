@@ -28,7 +28,7 @@ void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > 
         state->planConfig.update_percent = 0;
         updatePlan(state->planConfig,state->executePlan[0]);
         state->whichPlan.store(0,std::memory_order_relaxed);
-        threads.push_back( std::make_pair(std::thread(Benchmark::ThreadBody,this,state),state));
+        threads.emplace_back([&](){this->ReadWhileWriting(state);}, state);
     }
     while (target < threads.size()){
         //delete thread
@@ -66,7 +66,11 @@ void Benchmark::RunBenchmark(void){
         auto ct = setting.getCompactTimes();
         if ( ct != compactTimes){
             compactTimes = ct;
-            std::thread compactThread(Benchmark::CompactThreadBody,this);
+            std::thread compactThread([&](){
+              static std::mutex mtx;
+              std::lock_guard<std::mutex> lock(mtx);
+              this->Compact();
+            });
             compactThread.detach();
         }
         //check message
@@ -116,38 +120,16 @@ void Benchmark::ReadWhileWriting(ThreadState *thread) {
     std::cout << "Thread " << thread->tid << " stop!" << std::endl;
 }
 
-void Benchmark::loadKeys(double keySampleRatio) {
+void Benchmark::loadKeys() {
     std::cout << "Load Keys: " << setting.getKeysDataPath() << std::endl;
-	std::ifstream keysFile(setting.getKeysDataPath());
+    std::ifstream keysFile(setting.getKeysDataPath());
     assert(keysFile.is_open());
     std::string str;
-    if (keySampleRatio < 0.99) {
-        std::mt19937_64 random;
-        size_t upperBound = size_t(random.max() * keySampleRatio);
-        while (getline(keysFile, str)) {
-            if (str.size() && random() < upperBound)
-                allkeys.push_back(str);
-        }
-    }
-    else {
-        while (getline(keysFile, str)) {
-            if (str.size())
-                allkeys.push_back(str);
-        }
+    while (std::getline(keysFile, str)) {
+        if (str.size())
+            allkeys.push_back(str);
     }
     keysFile.close();
-}
-
-void Benchmark::backupKeys(const std::string& fname) {
-    std::cout <<"backupKeys: " << fname << std::endl;
-    if (allkeys.size() == 0)
-        return;
-    std::fstream keyFile_bkup(fname,std::ios_base::trunc | std::ios_base::out);
-    for( size_t i = 0; i < allkeys.size();++i){
-        keyFile_bkup << allkeys.str(i) << std::endl;
-    }
-    keyFile_bkup.close();
-    std::cout <<"backupKeys finished" << std::endl;
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
@@ -155,24 +137,9 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
         return false;
     }
     auto randomIndex = rg() % allkeys.size();
-    tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, false);//read lock
     const char*  p = allkeys.beg_of(randomIndex);
     const size_t n = allkeys.slen(randomIndex);
     key.assign(p, n);
-    return true;
-}
-
-bool Benchmark::pushKey(std::string &key) {
-    if (setting.keySampleRatio > 0.90 ||
-            random() < random.max() * setting.keySampleRatio) {
-        tbb::spin_rw_mutex::scoped_lock _smtx(allkeysRwMutex, true);//write lock
-        try {
-            allkeys.push_back(key);
-        } catch (const std::exception& e) {
-            fprintf(stderr, "%s\n", e.what());
-            return false;
-        }
-    }
     return true;
 }
 
@@ -232,7 +199,6 @@ void Benchmark::Run(void) {
             std::cout << "load" << std::endl;
             allkeys.erase_all();
             Load();
-            backupKeys(setting.getKeysDataPath());
         } catch (const std::exception &e) {
             std::cout << e.what() << std::endl;
         }
@@ -241,8 +207,7 @@ void Benchmark::Run(void) {
         this->Compact();
     }
     else {
-        loadKeys(1.0);
-    //  backupKeys(setting.getKeysDataPath() + ".bak"); // temporary
+        loadKeys();
         std::cout << "allKeys size:" << allkeys.size() << std::endl;
         RunBenchmark();
     }

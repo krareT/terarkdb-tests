@@ -294,17 +294,16 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
     }
     auto ret = setting.splitKeyValue(ts->str, &ts->key, &ts->value);
     if (ret == 0){
-     	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:getKeyAndValue false\n");
-	    return false;
+        fprintf(stderr,"RocksDbBenchmark::InsertOneKey:getKeyAndValue false\n");
+        return false;
     }
     auto status = db->Put(write_options, ts->key, ts->value);
     if (!status.ok()){
-     	fprintf(stderr,"RocksDbBenchmark::InsertOneKey:db->Put false.\nkey:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
-    	fprintf(stderr,"RocksDbBenchmakr::InsertOneKey:db-Put status:%s\n",status.ToString().c_str());
-	    updateDataCq.push(ts->str);
-      	return false;
+        fprintf(stderr,"RocksDbBenchmark::InsertOneKey:db->Put false.\nkey:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
+        fprintf(stderr,"RocksDbBenchmakr::InsertOneKey:db-Put status:%s\n",status.ToString().c_str());
+        updateDataCq.push(ts->str);
+        return false;
     }
-    pushKey(ts->key);
     return true;
 }
 

@@ -39,37 +39,25 @@ private:
     bool whichEPlan = false;//不作真假，只用来切换plan
     bool whichSPlan = false;
     uint8_t compactTimes;
-    void loadKeys(double keySampleRatio);
-    void backupKeys(const std::string& fname);
+    terark::fstrvec allkeys;
+
+    void loadKeys();
     void loadInsertData();
-    static void ThreadBody(Benchmark *bm,ThreadState* state){
-        bm->ReadWhileWriting(state);
-    }
-    static void CompactThreadBody(Benchmark *bm){
-        static std::mutex mtx;
-        std::lock_guard<std::mutex> lock(mtx);
-        bm->Compact();
-    }
     void checkExecutePlan();
     void updatePlan(const PlanConfig &pc,std::vector<OP_TYPE > &plan);
     void updateSamplingPlan(std::vector<bool> &plan, uint8_t percent);
     void shufflePlan(std::vector<uint8_t > &plan);
     void adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > *> *whichSPlan);
-
     void adjustSamplingPlan(uint8_t samplingRate);
     void RunBenchmark(void);
     bool executeOneOperationWithSampling(ThreadState *state, OP_TYPE type);
     bool executeOneOperationWithoutSampling(ThreadState *state, OP_TYPE type);
     bool executeOneOperation(ThreadState* state,OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
-    terark::fstrvec allkeys;
-    tbb::spin_rw_mutex allkeysRwMutex;
-
     void reportMessage(const std::string &);
 public:
     void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
-    bool pushKey(std::string &key);
     std::vector<std::pair<std::thread,ThreadState*>> threads;
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;

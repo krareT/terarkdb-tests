@@ -81,7 +81,6 @@ void TerarkBenchmark::DoWrite(bool seq) {
         rowSchema.parseRow(row, &cols);
         keySchema.selectParent(cols, &key);
         strKey.assign((char*)key.data(), key.size());
-        pushKey(strKey);
         recordnumber++;
         if (recordnumber % 100000 == 0)
             std::cout << "Insert reocord number: " << recordnumber / 10000 << "w" << std::endl;
@@ -169,7 +168,6 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
         return false;
     }
     thread->key = getKey(rstr);
-    pushKey(thread->key);
     return true;
 }
 

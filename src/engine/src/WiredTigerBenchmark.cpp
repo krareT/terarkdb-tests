@@ -90,7 +90,6 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
         return false;
     }
     cursor->close(cursor);
-    pushKey(rkey);
     return true;
 }
 void WiredTigerBenchmark::Open(){
@@ -215,7 +214,6 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
             fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
             exit(1);
         }
-        pushKey(key);
         recordnumber++;
         if (recordnumber % 100000 == 0)
             std::cout << "Record number: " << recordnumber << std::endl;
