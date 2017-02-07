@@ -9,8 +9,8 @@
 
 using namespace rocksdb;
 
-TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting& set) : RocksDbBenchmark(set) {
-    std::cout <<"TR Benchmark" << std::endl;
+TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
+    std::cout << BOOST_CURRENT_FUNCTION << std::endl;
     rocksdb::TerarkZipTableOptions opt;
     if (set.terocksdb_tmpdir.empty()) {
         throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");
@@ -23,7 +23,6 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting& set) : RocksDbBenchmark(
     opt.indexCacheRatio = set.terocksdbIndexCacheRatio;
     opt.softZipWorkingMemLimit = set.terocksdbZipWorkingMemSoftLimit;
     opt.hardZipWorkingMemLimit = set.terocksdbZipWorkingMemHardLimit;
-//  printf("local temp dir:%s\n",tmp_dir);
 #if 1
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());
 #else
@@ -47,25 +46,25 @@ TerarkRocksDbBenchmark::TerarkRocksDbBenchmark(Setting& set) : RocksDbBenchmark(
     setting.dbdirs.push_back(opt.localTempDir);
 }
 
-std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
+std::string TerocksBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())
         return ss.str();
     static const std::unordered_map<std::string,
-            std::pair<bool (TerarkRocksDbBenchmark::*)(const std::string &),
-                      std::string (TerarkRocksDbBenchmark::*)(void)
+            std::pair<bool (TerocksBenchmark::*)(const std::string &),
+                      std::string (TerocksBenchmark::*)(void)
                      >
     > handleFuncMap = {
-		{ "terark_zip_min_level", { &TerarkRocksDbBenchmark::setTerarkZipMinLevel,
-									&TerarkRocksDbBenchmark::getTerarkZipMinLevel }},
-		{ "check_sum_level",  { &TerarkRocksDbBenchmark::setCheckSumLevel,
-								&TerarkRocksDbBenchmark::getCheckSumLevel }},
-		{ "sampling_rate", { &TerarkRocksDbBenchmark::setSamplingRatio,
-							 &TerarkRocksDbBenchmark::getSamplingRatio }},
-		{ "index_nest_level", { &TerarkRocksDbBenchmark::setIndexNestLevel,
-								&TerarkRocksDbBenchmark::getIndexNestLevel }},
-		{ "estimate_compression_ratio", { &TerarkRocksDbBenchmark::setEstimateCompressionRatio,
-										  &TerarkRocksDbBenchmark::getEstimateCompressionRatio }},
+		{ "terark_zip_min_level", { &TerocksBenchmark::setTerarkZipMinLevel,
+									&TerocksBenchmark::getTerarkZipMinLevel }},
+		{ "check_sum_level",  { &TerocksBenchmark::setCheckSumLevel,
+								&TerocksBenchmark::getCheckSumLevel }},
+		{ "sampling_rate", { &TerocksBenchmark::setSamplingRatio,
+							 &TerocksBenchmark::getSamplingRatio }},
+		{ "index_nest_level", { &TerocksBenchmark::setIndexNestLevel,
+								&TerocksBenchmark::getIndexNestLevel }},
+		{ "estimate_compression_ratio", { &TerocksBenchmark::setEstimateCompressionRatio,
+										  &TerocksBenchmark::getEstimateCompressionRatio }},
     };
     size_t div = msg.find(':');
     if (div == std::string::npos) {
@@ -91,27 +90,27 @@ std::string TerarkRocksDbBenchmark::HandleMessage(const std::string &msg) {
     return ss.str();
 }
 
-bool TerarkRocksDbBenchmark::setTerarkZipMinLevel(const std::string &val) {
+bool TerocksBenchmark::setTerarkZipMinLevel(const std::string &val) {
     int value = std::stoi(val);
     reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->terarkZipMinLevel = value;
     return true;
 }
 
-std::string TerarkRocksDbBenchmark::getTerarkZipMinLevel(void) {
+std::string TerocksBenchmark::getTerarkZipMinLevel(void) {
     int value = reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->terarkZipMinLevel;
     std::stringstream ss;
     ss << value;
     return ss.str();
 }
 
-std::string TerarkRocksDbBenchmark::getCheckSumLevel(void) {
+std::string TerocksBenchmark::getCheckSumLevel(void) {
     std::stringstream ss;
     auto value = reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->checksumLevel;
     ss << value;
     return ss.str();
 }
 
-bool TerarkRocksDbBenchmark::setCheckSumLevel(const std::string &val) {
+bool TerocksBenchmark::setCheckSumLevel(const std::string &val) {
     auto value = std::stoi(val);
     if (value > 2 || value < 0)
         return false;
@@ -119,7 +118,7 @@ bool TerarkRocksDbBenchmark::setCheckSumLevel(const std::string &val) {
     return true;
 }
 
-bool TerarkRocksDbBenchmark::setSamplingRatio(const std::string &val) {
+bool TerocksBenchmark::setSamplingRatio(const std::string &val) {
     char *end;
     double value = strtod(val.c_str(), &end);
     if (value <= 0.0)
@@ -128,13 +127,13 @@ bool TerarkRocksDbBenchmark::setSamplingRatio(const std::string &val) {
     return true;
 }
 
-std::string TerarkRocksDbBenchmark::getSamplingRatio(void) {
+std::string TerocksBenchmark::getSamplingRatio(void) {
     std::stringstream ss;
     ss << reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->sampleRatio;
     return ss.str();
 }
 
-bool TerarkRocksDbBenchmark::setIndexNestLevel(const std::string &val) {
+bool TerocksBenchmark::setIndexNestLevel(const std::string &val) {
     int value = std::stoi(val);
     if (value < 0)
         return false;
@@ -142,21 +141,21 @@ bool TerarkRocksDbBenchmark::setIndexNestLevel(const std::string &val) {
     return true;
 }
 
-std::string TerarkRocksDbBenchmark::getIndexNestLevel(void) {
+std::string TerocksBenchmark::getIndexNestLevel(void) {
     std::stringstream ss;
     auto value = reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->indexNestLevel;
     ss << value;
     return ss.str();
 }
 
-bool TerarkRocksDbBenchmark::setEstimateCompressionRatio(const std::string &val) {
+bool TerocksBenchmark::setEstimateCompressionRatio(const std::string &val) {
     char *end;
     float value = strtof(val.c_str(),&end);
     reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->estimateCompressionRatio = value;
     return true;
 }
 
-std::string TerarkRocksDbBenchmark::getEstimateCompressionRatio(void) {
+std::string TerocksBenchmark::getEstimateCompressionRatio(void) {
     std::stringstream ss;
     auto value = reinterpret_cast<rocksdb::TerarkZipTableOptions*>(options.table_factory->GetOptions())->estimateCompressionRatio;
     ss << value;
