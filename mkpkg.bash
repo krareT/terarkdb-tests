@@ -38,7 +38,9 @@ do
 		cp -fr ../terark-db/pkg/terark-db-${Suffix}/lib                 pkg/terarkdb-tests-${Suffix}
 		cp -fr ../terark-db/pkg/terark-db-${Suffix}/bin                 pkg/terarkdb-tests-${Suffix}/tools
 		cp -fr ../terark-db/pkg/terark-db-${Suffix}/include/terark      pkg/terarkdb-tests-${Suffix}/include
-		cp -fr ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/* pkg/terarkdb-tests-${Suffix}
+		cp -fr ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/include pkg/terarkdb-tests-${Suffix}
+		cp -fa ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/lib     pkg/terarkdb-tests-${Suffix}
+		cp -fa ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/lib_static/libterark-zip-rocksdb*.a pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /opt/$COMPILER/bin/ldb                      pkg/terarkdb-tests-${Suffix}/bin
 		cp -fa /opt/$COMPILER/lib64/librocksdb.so*         pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /opt/$COMPILER/lib64/libsnappy*.so*         pkg/terarkdb-tests-${Suffix}/lib
@@ -49,12 +51,14 @@ do
 		find * -name CMakeCache.txt | xargs rm -f
 		find * -name CMakeFiles     | xargs rm -fr
 		export LD_LIBRARY_PATH=/opt/$COMPILER/lib64:$PWD/pkg/terarkdb-tests-${Suffix}/lib
+		rm -f  pkg/terarkdb-tests-${Suffix}/lib/libterark-zip-rocksdb*.so*
 		# brain damanged cmake will ignore CMAKE_VERBOSE_MAKEFILE=ON when CMAKE_CXX_COMPILER is defined
 		#-DCMAKE_CXX_COMPILER=`which $CXX`
 		cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=TRUE -DTERARKDB_PATH=$PWD/pkg/terarkdb-tests-${Suffix}
 		#sed -i 's:/usr/bin/g++:'$COMPILER:g **/CMakeFiles/**/*.{txt,make}
 		make clean
 		make -j32
+		rm -f pkg/terarkdb-tests-${Suffix}/lib/libterark-zip-rocksdb*
 		cp build/Terark_Engine_Test pkg/terarkdb-tests-${Suffix}/bin
 		cp shell/Terocksdb_Tpch_*.sh pkg/terarkdb-tests-${Suffix}/shell
 		cd pkg

@@ -56,6 +56,7 @@ target_link_libraries(Terark_Engine_Test
 		terark-fsa-r
 		terark-core-r
 		rocksdb
+		terark-zip-rocksdb-r
 		wiredtiger
 		snappy
 		mysqlclient
