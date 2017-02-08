@@ -28,10 +28,11 @@ export DictZipBlobStore_zipThreads=12
   --logdir=/data/terocksdb_tpch.logdir \
   --waldir=/data/terocksdb_tpch.waldir \
   --auto_slowdown_write=0 \
-  --write_rate_limit=0 \
+  --write_rate_limit=40M \
   --terocksdb_tmpdir=/newssd2/terocksdb_tpch.tmpdir \
   --fields_delim="|" \
   --fields_num=16 \
+  --flush_threads=2 \
   --key_fields=0,1,2 \
   --disable_wal \
   --num_levels=4 \
