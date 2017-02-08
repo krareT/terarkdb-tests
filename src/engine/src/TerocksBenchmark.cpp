@@ -24,6 +24,7 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
     opt.indexCacheRatio = set.terocksdbIndexCacheRatio;
     opt.softZipWorkingMemLimit = set.terocksdbZipWorkingMemSoftLimit;
     opt.hardZipWorkingMemLimit = set.terocksdbZipWorkingMemHardLimit;
+    opt.smallTaskMemory = set.terocksdbSmallTaskMemory;
 #if 1
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());
 #else

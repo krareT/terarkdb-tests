@@ -26,12 +26,16 @@ void RocksDbBenchmark::Open() {
   typedef long long ll;
   fprintf(stderr,
 R"EOS(RocksDbBenchmark::Open():
+  opt.write_buffer_size                   = %lld
+  opt.max_write_buffer_number             = %lld
   opt.level0_file_num_compaction_trigger  = %lld
   opt.level0_slowdown_writes_trigger      = %lld
   opt.level0_stop_writes_trigger          = %lld
   opt.soft_pending_compaction_bytes_limit = %lld
   opt.hard_pending_compaction_bytes_limit = %lld
 )EOS"
+, (ll)opt.write_buffer_size
+, (ll)opt.max_write_buffer_number
 , (ll)opt.level0_file_num_compaction_trigger
 , (ll)opt.level0_slowdown_writes_trigger
 , (ll)opt.level0_stop_writes_trigger
@@ -150,33 +154,34 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
     fprintf(stderr, "INFO: set.rocksdbUniversalCompaction = %d\n", set.rocksdbUniversalCompaction);
     options.max_background_flushes = set.flushThreads;
     options.max_subcompactions = 2;
-    options.max_write_buffer_number = 3;
     options.write_buffer_size = set.FLAGS_write_buffer_size;
 
     if ("load" == setting.getAction()) {
-      options.max_write_buffer_number = 4;
+        options.max_write_buffer_number = 5;
     }
-
-    if (setting.write_rate_limit) {
+    else if (setting.write_rate_limit) {
         // limit write rate being stable
         options.delayed_write_rate = setting.write_rate_limit;
         options.max_write_buffer_number = 5;
         options.level0_slowdown_writes_trigger = 2;
-        options.level0_stop_writes_trigger = 5000; // never stop write
+        options.level0_stop_writes_trigger = INT_MAX; // never stop write
     //  options.soft_pending_compaction_bytes_limit = setting.write_rate_limit * 60; // 1 minutes written bytes
         options.soft_pending_compaction_bytes_limit = 0;
         options.hard_pending_compaction_bytes_limit = 0;
         fprintf(stderr, "INFO: rocksdb set option.delayed_write_rate = %zd\n", setting.write_rate_limit);
     }
     else if (!setting.autoSlowDownWrite) {
-        options.max_write_buffer_number = 6;
-        options.level0_slowdown_writes_trigger = 1<<30;
-        options.level0_stop_writes_trigger = 1<<30;
+        options.max_write_buffer_number = 5;
+        options.level0_slowdown_writes_trigger = INT_MAX;
+        options.level0_stop_writes_trigger = INT_MAX;
         options.soft_pending_compaction_bytes_limit = 0;
         options.hard_pending_compaction_bytes_limit = 0;
         options.min_write_buffer_number_to_merge = 1;
         options.level0_file_num_compaction_trigger = 6;
         fprintf(stderr, "INFO: rocksdb disabled auto slowdown write\n");
+    }
+    else {
+        options.max_write_buffer_number = 3;
     }
 }
 
