@@ -36,7 +36,7 @@ public:
 static int findTimeBucket(uint64_t time) {
     static const uint64_t step_in_seconds = 10; // in seconds
     uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
-    // printf("find time bucket : %" PRIu64 ", result = %" PRIu64 "\n", time, t*10);
+    // fprintf(stderr, "find time bucket : %" PRIu64 ", result = %" PRIu64 "\n", time, t*10);
     return t*10;
 }
 
@@ -81,11 +81,10 @@ LatencyStat g_latencyStat;
 
 static bool Mysql_connect(MYSQL* conn) {
     if(g_passwd == NULL || strlen(g_passwd) == 0) {
-        printf("no MYSQL_PASSWD set, analysis thread will not upload data!\n");
+        fprintf(stderr, "no MYSQL_PASSWD set, analysis thread will not upload data!\n");
         return false;
     }
-    printf("Mysql_connect, passwd = %s\n", g_passwd);
-    fflush(stdout);
+    fprintf(stderr, "Mysql_connect, passwd = %s\n", g_passwd);
     const char* host = "rds432w5u5d17qd62iq3o.mysql.rds.aliyuncs.com";
     const char* user = "terark_benchmark";
     const char* db = "benchmark";
@@ -114,8 +113,7 @@ static bool Mysql_connect(MYSQL* conn) {
         );
         return false;
     }
-    printf("database connected!\n");
-    fflush(stdout);
+    fprintf(stderr, "database connected!\n");
     return true;
 }
 
@@ -284,7 +282,7 @@ void TimeBucket::add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, 
         }
         buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
         upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
-        printf("%s\n", buf.begin());
+        fprintf(stderr, "%s\n", buf.begin());
         g_latencyStat.reset();
         operation_count = 1;
         current_bucket = next_bucket;
@@ -301,7 +299,7 @@ AnalysisWorker::AnalysisWorker(Setting* setting) {
 }
 
 AnalysisWorker::~AnalysisWorker() {
-    printf("analysis worker is stopped!\n");
+    fprintf(stderr, "analysis worker is stopped!\n");
 }
 
 void AnalysisWorker::stop() {
@@ -407,7 +405,7 @@ void AnalysisWorker::run() {
                     buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
                 }
                 upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
-                printf("%s\n", buf.begin());
+                fprintf(stderr, "%s\n", buf.begin());
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
