@@ -55,7 +55,7 @@ char** g_argv;
 int g_argc;
 
 int main(int argc, char **argv) {
-    //Stats::readTimeDataCq
+	fprintf(stderr, "%s is compiled at %s %s\n", argv[0], __DATE__, __TIME__);
     signal(SIGINT, sigint_fuc);
     if (argc < 2) {
         fprintf(stderr, "usage: %s WhichDB options\n", argv[0]);
