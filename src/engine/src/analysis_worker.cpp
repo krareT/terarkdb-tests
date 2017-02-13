@@ -31,6 +31,9 @@ public:
     {}
 
     void add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, int sampleRate, int type);
+    void add(terark::AutoGrownMemIO& buf, std::pair<uint64_t, uint64_t> tt, int sampleRate, int type) {
+      add(buf, tt.first, tt.second, sampleRate, type);
+    }
 };
 
 static int findTimeBucket(uint64_t time) {
@@ -370,25 +373,20 @@ void AnalysisWorker::run() {
       upload_command_and_env(engine_name);
     }
 
-    std::pair<uint64_t, uint64_t> read_result, insert_result, update_result;
-    TimeBucket read_bucket(engine_name.c_str(), setting->dbdirs);
+    std::pair<uint64_t, uint64_t> search_result, insert_result, update_result;
+    TimeBucket search_bucket(engine_name.c_str(), setting->dbdirs);
     TimeBucket insert_bucket(engine_name.c_str(), setting->dbdirs);
     TimeBucket update_bucket(engine_name.c_str(), setting->dbdirs);
     terark::AutoGrownMemIO buf;
     shoud_stop = false;
     while(!shoud_stop) {
-        bool b1 = Stats::opsDataCq[int(OP_TYPE::SEARCH)].try_pop(read_result);
+        auto samplingRate = setting->getSamplingRate();
+        bool b1 = Stats::opsDataCq[int(OP_TYPE::SEARCH)].try_pop(search_result);
         bool b2 = Stats::opsDataCq[int(OP_TYPE::INSERT)].try_pop(insert_result);
         bool b3 = Stats::opsDataCq[int(OP_TYPE::UPDATE)].try_pop(update_result);
-        if (b1) {
-            read_bucket.add(buf, read_result.first, read_result.second, setting->getSamplingRate(), 1);
-        }
-        if (b2) {
-            insert_bucket.add(buf, insert_result.first, insert_result.second, setting->getSamplingRate(), 2);
-        }
-        if (b3) {
-            update_bucket.add(buf, update_result.first, update_result.second, setting->getSamplingRate(), 3);
-        }
+        if (b1) search_bucket.add(buf, search_result, samplingRate, 1);
+        if (b2) insert_bucket.add(buf, insert_result, samplingRate, 2);
+        if (b3) update_bucket.add(buf, update_result, samplingRate, 3);
         if (!b1 && !b2 && !b3) {
             timespec ts1;
             clock_gettime(CLOCK_REALTIME, &ts1);

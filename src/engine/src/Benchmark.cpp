@@ -88,7 +88,7 @@ bool Benchmark::executeOneOperation(ThreadState* state, OP_TYPE type){
     }
     if (useSampling) {
         struct timespec start,end;
-        clock_gettime(CLOCK_REALTIME,&start);
+        clock_gettime(CLOCK_REALTIME, &start);
         bool ret = (this->*executeFuncMap[int(type)])(state);
         if (ret || type == OP_TYPE::SEARCH) {
             clock_gettime(CLOCK_REALTIME, &end);
