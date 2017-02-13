@@ -323,8 +323,10 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
     }
     auto status = db->Put(write_options, ts->key, ts->value);
     if (!status.ok()){
-        fprintf(stderr,"RocksDbBenchmark::InsertOneKey:db->Put false.\nkey:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());
-        fprintf(stderr,"RocksDbBenchmakr::InsertOneKey:db-Put status:%s\n",status.ToString().c_str());
+        fprintf(stderr
+            , "RocksDbBenchmark::InsertOneKey:db->Put fail status: %s.\n"
+              "key: %s\nvalue: %s\n"
+            , status.ToString().c_str(), ts->key.c_str(), ts->value.c_str());
         updateDataCq.push(ts->str);
         return false;
     }
@@ -351,6 +353,6 @@ bool RocksDbBenchmark::Compact(void) {
     return false;
 }
 
-ThreadState *RocksDbBenchmark::newThreadState(std::atomic<std::vector<bool > *> *whichSamplingPlan) {
-    return new ThreadState(threads.size(), nullptr, whichSamplingPlan);
+ThreadState *RocksDbBenchmark::newThreadState(const std::atomic<std::vector<bool>*> *whichSamplingPlan) {
+    return new ThreadState(threads.size(), whichSamplingPlan);
 }

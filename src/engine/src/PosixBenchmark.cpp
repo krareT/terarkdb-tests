@@ -112,8 +112,8 @@ bool PosixBenchmark::Compact(void) {
     return false;
 }
 
-ThreadState *PosixBenchmark::newThreadState(std::atomic<std::vector<bool> *> *whichSamplingPlan) {
-    return new ThreadState(threads.size(), nullptr,whichSamplingPlan);
+ThreadState *PosixBenchmark::newThreadState(const std::atomic<std::vector<bool>*>* whichSamplingPlan) {
+    return new ThreadState(threads.size(), whichSamplingPlan);
 }
 
 

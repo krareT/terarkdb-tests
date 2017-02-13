@@ -339,7 +339,7 @@ std::string TerarkBenchmark::getMaxWritingSegmentSize(void) {
     return ss.str();
 }
 
-ThreadState *TerarkBenchmark::newThreadState(std::atomic<std::vector<bool > *> *whichSPlan) {
-    return new ThreadState(threads.size(), nullptr, whichSPlan, &tab);
+ThreadState* TerarkBenchmark::newThreadState(const std::atomic<std::vector<bool>*> *whichSPlan) {
+    return new ThreadState(threads.size(), whichSPlan, tab);
 }
 

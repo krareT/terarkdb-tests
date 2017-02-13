@@ -19,7 +19,7 @@ void Benchmark::updateSamplingPlan(std::vector<bool> &plan, uint8_t percent) {
 void Benchmark::shufflePlan(std::vector<uint8_t > &plan){
     std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
 }
-void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > *> *whichSPlan) {
+void Benchmark::adjustThreadNum(uint32_t target, const std::atomic<std::vector<bool>*>* whichSPlan) {
     while (target > threads.size()){
         ThreadState* state = newThreadState(whichSPlan);
         state->planConfig.read_percent = 100;
@@ -30,7 +30,6 @@ void Benchmark::adjustThreadNum(uint32_t target, std::atomic<std::vector<bool > 
         threads.emplace_back(std::thread([=](){ReadWhileWriting(state);}), state);
     }
     while (target < threads.size()){
-        //delete thread
         threads.back().second->STOP.store(true);
         threads.back().first.join();
         delete threads.back().second;
@@ -77,30 +76,28 @@ void Benchmark::RunBenchmark(void){
     loadInsertDataThread.join();
 }
 
-bool Benchmark::executeOneOperationWithSampling(ThreadState *state, OP_TYPE type){
-    struct timespec start,end;
-    clock_gettime(CLOCK_REALTIME,&start);
-    bool ret = (this->*executeFuncMap[int(type)])(state);
-    if (ret || type == OP_TYPE::SEARCH) {
-        clock_gettime(CLOCK_REALTIME, &end);
-        state->stats.FinishedSingleOp(type, start, end);
-    }
-    return ret;
-}
-
-bool Benchmark::executeOneOperationWithoutSampling(ThreadState *state, OP_TYPE type){
-    return ((this->*executeFuncMap[int(type)])(state));
-}
-
-bool Benchmark::executeOneOperation(ThreadState* state,OP_TYPE type){
+bool Benchmark::executeOneOperation(ThreadState* state, OP_TYPE type){
     assert(executeFuncMap[int(type)] != 0);
-    std::vector<bool> *samplingPlan = (*(state->whichSamplingPlan)).load();
-    if (samplingRecord[int(type)] >= samplingPlan->size()){
-        samplingRecord[int(type)] = 0;
+    std::vector<bool>& samplingPlan = *state->whichSamplingPlan->load();
+    bool useSampling;
+    if (state->samplingRecord[int(type)] < samplingPlan.size()){
+        useSampling = samplingPlan[state->samplingRecord[int(type)]++];
+    } else {
+        useSampling = samplingPlan[0];
+        state->samplingRecord[int(type)] = 1;
     }
-    bool ifSampling = (*samplingPlan)[samplingRecord[int(type)]] ;
-    samplingRecord[int(type)]++;
-    return (this->*samplingFuncMap[ifSampling])(state,type);
+    if (useSampling) {
+        struct timespec start,end;
+        clock_gettime(CLOCK_REALTIME,&start);
+        bool ret = (this->*executeFuncMap[int(type)])(state);
+        if (ret || type == OP_TYPE::SEARCH) {
+            clock_gettime(CLOCK_REALTIME, &end);
+            state->stats.FinishedSingleOp(type, start, end);
+        }
+        return ret;
+    } else {
+        return ((this->*executeFuncMap[int(type)])(state));
+    }
 }
 
 void Benchmark::ReadWhileWriting(ThreadState *thread) {
@@ -214,9 +211,6 @@ Benchmark::Benchmark(Setting& s)
                  &Benchmark::InsertOneKey,
                  &Benchmark::UpdateOneKey,
         }
-, samplingFuncMap{&Benchmark::executeOneOperationWithoutSampling,
-                  &Benchmark::executeOneOperationWithSampling,
-        }
 , setting(s)
 {
     compactTimes = s.getCompactTimes();
@@ -230,9 +224,8 @@ std::string Benchmark::HandleMessage(const std::string &msg) {
 }
 
 void Benchmark::reportMessage(const std::string &msg) {
-    if (msg.empty())
-        return;
-    setting.sendMessageToSetting(msg);
+    if (!msg.empty())
+      setting.sendMessageToSetting(msg);
 }
 
 void Benchmark::updatePlan(const PlanConfig &pc, std::vector<OP_TYPE>& plan) {

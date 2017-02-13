@@ -17,7 +17,7 @@ public:
     TerarkBenchmark(Setting& );
     ~TerarkBenchmark();
 private:
-    ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSPlan) override;
+    ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSPlan) override;
     void PrintHeader();
     void Close() override;
     void Load(void) override;

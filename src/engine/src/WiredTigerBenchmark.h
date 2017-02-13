@@ -21,8 +21,8 @@ public:
     }
 private:
     size_t getKeyAndValue(std::string &str,std::string &key,std::string &val);
-    ThreadState* newThreadState(std::atomic<std::vector<bool >*>* whichSPlan) override {
-        return new ThreadState(threads.size(),conn_, nullptr,whichSPlan);
+    ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSPlan) override {
+        return new ThreadState(threads.size(),conn_, whichSPlan);
     }
     void Load(void) override{
         DoWrite(true); }

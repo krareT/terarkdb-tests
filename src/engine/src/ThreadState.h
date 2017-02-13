@@ -17,7 +17,7 @@ struct ThreadState {
     std::atomic<uint8_t> STOP;
     WT_SESSION *session;
 
-    std::atomic<std::vector<bool >*> *whichSamplingPlan;
+    const std::atomic<std::vector<bool>*>* whichSamplingPlan;
     terark::db::DbContextPtr ctx;
     unsigned int seed;
     std::mt19937_64 randGenerator;
@@ -28,34 +28,28 @@ struct ThreadState {
     terark::valvec<terark::llong> idvec;
     PlanConfig planConfig;
     std::vector<OP_TYPE> executePlan[2];
-    std::atomic<uint8_t> whichPlan;
+    std::atomic<uint32_t> whichPlan;
+    uint32_t samplingRecord[3] = {0, 0, 0}; // index is OP_TYPE
 
-    ThreadState(int index,std::atomic<std::vector<uint8_t >*>* wep,
-    std::atomic<std::vector<bool >*>* wsp,terark::db::DbTablePtr *tab)
-    :   tid(index),
-    whichSamplingPlan(wsp)
-    {
+    ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp, const terark::db::DbTablePtr& tab)
+      : tid(index), whichSamplingPlan(wsp) {
         STOP.store(false);
         session = NULL;
-        ctx = (*tab)->createDbContext();
+        ctx = tab->createDbContext();
         ctx->syncIndex = true;
         seed = tid;
         randGenerator.seed(seed);
     }
-    ThreadState(int index,WT_CONNECTION *conn,
-                std::atomic<std::vector<uint8_t >*>* wep,std::atomic<std::vector<bool >*>* wsp)
-    :tid(index),
-    whichSamplingPlan(wsp){
+    ThreadState(int index, WT_CONNECTION *conn, const std::atomic<std::vector<bool>*>* wsp)
+      : tid(index), whichSamplingPlan(wsp){
         conn->open_session(conn, NULL, NULL, &session);
         STOP.store(false);
         assert(session != NULL);
         seed = tid;
         randGenerator.seed(seed);
     }
-
-    ThreadState(int index, std::atomic<std::vector<uint8_t> *> *wep, std::atomic<std::vector<bool > *> *wsp)
-            : tid(index),
-              whichSamplingPlan(wsp) {
+    ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp)
+      : tid(index), whichSamplingPlan(wsp) {
         STOP.store(false);
         session = NULL;
         seed = tid;
