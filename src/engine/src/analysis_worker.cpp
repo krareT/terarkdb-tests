@@ -30,10 +30,7 @@ public:
               dbdirs(dbdirs)
     {}
 
-    void add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, int sampleRate, int type);
-    void add(terark::AutoGrownMemIO& buf, std::pair<uint64_t, uint64_t> tt, int sampleRate, int type) {
-      add(buf, tt.first, tt.second, sampleRate, type);
-    }
+    void update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE opType);
 };
 
 static int findTimeBucket(uint64_t time) {
@@ -79,7 +76,13 @@ struct LatencyStat {
     int cnts[dimof(g_latencyTimePeriodsUS)];
     LatencyStat() : cnts{0} {}
     void reset() { memset(cnts, 0, sizeof(cnts)); }
+    void update(std::pair<uint64_t, uint64_t> tt);
 };
+void LatencyStat::update(std::pair<uint64_t, uint64_t> tt) {
+  int latencyUS = int((tt.second - tt.first) * 0.001);
+  size_t idx = terark::lower_bound_0(g_latencyTimePeriodsUS, dimof(g_latencyTimePeriodsUS), latencyUS);
+  cnts[idx]++;
+}
 LatencyStat g_latencyStat;
 
 static bool Mysql_connect(MYSQL* conn) {
@@ -267,34 +270,38 @@ static void upload_sys_stat(terark::AutoGrownMemIO& buf,
     }
 }
 
-void TimeBucket::add(terark::AutoGrownMemIO& buf, uint64_t start, uint64_t end, int sampleRate, int type) {
-    // when meet the next bucket, upload previous one first, default step is 10 seconds
-    int next_bucket = findTimeBucket(start);
-    if(next_bucket > current_bucket) {
-        // * 100 / (10 * sampleRate) // sampleRate : (0, 100]
-        int ops = int(operation_count * 10.0 / sampleRate);
-        buf.rewind();
-        Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
-        for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
-          auto latency = g_latencyTimePeriodsUS[i];
-          auto cnt = int(g_latencyStat.cnts[i] * 100.0 / sampleRate);
-          if (cnt) {
-            Exec_stmt(ofs_latency, ps_latency,
-                current_bucket, type, latency, cnt, engine_name);
-          }
+void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE opType) {
+    std::pair<uint64_t, uint64_t> tt;
+    const int type = int(opType) + 1;
+    while (Stats::opsDataCq[int(opType)].try_pop(tt)) {
+        int next_bucket = findTimeBucket(tt.first);
+        if (next_bucket > current_bucket) {
+            // when meet the next bucket, upload previous one first, default step is 10 seconds
+            // * 100 / (10 * sampleRate) // sampleRate : (0, 100]
+            int ops = int(operation_count * 10.0 / sampleRate);
+            buf.rewind();
+            Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
+            for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
+                auto latency = g_latencyTimePeriodsUS[i];
+                auto cnt = int(g_latencyStat.cnts[i] * 100.0 / sampleRate);
+                if (cnt) {
+                    Exec_stmt(ofs_latency, ps_latency,
+                        current_bucket, type, latency, cnt, engine_name);
+                }
+            }
+            buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
+            upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
+            fprintf(stderr, "%s\n", buf.begin());
+            g_latencyStat.reset();
+            g_latencyStat.update(tt);
+            operation_count = 1;
+            current_bucket = next_bucket;
+            break;
+        } else {
+            operation_count++;
+            g_latencyStat.update(tt);
         }
-        buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
-        upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
-        fprintf(stderr, "%s\n", buf.begin());
-        g_latencyStat.reset();
-        operation_count = 1;
-        current_bucket = next_bucket;
-    }else{
-        operation_count++;
     }
-    uint32_t latencyUS = uint32_t((end - start) * 0.001);
-    size_t idx = terark::lower_bound_0(g_latencyTimePeriodsUS, dimof(g_latencyTimePeriodsUS)-1, latencyUS);
-    g_latencyStat.cnts[idx]++;
 }
 
 AnalysisWorker::AnalysisWorker(Setting* setting) {
@@ -381,32 +388,27 @@ void AnalysisWorker::run() {
     shoud_stop = false;
     while(!shoud_stop) {
         auto samplingRate = setting->getSamplingRate();
-        bool b1 = Stats::opsDataCq[int(OP_TYPE::SEARCH)].try_pop(search_result);
-        bool b2 = Stats::opsDataCq[int(OP_TYPE::INSERT)].try_pop(insert_result);
-        bool b3 = Stats::opsDataCq[int(OP_TYPE::UPDATE)].try_pop(update_result);
-        if (b1) search_bucket.add(buf, search_result, samplingRate, 1);
-        if (b2) insert_bucket.add(buf, insert_result, samplingRate, 2);
-        if (b3) update_bucket.add(buf, update_result, samplingRate, 3);
-        if (!b1 && !b2 && !b3) {
-            timespec ts1;
-            clock_gettime(CLOCK_REALTIME, &ts1);
-            unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
-            int curr_bucket = findTimeBucket(tt);
-            if (curr_bucket > g_prev_sys_stat_bucket) {
-                buf.rewind();
-                if (g_upload_fake_ops) {
-                    int ops = 0, op_type = 2;
-                    Exec_stmt(ofs_ops, ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
-                    buf.printf("upload statistic time bucket[%d], OPS = %7d, type = %d", curr_bucket, ops, op_type);
-                }
-                else {
-                    buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
-                }
-                upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
-                fprintf(stderr, "%s\n", buf.begin());
+        search_bucket.update_ops(buf, samplingRate, OP_TYPE::SEARCH);
+        insert_bucket.update_ops(buf, samplingRate, OP_TYPE::INSERT);
+        update_bucket.update_ops(buf, samplingRate, OP_TYPE::UPDATE);
+        timespec ts1;
+        clock_gettime(CLOCK_REALTIME, &ts1);
+        unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
+        int curr_bucket = findTimeBucket(tt);
+        if (curr_bucket > g_prev_sys_stat_bucket) {
+            buf.rewind();
+            if (g_upload_fake_ops) {
+                int ops = 0, op_type = 2;
+                Exec_stmt(ofs_ops, ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
+                buf.printf("upload statistic time bucket[%d], OPS = %7d, type = %d", curr_bucket, ops, op_type);
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+            else {
+                buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
+            }
+            upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
+            fprintf(stderr, "%s\n", buf.begin());
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
     if (g_hasConn) {
         mysql_stmt_close(ps_ops);
