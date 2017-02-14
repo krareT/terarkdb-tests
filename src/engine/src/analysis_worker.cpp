@@ -291,7 +291,7 @@ void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE
                         current_bucket, type, latency, cnt, engine_name);
                 }
             }
-            buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d, loop = %d"
+            buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d, loop = %7d"
 					, current_bucket, ops, type, loop_cnt);
             upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
             fprintf(stderr, "%s\n", buf.begin());
@@ -411,7 +411,7 @@ void AnalysisWorker::run() {
             upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
             fprintf(stderr, "%s\n", buf.begin());
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
     if (g_hasConn) {
         mysql_stmt_close(ps_ops);
