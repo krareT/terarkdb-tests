@@ -273,7 +273,9 @@ static void upload_sys_stat(terark::AutoGrownMemIO& buf,
 void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE opType) {
     std::pair<uint64_t, uint64_t> tt;
     const int type = int(opType) + 1;
+	int loop_cnt = 0;
     while (Stats::opsDataCq[int(opType)].try_pop(tt)) {
+		loop_cnt++;
         int next_bucket = findTimeBucket(tt.first);
         if (next_bucket > current_bucket) {
             // when meet the next bucket, upload previous one first, default step is 10 seconds
@@ -289,7 +291,8 @@ void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE
                         current_bucket, type, latency, cnt, engine_name);
                 }
             }
-            buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d", current_bucket, ops, type);
+            buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d, loop = %d"
+					, current_bucket, ops, type, loop_cnt);
             upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
             fprintf(stderr, "%s\n", buf.begin());
             g_latencyStat.reset();
