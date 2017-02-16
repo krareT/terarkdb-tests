@@ -40,7 +40,7 @@ add_executable(Terark_Engine_Test
         src/TcpServer.cpp src/TcpServer.h
         src/Stats.cpp src/Stats.h
 		src/Benchmark.cpp src/Benchmark.h
-        src/analysis_worker.cpp util/system_resource.h
+		src/analysis_worker.cpp util/system_resource.h
 		src/TerarkBenchmark.cpp src/TerarkBenchmark.h
 		src/ThreadState.cpp src/ThreadState.h
 		src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h
@@ -50,13 +50,12 @@ add_executable(Terark_Engine_Test
 		)
 
 target_link_libraries(Terark_Engine_Test
-		terark-zip-rocksdb-r
+		-Wl,--whole-archive terark-zip-rocksdb-r -Wl,--no-whole-archive
 		terark-db-r
 		terark-zbs-r
 		terark-fsa-r
 		terark-core-r
 		rocksdb
-		terark-zip-rocksdb-r
 		wiredtiger
 		snappy
 		mysqlclient
