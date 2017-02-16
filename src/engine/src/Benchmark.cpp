@@ -38,8 +38,6 @@ void Benchmark::adjustThreadNum(uint32_t target, const std::atomic<std::vector<b
 }
 
 void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
-    std::vector<std::pair<uint8_t ,uint8_t >> planDetails;
-    planDetails.push_back(std::make_pair(1,samplingRate));
     updateSamplingPlan(samplingPlan[whichSPlan], samplingRate);
     samplingPlanAddr.store(& (samplingPlan[whichSPlan]));
     whichSPlan = !whichSPlan;
@@ -92,7 +90,7 @@ bool Benchmark::executeOneOperation(ThreadState* state, OP_TYPE type){
         bool ret = (this->*executeFuncMap[int(type)])(state);
         if (ret || type == OP_TYPE::SEARCH) {
             clock_gettime(CLOCK_REALTIME, &end);
-            state->stats.FinishedSingleOp(type, start, end);
+            Stats::FinishedSingleOp(type, start, end);
         }
         return ret;
     } else {
@@ -136,8 +134,6 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
     return true;
 }
 
-extern bool g_upload_fake_ops;
-
 void Benchmark::loadInsertData(){
     const char* fpath = setting.getInsertDataPath().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));
@@ -169,7 +165,6 @@ void Benchmark::loadInsertData(){
         usleep(300000);
     }
     long long t1 = pf.now();
-    g_upload_fake_ops = true;
     fprintf(stderr
         , "Benchmark::loadInsertData(%s) %s, lines = %zd, bytes = %zd, time = %f sec, speed = %f MB/sec\n"
         , fpath

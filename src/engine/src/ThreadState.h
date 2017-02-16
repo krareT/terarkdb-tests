@@ -13,7 +13,6 @@
 
 struct ThreadState {
     int tid;             // 0..n-1 when running in n threads
-    Stats stats;
     std::atomic<uint8_t> STOP;
     WT_SESSION *session;
 

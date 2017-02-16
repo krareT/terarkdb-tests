@@ -222,7 +222,6 @@ void RocksDbBenchmark::Close() {
     db = NULL;
 }
 
-extern bool g_upload_fake_ops;
 void RocksDbBenchmark::Load() {
     printf("RocksDbBenchmark Loading ...\n"); fflush(stdout);
     Auto_fclose loadFile(fopen(setting.getLoadDataPath().c_str(), "r"));
@@ -230,7 +229,6 @@ void RocksDbBenchmark::Load() {
         fprintf(stderr, "load error : can not open file %s , check --load_data_path\n", setting.getLoadDataPath().c_str());
         exit(1);
     }
-    g_upload_fake_ops = true;
     assert(loadFile != NULL);
     LineBuf line;
     std::string key, value;
@@ -238,6 +236,8 @@ void RocksDbBenchmark::Load() {
     size_t bytes = 0, last_bytes = 0;
     size_t limit = setting.FLAGS_load_size;
     profiling pf;
+    std::mt19937_64 random;
+    auto randomUpper = uint64_t(0.01 * random.max() * setting.samplingRate);
     long long t0 = pf.now();
     long long t1 = t0;
     while (bytes < limit && !feof(loadFile) && !setting.ifStop()) {
@@ -246,7 +246,17 @@ void RocksDbBenchmark::Load() {
             line.chomp();
             if (setting.splitKeyValue(line, &key, &value) == 0)
                 continue;
-            rocksdb::Status s = db->Put(write_options, key, value);
+            rocksdb::Status s;
+            if (random() < randomUpper) {
+              struct timespec beg, end;
+              clock_gettime(CLOCK_REALTIME, &beg);
+              s = db->Put(write_options, key, value);
+              clock_gettime(CLOCK_REALTIME, &end);
+              Stats::FinishedSingleOp(OP_TYPE::INSERT, beg, end);
+            }
+            else {
+              s = db->Put(write_options, key, value);
+            }
             if (!s.ok()) {
                 fprintf(stderr, "put error: %s\n", s.ToString().c_str());
             }

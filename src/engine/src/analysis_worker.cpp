@@ -319,8 +319,6 @@ void AnalysisWorker::stop() {
     shoud_stop = true;
 }
 
-bool g_upload_fake_ops = false;
-
 extern char** g_argv;
 extern int g_argc;
 extern "C" char **environ;
@@ -400,14 +398,7 @@ void AnalysisWorker::run() {
         int curr_bucket = findTimeBucket(tt);
         if (curr_bucket > g_prev_sys_stat_bucket) {
             buf.rewind();
-            if (g_upload_fake_ops) {
-                int ops = 0, op_type = 2;
-                Exec_stmt(ofs_ops, ps_ops, curr_bucket, ops, op_type, engine_name.c_str());
-                buf.printf("upload statistic time bucket[%d], OPS = %7d, type = %d", curr_bucket, ops, op_type);
-            }
-            else {
-                buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
-            }
+            buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
             upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
             fprintf(stderr, "%s\n", buf.begin());
         }

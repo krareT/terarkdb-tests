@@ -11,7 +11,7 @@
 class Stats {
 public:
     static tbb::concurrent_queue<std::pair<uint64_t, uint64_t >> opsDataCq[3];
-    void FinishedSingleOp(OP_TYPE type, const timespec& beg, const timespec& end);
+    static void FinishedSingleOp(OP_TYPE type, const timespec& beg, const timespec& end);
 };
 
 #endif //TERARKDB_TEST_FRAMEWORK_STATS_H
