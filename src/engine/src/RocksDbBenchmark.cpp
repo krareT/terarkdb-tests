@@ -237,7 +237,7 @@ void RocksDbBenchmark::Load() {
     size_t limit = setting.FLAGS_load_size;
     profiling pf;
     std::mt19937_64 random;
-    auto randomUpper = uint64_t(0.01 * random.max() * setting.samplingRate);
+    auto randomUpper = uint64_t(0.01 * random.max() * setting.getSamplingRate());
     long long t0 = pf.now();
     long long t1 = t0;
     while (bytes < limit && !feof(loadFile) && !setting.ifStop()) {

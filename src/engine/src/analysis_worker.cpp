@@ -402,7 +402,7 @@ void AnalysisWorker::run() {
             upload_sys_stat(buf, setting->dbdirs, curr_bucket, engine_name.c_str());
             fprintf(stderr, "%s\n", buf.begin());
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
     if (g_hasConn) {
         mysql_stmt_close(ps_ops);
