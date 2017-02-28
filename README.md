@@ -181,7 +181,7 @@ TPC-H 的多个表中， lineitem 表尺寸最大，所以我们使用 lineitem 
 TPC-H lineitem 表有个字段 comment，是文本类型，该字段贡献了大部分压缩率，dbgen 中该字段的尺寸是硬编码为 27 个字节。为了符合测试要求，我们允许通过环境变量修改该字段的长度；另外增加了一个新的脚本 dbgen.sh 用于直接压缩生成的数据库表，请参考: [github链接](https://github.com/rockeet/tpch-dbgen)
 
 ## 预先生成随机采样的 Query Key
-通过分离 key value，我们可以得到所有的 key，为了测试随机读性能，我们需要把所有的 Key 都放入内存，并且支持在常数时间内随机取一个 Key，要实现这个需求，最简单的做法是使用 std::vector&lt;std::string&gt;，但这样消耗的内存太多，我们使用了一种简单的优化存储 [fstrvec](https://github.com/Terark/terark-db/tree/master/terark-base/src/terark/util/fstrvec.hpp)，然而，但即使这样，把全部的 Key 保存在内存中，在很多情况下也不太现实(TPC-H 短数据lineitem.comment=512字节时，550GB 数据中 Key 占 22GB)。
+通过分离 key value，我们可以得到所有的 key，为了测试随机读性能，我们需要把所有的 Key 都放入内存，并且支持在常数时间内随机取一个 Key，要实现这个需求，最简单的做法是使用 std::vector&lt;std::string&gt;，但这样消耗的内存太多，我们使用了一种简单的优化存储 [fstrvec](https://github.com/Terark/terichdb/tree/master/terark-base/src/terark/util/fstrvec.hpp)，然而，但即使这样，把全部的 Key 保存在内存中，在很多情况下也不太现实(TPC-H 短数据lineitem.comment=512字节时，550GB 数据中 Key 占 22GB)。
 
 所以，我们只在内存中存储一部分 Key，为了达到“随机”读的效果，这些 Key 必须是随机选取的，可以使用 `awk` 脚本，来完成这个随机选取的功能：
 ```awk

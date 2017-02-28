@@ -8,7 +8,7 @@
 
 #include <wiredtiger.h>
 #include "Stats.h"
-#include <terark/db/db_table.hpp>
+#include <terark/terichdb/db_table.hpp>
 #include <random>
 
 struct ThreadState {
@@ -17,7 +17,7 @@ struct ThreadState {
     WT_SESSION *session;
 
     const std::atomic<std::vector<bool>*>* whichSamplingPlan;
-    terark::db::DbContextPtr ctx;
+    terark::terichdb::DbContextPtr ctx;
     unsigned int seed;
     std::mt19937_64 randGenerator;
     std::string key;
@@ -30,7 +30,7 @@ struct ThreadState {
     std::atomic<uint32_t> whichPlan;
     uint32_t samplingRecord[3] = {0, 0, 0}; // index is OP_TYPE
 
-    ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp, const terark::db::DbTablePtr& tab)
+    ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp, const terark::terichdb::DbTablePtr& tab)
       : tid(index), whichSamplingPlan(wsp) {
         STOP.store(false);
         session = NULL;

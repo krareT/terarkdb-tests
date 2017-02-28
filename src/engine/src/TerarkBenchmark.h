@@ -7,7 +7,7 @@
 
 #include "Benchmark.h"
 using namespace terark;
-using namespace db;
+using namespace terark::terichdb;
 class TerarkBenchmark : public Benchmark{
 private:
     DbTablePtr tab;

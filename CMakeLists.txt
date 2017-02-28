@@ -5,7 +5,7 @@ set(EXECUTABLE_OUTPUT_PATH ./build)
 
 #if (${TERARKDB_PATH})
 #else
-#  set(TERARKDB_PATH $ENV{HOME}/Documents/pkg/terark-db-Linux-x86_64-g++-5.4-bmi2-1/)
+#  set(TERARKDB_PATH $ENV{HOME}/Documents/pkg/terichdb-Linux-x86_64-g++-5.4-bmi2-1/)
 #endif
 
 #if (TERARKDB_ROCKS)

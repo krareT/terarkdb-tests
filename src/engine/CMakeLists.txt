@@ -51,7 +51,7 @@ add_executable(Terark_Engine_Test
 
 target_link_libraries(Terark_Engine_Test
 		-Wl,--whole-archive terark-zip-rocksdb-r -Wl,--no-whole-archive
-		terark-db-r
+		terichdb-r
 		terark-zbs-r
 		terark-fsa-r
 		terark-core-r

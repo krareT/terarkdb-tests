@@ -35,9 +35,9 @@ do
 		rm -rf pkg/terarkdb-tests-${Suffix}
 		mkdir -p pkg/terarkdb-tests-${Suffix}/{bin,lib,include,tools,shell}
 		cp -fr ../terark/pkg/terark-fsa_all-${Suffix}/bin               pkg/terarkdb-tests-${Suffix}/tools
-		cp -fr ../terark-db/pkg/terark-db-${Suffix}/lib                 pkg/terarkdb-tests-${Suffix}
-		cp -fr ../terark-db/pkg/terark-db-${Suffix}/bin                 pkg/terarkdb-tests-${Suffix}/tools
-		cp -fr ../terark-db/pkg/terark-db-${Suffix}/include/terark      pkg/terarkdb-tests-${Suffix}/include
+		cp -fr ../terichdb/pkg/terichdb-${Suffix}/lib                 pkg/terarkdb-tests-${Suffix}
+		cp -fr ../terichdb/pkg/terichdb-${Suffix}/bin                 pkg/terarkdb-tests-${Suffix}/tools
+		cp -fr ../terichdb/pkg/terichdb-${Suffix}/include/terark      pkg/terarkdb-tests-${Suffix}/include
 		cp -fr ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/include pkg/terarkdb-tests-${Suffix}
 		cp -fa ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/lib     pkg/terarkdb-tests-${Suffix}
 		cp -fa ../terark-zip-rocksdb/pkg/terark-zip-rocksdb-${MaybeTrial}${Suffix}/lib_static/libterark-zip-rocksdb*.a pkg/terarkdb-tests-${Suffix}/lib

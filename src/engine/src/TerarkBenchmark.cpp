@@ -68,7 +68,7 @@ void TerarkBenchmark::DoWrite(bool seq) {
     terark::valvec<byte_t> key;
     std::string strKey;
     size_t colnum = rowSchema.columnNum();
-    terark::db::ColumnVec cols;
+    terark::terichdb::ColumnVec cols;
     while (line.getline(loadFile) > 0) {
         if (rowSchema.parseDelimText('\t', line, &row) != colnum) {
             fprintf(stderr, "ERROR STR: %s\n", str.c_str());
