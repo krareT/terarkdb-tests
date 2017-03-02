@@ -2,9 +2,9 @@
 
 本程序执行各种 DB 的 Benchmark，支持的 DB 包括：
 
-* RocksDB
-* TerarkDB
-* TerocksDB
+* RocksDB  (RocksDB official version)
+* TerarkDB (RocksDB on Terark searchable compression algorithms)
+* TerichDB
 * Wiredtiger
 
 
@@ -55,10 +55,10 @@ zcat lineitem.tbl.gz | splitkv.exe -k 0,1,2 -d'|' lineitem.key lineitem.value
 WhichDB 可以是:
 * rocksdb
 * terarkdb
-* terocksdb
+* terichdb
 * wiredtiger
 
-目前经过充分测试的是 rocksdb 和 terocksdb 。
+目前经过充分测试的是 rocksdb 和 terarkdb 。
 
 ### 选项参数(Options)
 
@@ -94,19 +94,19 @@ WhichDB 可以是:
 |--zip\_work\_mem\_hard\_limit=|默认 32G，...|
 |--small\_task\_mem=|默认 2G，内存用量小于该尺寸的压缩任务，会忽略 zip\_work\_mem\_soft\_limit, 直接执行<br/>当所有压缩线程的总内存用量达到 zip\_work\_mem\_hard\_limit 时，仍必须等待|
 |--checksum\_level=|默认 1，仅检查 metadata ，<br/>设为 2 会在每条记录上增加一个 4 bytes 的 checksum，<br/>设为 3 时，SST 整体计算并验证 checksum|
-|--terocksdb\_sample\_ratio=|默认 0.015，terark全局压缩的采样率|
-|--terocksdb\_zip\_min\_level=|默认 0，只有 level 大于等于此值时，才使用 terark SST，<br/>否则使用 rocksdb 自身的 BlockBasedTable|
+|--terarkdb\_sample\_ratio=|默认 0.015，terark全局压缩的采样率|
+|--terarkdb\_zip\_min\_level=|默认 0，只有 level 大于等于此值时，才使用 terark SST，<br/>否则使用 rocksdb 自身的 BlockBasedTable|
 |--index\_cache\_ratio=|默认 0.002，可以提高精确查找(DB.Get)的性能(0.002可以提高大约10%)，<br/>该值设置得越大，对性能提升的帮助越小<br/>该设置对通过 iterator 进行查找/遍历无任何帮助|
 |--thread\_num=|前台线程数（对数据库执行读/写/更新操作的线程），<br/>线程编号从0开始，对应前闭后开区间 [0, n) |
 |--plan\_config=|参数格式 `configId:读百分比:写百分比:更新百分比`，<br/>和 `--thread_plan_map` 配合，可以<br/>让不同的线程按预定义的读/写/更新比例执行|
 |--thread\_plan\_map=|参数格式 `线程编号范围:configId`，<br/>线程编号范围格式 `min-max`，指闭区间[min,max]，<br/>线程编号范围也可以是单个线程编号<br/>未指定 thread\_plan\_map 时，每个线程的默认 configId 是 0|
-|--terocksdb\_tmpdir=|terocksdb 专用的临时目录，测试 terocksdb 时必须指定|
+|--terarkdb\_tmpdir=|terarkdb 专用的临时目录，测试 terarkdb 时必须指定|
 |--mysql\_passwd=|指定监控数据库(MySQL)的密码|
 
 
 ### 命令行样例
 
-`shell` 目录中有一些脚本，是命令行使用的标准样例，例如 [Terocksdb\_Tpch\_Run.sh](shell/Terocksdb\_Tpch\_Run.sh)
+`shell` 目录中有一些脚本，是命令行使用的标准样例，例如 [Terarkdb\_Tpch\_Run.sh](shell/Terarkdb\_Tpch\_Run.sh)
 
 
 ### 环境变量
