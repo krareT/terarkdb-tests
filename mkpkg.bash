@@ -19,6 +19,7 @@ CompilerList="g++-4.7 g++-4.8 g++-4.9 g++-6 g++-6.1 g++-6.2 g++-5.3 g++-5.4 clan
 #CompilerList="g++-6.1 g++-5.3 clang++"
 #CompilerList="g++-5.3 clang++"
 CompilerList="g++-4.8"
+CompilerList="g++-5.4"
 #CompilerList="g++-4.9"
 #CompilerList="g++-4.9 g++-5.4"
 for BMI2 in 0 1
@@ -60,7 +61,7 @@ do
 		make -j32
 		rm -f pkg/terarkdb-tests-${Suffix}/lib/libterark-zip-rocksdb*
 		cp build/Terark_Engine_Test pkg/terarkdb-tests-${Suffix}/bin
-		cp shell/Terocksdb_Tpch_*.sh pkg/terarkdb-tests-${Suffix}/shell
+		cp shell/Terarkdb_Tpch_*.sh pkg/terarkdb-tests-${Suffix}/shell
 		cd pkg
 		tar czf terarkdb-tests-${Suffix}.tgz terarkdb-tests-${Suffix}
 		cd ..
