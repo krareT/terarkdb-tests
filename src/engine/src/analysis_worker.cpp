@@ -220,8 +220,8 @@ bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
 template<class... Args>
 bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     if (ofs.is_open()) {
-        long  i = 0;
-        const long a[]{(
+        size_t  i = 0;
+        const size_t a[]{(
             i + 1 < sizeof...(Args) ? ofs << Escape_arg(args) : ofs,
             i + 2 < sizeof...(Args) ? ofs << "," : ofs,
             i++
