@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <vector>
 #include <unordered_map>
 #include <tbb/concurrent_queue.h>
 #include <tbb/concurrent_unordered_map.h>

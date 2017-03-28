@@ -4,6 +4,7 @@
 
 #include "RocksDbBenchmark.h"
 #include <rocksdb/memtablerep.h>
+#include <rocksdb/cache.h>
 #include <rocksdb/table.h>
 #include <rocksdb/filter_policy.h>
 #include <terark/util/linebuf.hpp>
