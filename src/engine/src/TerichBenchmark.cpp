@@ -10,7 +10,7 @@
 struct Terich_ThreadState : public ThreadState {
   Terich_ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp,
                      const terark::terichdb::DbTablePtr& tab)
-    : tid(index), whichSamplingPlan(wsp) {
+    : ThreadState(index, wsp) {
       ctx = tab->createDbContext();
       ctx->syncIndex = true;
   }

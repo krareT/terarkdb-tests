@@ -29,7 +29,7 @@ struct WT_ThreadState : public ThreadState {
     if (cursor)
       cursor->close(cursor);
     if (session)
-      session->close(session);
+      session->close(session, NULL);
   }
 };
 

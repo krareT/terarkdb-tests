@@ -2,6 +2,7 @@
 // Created by terark on 16-8-12.
 //
 #include "Benchmark.h"
+#include <fstream>
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/profiling.hpp>

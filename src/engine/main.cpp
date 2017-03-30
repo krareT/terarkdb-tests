@@ -6,7 +6,7 @@
 #include <src/Benchmark.h>
 #include <src/TcpServer.h>
 #include <signal.h>
-#include <src/TerarkBenchmark.h>
+#include <src/TerichBenchmark.h>
 #include <src/WiredTigerBenchmark.h>
 #include <src/RocksDbBenchmark.h>
 #include <src/TerocksBenchmark.h>
