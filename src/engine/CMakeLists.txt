@@ -27,9 +27,13 @@ link_directories(/usr/local/lib)
 
 set(EXECUTABLE_OUTPUT_PATH ../../build)
 
-set(COMMON_LIBS mysqlclient tbb bz2 z pthread)
+set(COMMON_LIBS
+	bench_common
+   	boost_system
+   	boost_filesystem
+	mysqlclient tbb bz2 z pthread)
 
-set(COMMON_SRCS 
+add_library(bench_common SHARED
 	${SRC_LIST}
 	db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
 	db/db_iter.cc db/filename.cc db/log_reader.cc db/log_writer.cc db/memtable.cc db/repair.cc
@@ -47,62 +51,60 @@ set(COMMON_SRCS
 	)
 
 add_executable(bench_terarkdb
-		${COMMON_SRCS}
-		src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
-		src/TerocksBenchmark.cpp src/TerocksBenchmark.h
-		)
+		  main/bench_terarkdb.cpp
+		  src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
+		  src/TerocksBenchmark.cpp src/TerocksBenchmark.h
+		  )
 target_link_libraries(bench_terarkdb
-		-Wl,--whole-archive terark-zip-rocksdb-r -Wl,--no-whole-archive
-		terark-zbs-r
-		terark-fsa-r
-		terark-core-r
-		rocksdb
-		snappy
-		${COMMON_LIBS}
-		)
+		  -Wl,--whole-archive terark-zip-rocksdb-r -Wl,--no-whole-archive
+		  terark-zbs-r
+		  terark-fsa-r
+		  terark-core-r
+		  rocksdb
+		  snappy
+		  ${COMMON_LIBS}
+		  )
 
 add_executable(bench_rocksdb
-		${COMMON_SRCS}
-		src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
-		)
+		  main/bench_rocksdb.cpp
+		  src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
+		  )
 target_link_libraries(bench_rocksdb
-		rocksdb
-		terark-core-r
-		snappy
-		${COMMON_LIBS}
-		)
+		  rocksdb
+		  terark-core-r
+		  snappy
+		  ${COMMON_LIBS}
+		  )
 
 add_executable(bench_terichdb
-		${COMMON_SRCS}
-		src/TerichBenchmark.cpp src/TerichBenchmark.h
-		)
+		  main/bench_terichdb.cpp
+		  src/TerichBenchmark.cpp src/TerichBenchmark.h
+		  )
 target_link_libraries(bench_terichdb
-		terichdb-r
-		terark-zbs-r
-		terark-fsa-r
-		terark-core-r
-		boost_system
-		boost_filesystem
-		${COMMON_LIBS}
-		)
+		  terichdb-r
+		  terark-zbs-r
+		  terark-fsa-r
+		  terark-core-r
+		  ${COMMON_LIBS}
+		  )
 
 add_executable(bench_wiredtiger
-		${COMMON_SRCS}
-		src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h
-		)
+		  main/bench_wiredtiger.cpp
+		  src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h
+		  )
 target_link_libraries(bench_wiredtiger
-		terark-core-r
-		wiredtiger
-		snappy
-		${COMMON_LIBS}
-		)
+		  terark-core-r
+		  wiredtiger
+		  snappy
+		  ${COMMON_LIBS}
+		  )
 
 add_executable(bench_posix
-		${COMMON_SRCS}
-		src/PosixBenchmark.cpp src/PosixBenchmark.h
-		)
+		  main/bench_posix.cpp
+		  src/PosixBenchmark.cpp src/PosixBenchmark.h
+		  )
 target_link_libraries(bench_posix
-		terark-core-r
-		${COMMON_LIBS}
-		)
+		  terark-core-r
+		  ${COMMON_LIBS}
+		  )
 

@@ -60,7 +60,8 @@ do
 		make clean
 		make -j32
 		rm -f pkg/terarkdb-tests-${Suffix}/lib/libterark-zip-rocksdb*
-		cp build/Terark_Engine_Test pkg/terarkdb-tests-${Suffix}/bin
+		cp build/*                  pkg/terarkdb-tests-${Suffix}/bin
+		cp shell/Terark_Engine_Test pkg/terarkdb-tests-${Suffix}/bin
 		cp shell/Terarkdb_Tpch_*.sh pkg/terarkdb-tests-${Suffix}/shell
 		cd pkg
 		tar czf terarkdb-tests-${Suffix}.tgz terarkdb-tests-${Suffix}
