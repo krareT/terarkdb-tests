@@ -1,0 +1,6 @@
+#!/bin/sh
+
+engine=$1
+shift
+`dirname $0`/bench_$engine "$@"
+
