@@ -180,6 +180,14 @@ void Benchmark::loadInsertData(){
     }
 }
 
+void Benchmark::clearThreads() {
+  for (auto& e : this->threads) {
+    delete e.second;
+    e.second = NULL;
+  }
+  this->threads.clear();
+}
+
 void Benchmark::Run(void) {
     Open();
     if (setting.getAction() == "load") {

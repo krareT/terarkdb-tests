@@ -8,78 +8,111 @@
 #include <terark/util/linebuf.hpp>
 #include <fstream>
 
+struct WT_ThreadState : public ThreadState {
+  WT_SESSION* session = nullptr;
+  WT_CURSOR*  cursor  = nullptr;
+
+  WT_ThreadState(int index, WT_CONNECTION *conn, const char* uri,
+                 const std::atomic<std::vector<bool>*>* wsp)
+    : ThreadState(index, wsp)
+  {
+    conn->open_session(conn, NULL, NULL, &session);
+    STOP.store(false);
+    assert(session != NULL);
+    int ret = session->open_cursor(session, uri, NULL, NULL, &cursor);
+    if (ret != 0) {
+        fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
+        exit(1);
+    }
+  }
+  ~WT_ThreadState() {
+    if (cursor)
+      cursor->close(cursor);
+    if (session)
+      session->close(session);
+  }
+};
+
+WiredTigerBenchmark::WiredTigerBenchmark(Setting& setting1)
+  : Benchmark(setting1)
+{
+  char uri[100];
+  snprintf(uri, sizeof(uri), "%s:dbbench_wt-%d",
+           setting.FLAGS_use_lsm ? "lsm" : "table", db_num_);
+  uri_ = uri;
+}
+
+WiredTigerBenchmark::~WiredTigerBenchmark() {
+}
+
+ThreadState*
+WiredTigerBenchmark::newThreadState(const std::atomic<std::vector<bool>*>* whichSPlan) {
+    return new WT_ThreadState(threads.size(), conn_, uri_.c_str(), whichSPlan);
+}
+
+void WiredTigerBenchmark::Load(void) {
+    DoWrite(true);
+}
+
+void WiredTigerBenchmark::Close(void) {
+    clearThreads();
+    conn_->close(conn_, NULL);
+    conn_ = NULL;
+}
+
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     std::string &rkey = thread->key;
     std::string &rstr = thread->str;
     if (!getRandomKey(rstr,thread->randGenerator)){
         return false;
     }
-    WT_CURSOR *cursor;
-
-    int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, NULL, &cursor);
-    if (ret != 0) {
-        fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-        exit(1);
-    }
-    int found = 0;
+    auto t = static_cast<WT_ThreadState*>(thread);
+    WT_CURSOR *cursor = t->cursor;
     rkey= rstr;
     cursor->set_key(cursor, rkey.c_str());
     if (cursor->search(cursor) == 0) {
-        found++;
         const char* val;
-        ret = cursor->get_value(cursor, &val);
-        assert(ret == 0);
+        int ret = cursor->get_value(cursor, &val);
+        return 0 == ret;
     }
-    cursor->close(cursor);
-    return found > 0;
+    return false;
 }
+
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
+    auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey,thread->randGenerator)){
         return false;
     }
-    WT_CURSOR *cursor;
-    int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
-    if (ret != 0){
-        fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-        return false;
-    }
+    WT_CURSOR *cursor = t->cursor;
     cursor->set_key(cursor, rkey.c_str());
     if (cursor->search(cursor) != 0){
         fprintf(stderr, "ERROR: cursor search: %s\n", rkey.c_str());
-        cursor->close(cursor);
         return false;
     }
     const char *val;
-    ret = cursor->get_value(cursor,&val);
+    int ret = cursor->get_value(cursor,&val);
     assert(ret == 0);
     cursor->set_value(cursor,val);
     ret = cursor->insert(cursor);
     if (ret != 0){
         fprintf(stderr, "ERROR: cursor insert: %s\n", rkey.c_str());
-        cursor->close(cursor);
         return false;
     }
-    cursor->close(cursor);
     return true;
 }
+
 bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
+    auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
     std::string &rval = thread->value;
     std::string &rstr = thread->str;
-    WT_CURSOR *cursor;
-    int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL,NULL, &cursor);
-    if (ret != 0) {
-        fprintf(stderr, "open_cursor error: %s\n", wiredtiger_strerror(ret));
-        exit(1);
-    }
+    WT_CURSOR *cursor = t->cursor;
     if (!updateDataCq.try_pop(rstr)) {
-        cursor->close(cursor);
         return false;
     }
-    ret = setting.splitKeyValue(rstr, &rkey, &rval);
+    int ret = setting.splitKeyValue(rstr, &rkey, &rval);
     if (ret == 0) {
-        cursor->close(cursor);
         return false;
     }
     cursor->set_key(cursor, rkey.c_str());
@@ -87,10 +120,8 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     ret = cursor->insert(cursor);
     if (ret != 0) {
         fprintf(stderr, "insert error: %s\n", wiredtiger_strerror(ret));
-        cursor->close(cursor);
         return false;
     }
-    cursor->close(cursor);
     return true;
 }
 void WiredTigerBenchmark::Open(){
@@ -168,7 +199,6 @@ void WiredTigerBenchmark::Open(){
             fprintf(stderr, "create error: %s\n", wiredtiger_strerror(ret));
             exit(1);
         }
-
         session->close(session, NULL);
     }
 }

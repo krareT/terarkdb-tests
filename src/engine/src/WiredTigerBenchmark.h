@@ -5,6 +5,7 @@
 #ifndef TERARKDB_TEST_FRAMEWORK_WIREDTIGERBENCHMARK_H
 #define TERARKDB_TEST_FRAMEWORK_WIREDTIGERBENCHMARK_H
 #include "Benchmark.h"
+#include <wiredtiger.h>
 
 class WiredTigerBenchmark : public Benchmark{
 private:
@@ -13,23 +14,14 @@ private:
     int db_num_ = 0;
     int num_ = 0;
     int sync_ = 0;
-
 public:
-    WiredTigerBenchmark(Setting& setting1) : Benchmark(setting1) {
-    }
-    ~WiredTigerBenchmark() {
-    }
+    WiredTigerBenchmark(Setting& setting1);
+    ~WiredTigerBenchmark();
 private:
     size_t getKeyAndValue(std::string &str,std::string &key,std::string &val);
-    ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSPlan) override {
-        return new ThreadState(threads.size(),conn_, whichSPlan);
-    }
-    void Load(void) override{
-        DoWrite(true); }
-    void Close(void) override{
-        conn_->close(conn_, NULL);
-        conn_ = NULL;
-    }
+    ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSPlan) override;
+    void Load(void) override;
+    void Close(void) override;
     bool ReadOneKey(ThreadState *thread) override;
     bool UpdateOneKey(ThreadState *thread) override;
     bool InsertOneKey(ThreadState *thread) override;

@@ -7,11 +7,24 @@
 #include <terark/util/linebuf.hpp>
 #include <fstream>
 
+struct Terich_ThreadState : public ThreadState {
+  Terich_ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp,
+                     const terark::terichdb::DbTablePtr& tab)
+    : tid(index), whichSamplingPlan(wsp) {
+      ctx = tab->createDbContext();
+      ctx->syncIndex = true;
+  }
+  terark::terichdb::DbContextPtr ctx;
+  terark::valvec<terark::byte >  row;
+  terark::valvec<terark::llong>  idvec;
+};
+
 TerarkBenchmark::TerarkBenchmark(Setting& setting1)
 : Benchmark(setting1) {
   indexId = size_t(-1);
   colgroupId = size_t(-1);
 }
+
 TerarkBenchmark::~TerarkBenchmark() {
     assert(tab == NULL);
 }
@@ -21,6 +34,7 @@ void TerarkBenchmark::PrintHeader() {
 }
 
 void TerarkBenchmark::Close() {
+    clearThreads();
     tab->safeStopAndWaitForFlush();
     tab = NULL;
 }
@@ -104,7 +118,8 @@ bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPt
     return true;
 }
 
-bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
+bool TerarkBenchmark::ReadOneKey(ThreadState *thread0) {
+    auto thread = static_cast<Terich_ThreadState*>(thread0);
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey, thread->randGenerator)) {
         fprintf(stderr, "TerarkBenchmark::ReadOneKey(): allkeys is empty\n");
@@ -119,7 +134,8 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread) {
     return true;
 }
 
-bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
+bool TerarkBenchmark::UpdateOneKey(ThreadState *thread0) {
+  auto thread = static_cast<Terich_ThreadState*>(thread0);
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey, thread->randGenerator)) {
         fprintf(stderr, "TerarkBenchmark::ReadOneKey(): allkeys is empty\n");
@@ -144,7 +160,8 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread) {
     return true;
 }
 
-bool TerarkBenchmark::InsertOneKey(ThreadState *thread) {
+bool TerarkBenchmark::InsertOneKey(ThreadState *thread0) {
+  auto thread = static_cast<Terich_ThreadState*>(thread0);
     static const Schema &rowSchema = tab->rowSchema();
     std::string &rstr = thread->str;
     if (!updateDataCq.try_pop(rstr)) {
@@ -340,6 +357,6 @@ std::string TerarkBenchmark::getMaxWritingSegmentSize(void) {
 }
 
 ThreadState* TerarkBenchmark::newThreadState(const std::atomic<std::vector<bool>*> *whichSPlan) {
-    return new ThreadState(threads.size(), whichSPlan, tab);
+    return new Terich_ThreadState(threads.size(), whichSPlan, tab);
 }
 

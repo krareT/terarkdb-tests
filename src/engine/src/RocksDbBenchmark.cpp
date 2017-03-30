@@ -219,6 +219,7 @@ void RocksDbBenchmark::setRocksDBOptions(Setting& set) {
 }
 
 void RocksDbBenchmark::Close() {
+    clearThreads();
     delete db;
     db = NULL;
 }

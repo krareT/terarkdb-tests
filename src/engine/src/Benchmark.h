@@ -46,6 +46,8 @@ private:
     bool executeOneOperation(ThreadState* state,OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
     void reportMessage(const std::string &);
+protected:
+    void clearThreads();
 public:
     void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);

@@ -6,6 +6,8 @@
 #define TERARKDB_TEST_FRAMEWORK_TERARKBENCHMARK_H
 
 #include "Benchmark.h"
+#include <terark/terichdb/db_table.hpp>
+
 using namespace terark;
 using namespace terark::terichdb;
 class TerarkBenchmark : public Benchmark{
