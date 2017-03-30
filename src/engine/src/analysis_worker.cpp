@@ -319,8 +319,8 @@ void AnalysisWorker::stop() {
     shoud_stop = true;
 }
 
-extern char** g_argv;
-extern int g_argc;
+char** g_argv;
+int g_argc;
 extern "C" char **environ;
 
 void upload_command_and_env(fstring engine_name) {

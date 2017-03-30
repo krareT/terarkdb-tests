@@ -34,8 +34,8 @@ void sigint_fuc(int sig) {
     stop_test();
 }
 
-char** g_argv;
-int g_argc;
+extern char** g_argv;
+extern int g_argc;
 
 int main(int argc, char **argv) {
     fprintf(stderr, "%s is compiled at %s %s\n", argv[0], __DATE__, __TIME__);
