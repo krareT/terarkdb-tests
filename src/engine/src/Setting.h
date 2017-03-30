@@ -162,7 +162,7 @@ public:
     const char* FLAGS_keys_data = nullptr;
     int *shuff = nullptr;
 
-    bool FLAGS_use_lsm = true;
+    bool FLAGS_use_lsm = false;
     bool FLAGS_stagger = false;
     bool disableWAL = false;
     bool autoSlowDownWrite = true;

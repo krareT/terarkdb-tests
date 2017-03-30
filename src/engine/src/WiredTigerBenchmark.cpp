@@ -180,7 +180,7 @@ void WiredTigerBenchmark::Open(){
         if (setting.FLAGS_use_lsm) {
             config << ",lsm=(";
             if (setting.FLAGS_cache_size > SMALL_CACHE)
-                config << ",chunk_size=" << setting.FLAGS_write_buffer_size;
+                config << "chunk_size=" << setting.FLAGS_write_buffer_size;
             if (setting.FLAGS_bloom_bits > 0)
                 config << ",bloom_bit_count=" << setting.FLAGS_bloom_bits;
             else if (setting.FLAGS_bloom_bits == 0)
