@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 
     g_worker = new AnalysisWorker(&setting);
 
-    g_worker->engine_name = "terarkdb";
+    g_worker->engine_name = whichDB.c_str();
     if (whichDB == "terarkdb") {
         bm.reset(new TerarkBenchmark(setting));
     }
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     else if (whichDB == "rocksdb") {
         bm.reset(new RocksDbBenchmark(setting));
     }
-    else if (whichDB == "terark_rocksdb" || whichDB == "terocksdb") {
+    else if (whichDB == "terocksdb") {
         bm.reset(new TerocksBenchmark(setting));
         g_worker->engine_name = "terocksdb";
     }

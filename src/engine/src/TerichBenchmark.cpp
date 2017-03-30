@@ -2,7 +2,7 @@
 // Created by terark on 8/24/16.
 //
 
-#include "TerarkBenchmark.h"
+#include "TerichBenchmark.h"
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
 #include <fstream>
