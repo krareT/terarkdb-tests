@@ -170,15 +170,17 @@ void WiredTigerBenchmark::Open(){
         if (setting.FLAGS_cache_size < SMALL_CACHE && setting.FLAGS_cache_size > 0) {
             config << ",internal_page_max=4kb";
             config << ",leaf_page_max=4kb";
-            config << ",memory_page_max=" << setting.FLAGS_cache_size;
+        //  config << ",memory_page_max=" << setting.FLAGS_cache_size;
         } else {
             config << ",internal_page_max=16kb";
             config << ",leaf_page_max=16kb";
+            /*
             if (setting.FLAGS_cache_size > 0) {
                 long memmax = setting.FLAGS_cache_size * 0.75;
                 // int memmax = setting.FLAGS_cache_size * 0.75;
                 config << ",memory_page_max=" << memmax;
             }
+            */
         }
         if (setting.FLAGS_use_lsm) {
             config << ",lsm=(";
