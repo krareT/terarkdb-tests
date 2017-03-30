@@ -154,11 +154,6 @@ void WiredTigerBenchmark::Open(){
     conn_->open_session(conn_, NULL, NULL, &session);
     assert(session != NULL);
 
-    char uri[100];
-    snprintf(uri, sizeof(uri), "%s:dbbench_wt-%d",
-             setting.FLAGS_use_lsm ? "lsm" : "table", db_num_);
-    uri_ = uri;
-
     if (!setting.FLAGS_use_existing_db) {
         // Create tuning options and create the data file
         config.str("");
