@@ -19,7 +19,6 @@ include_directories(/usr/include/mysql)
 
 link_directories(${TERARKDB_PATH}/lib)
 link_directories(${TERARKDB_ROCKS}/lib)
-link_directories()
 link_directories(/usr/local/mysql/lib)
 link_directories(/usr/lib64/mysql/)
 link_directories(/opt/lib)
@@ -27,42 +26,83 @@ link_directories(/opt/lib64)
 link_directories(/usr/local/lib)
 
 set(EXECUTABLE_OUTPUT_PATH ../../build)
-add_executable(Terark_Engine_Test
-		${SRC_LIST}
-		db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
-        db/db_iter.cc db/filename.cc db/log_reader.cc db/log_writer.cc db/memtable.cc db/repair.cc
-        db/table_cache.cc db/version_edit.cc db/version_set.cc db/write_batch.cc table/block_builder.cc
-        table/block.cc table/filter_block.cc table/format.cc table/iterator.cc table/merger.cc
-        table/table_builder.cc table/table.cc table/two_level_iterator.cc util/arena.cc util/bloom.cc
-        util/cache.cc util/coding.cc util/comparator.cc util/crc32c.cc util/env.cc util/env_posix.cc
-        util/filter_policy.cc util/hash.cc util/histogram.cc util/logging.cc util/options.cc util/status.cc
-        port/port_posix.cc ./util/testutil.cc src/Setting.cpp src/Setting.h
-        src/TcpServer.cpp src/TcpServer.h
-        src/Stats.cpp src/Stats.h
-		src/Benchmark.cpp src/Benchmark.h
-		src/analysis_worker.cpp util/system_resource.h
-		src/TerichBenchmark.cpp src/TerichBenchmark.h
-		src/ThreadState.cpp src/ThreadState.h
-		src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h
+
+set(COMMON_LIBS mysqlclient tbb bz2 z pthread)
+
+set(COMMON_SRCS 
+	${SRC_LIST}
+	db/builder.cc db/c.cc db/dbformat.cc db/db_impl.cc
+	db/db_iter.cc db/filename.cc db/log_reader.cc db/log_writer.cc db/memtable.cc db/repair.cc
+	db/table_cache.cc db/version_edit.cc db/version_set.cc db/write_batch.cc table/block_builder.cc
+	table/block.cc table/filter_block.cc table/format.cc table/iterator.cc table/merger.cc
+	table/table_builder.cc table/table.cc table/two_level_iterator.cc util/arena.cc util/bloom.cc
+	util/cache.cc util/coding.cc util/comparator.cc util/crc32c.cc util/env.cc util/env_posix.cc
+	util/filter_policy.cc util/hash.cc util/histogram.cc util/logging.cc util/options.cc util/status.cc
+	port/port_posix.cc ./util/testutil.cc src/Setting.cpp src/Setting.h
+	src/TcpServer.cpp src/TcpServer.h
+	src/Stats.cpp src/Stats.h
+	src/Benchmark.cpp src/Benchmark.h
+	src/analysis_worker.cpp util/system_resource.h
+	src/ThreadState.cpp src/ThreadState.h
+	)
+
+add_executable(bench_terarkdb
+		${COMMON_SRCS}
 		src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
 		src/TerocksBenchmark.cpp src/TerocksBenchmark.h
-		src/PosixBenchmark.cpp src/PosixBenchmark.h
 		)
-
-target_link_libraries(Terark_Engine_Test
+target_link_libraries(bench_terarkdb
 		-Wl,--whole-archive terark-zip-rocksdb-r -Wl,--no-whole-archive
-		terichdb-r
 		terark-zbs-r
 		terark-fsa-r
 		terark-core-r
 		rocksdb
-		wiredtiger
 		snappy
-		mysqlclient
+		${COMMON_LIBS}
+		)
+
+add_executable(bench_rocksdb
+		${COMMON_SRCS}
+		src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
+		)
+target_link_libraries(bench_rocksdb
+		rocksdb
+		terark-core-r
+		snappy
+		${COMMON_LIBS}
+		)
+
+add_executable(bench_terichdb
+		${COMMON_SRCS}
+		src/TerichBenchmark.cpp src/TerichBenchmark.h
+		)
+target_link_libraries(bench_terichdb
+		terichdb-r
+		terark-zbs-r
+		terark-fsa-r
+		terark-core-r
 		boost_system
 		boost_filesystem
-		tbb
-		pthread
-		bz2
-		z
+		${COMMON_LIBS}
 		)
+
+add_executable(bench_wiredtiger
+		${COMMON_SRCS}
+		src/WiredTigerBenchmark.cpp src/WiredTigerBenchmark.h
+		)
+target_link_libraries(bench_wiredtiger
+		terark-core-r
+		wiredtiger
+		snappy
+		${COMMON_LIBS}
+		)
+
+add_executable(bench_posix
+		${COMMON_SRCS}
+		src/PosixBenchmark.cpp src/PosixBenchmark.h
+		)
+target_link_libraries(bench_posix
+		terark-core-r
+		${COMMON_LIBS}
+		)
+

@@ -11,15 +11,18 @@
 #include <sstream>
 #include <iomanip>
 
+using terark::fstring;
 using terark::lcast;
 using terark::ParseSizeXiB;
 
-Setting::Setting(int argc,char **argv) {
+std::string BaseSetting::BenchmarkName;
+
+Setting::Setting(int argc, char **argv) {
     using namespace terark;
     FLAGS_block_size = 16 * 1024;
     FLAGS_min_level_to_compress = 1;
 
-    for (int i = 2; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         double d;
         char junk;
         long n;
@@ -190,7 +193,6 @@ Setting::Setting(int argc,char **argv) {
     }
     setThreadNums(FLAGS_threads);
     setBaseSetting(argc, argv);
-    BenchmarkName.assign(argv[1]);
     assert(!FLAGS_db.empty());
     fprintf(stderr, "----%s\n%s----%s\n\n"
         , BOOST_CURRENT_FUNCTION
@@ -371,7 +373,7 @@ std::string BaseSetting::setBaseSetting(std::string &line) {
 
 std::string BaseSetting::setBaseSetting(int argc, char **argv) {
     std::string message;
-    for(int i = 0; i < argc; i ++){
+    for(int i = 1; i < argc; i ++){
         char *pos = strchr(argv[i],'=');
         if (pos == NULL)
             continue;

@@ -1,16 +1,8 @@
+#include <signal.h>
 #include <string.h>
-#include <db/db_impl.h>
-#include <db/version_set.h>
 #include <boost/asio.hpp>
 #include <src/Setting.h>
-#include <src/Benchmark.h>
 #include <src/TcpServer.h>
-#include <signal.h>
-#include <src/TerichBenchmark.h>
-#include <src/WiredTigerBenchmark.h>
-#include <src/RocksDbBenchmark.h>
-#include <src/TerocksBenchmark.h>
-#include <src/PosixBenchmark.h>
 #include <src/Stats.h>
 #include <src/analysis_worker.h>
 
@@ -26,15 +18,6 @@ void tcpServer(Setting *setting, Benchmark *bm) {
     catch (std::exception &e) {
         fprintf(stderr, "ERROR: %s\n", e.what());
     }
-}
-
-void compact(Setting &setting) {
-    DbTablePtr tab = DbTable::open(setting.FLAGS_db);
-    fprintf(stderr, "press any key to compact\n");
-    getchar();
-    tab->compact();
-    tab->safeStopAndWaitForCompress();
-    tab = nullptr;
 }
 
 Setting *g_settings;
@@ -55,46 +38,24 @@ char** g_argv;
 int g_argc;
 
 int main(int argc, char **argv) {
-	fprintf(stderr, "%s is compiled at %s %s\n", argv[0], __DATE__, __TIME__);
+    fprintf(stderr, "%s is compiled at %s %s\n", argv[0], __DATE__, __TIME__);
     signal(SIGINT, sigint_fuc);
     if (argc < 2) {
         fprintf(stderr, "usage: %s WhichDB options\n", argv[0]);
         return 1;
     }
-	g_argv = argv;
-	g_argc = argc;
-    const fstring whichDB = argv[1];
+    g_argv = argv;
+    g_argc = argc;
+    Setting::BenchmarkName = default_engine_name;
     Setting setting(argc, argv);
     g_settings = &setting;
-    std::unique_ptr<Benchmark> bm;
-
     g_worker = new AnalysisWorker(&setting);
-
-    g_worker->engine_name = whichDB.c_str();
-    if (whichDB == "terarkdb") {
-        bm.reset(new TerarkBenchmark(setting));
-    }
-    else if (whichDB == "wiredtiger") {
-        bm.reset(new WiredTigerBenchmark(setting));
-    }
-    else if (whichDB == "compact") {
-        compact(setting);
-        puts("Compact Finish.Exit the program.");
-        return 0;
-    }
-    else if (whichDB == "rocksdb") {
-        bm.reset(new RocksDbBenchmark(setting));
-    }
-    else if (whichDB == "terocksdb") {
-        bm.reset(new TerocksBenchmark(setting));
-        g_worker->engine_name = "terocksdb";
-    }
-    else if (whichDB == "posix") {
-        bm.reset(new PosixBenchmark(setting));
-    }
+    g_worker->engine_name = default_engine_name;
     if (!setting.alt_engine_name.empty()) {
         g_worker->engine_name = setting.alt_engine_name;
     }
+    std::unique_ptr<Benchmark> bm(new BenchmarkClass(setting));
+
     //start a thread for tcp server
     boost::asio::io_service io_service;
     g_io_service = &io_service;

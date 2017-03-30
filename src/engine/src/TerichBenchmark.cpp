@@ -19,38 +19,38 @@ struct Terich_ThreadState : public ThreadState {
   terark::valvec<terark::llong>  idvec;
 };
 
-TerarkBenchmark::TerarkBenchmark(Setting& setting1)
+TerichBenchmark::TerichBenchmark(Setting& setting1)
 : Benchmark(setting1) {
   indexId = size_t(-1);
   colgroupId = size_t(-1);
 }
 
-TerarkBenchmark::~TerarkBenchmark() {
+TerichBenchmark::~TerichBenchmark() {
     assert(tab == NULL);
 }
 
-void TerarkBenchmark::PrintHeader() {
+void TerichBenchmark::PrintHeader() {
     fprintf(stdout, "NarkDB Test Begins!");
 }
 
-void TerarkBenchmark::Close() {
+void TerichBenchmark::Close() {
     clearThreads();
     tab->safeStopAndWaitForFlush();
     tab = NULL;
 }
 
-void TerarkBenchmark::Load(void) {
+void TerichBenchmark::Load(void) {
     DoWrite(true);
     //tab->compact();
 }
 
-std::string TerarkBenchmark::getKey(std::string &str) {
+std::string TerichBenchmark::getKey(std::string &str) {
   std::string key;
   setting.splitKeyValue(str, &key, NULL);
   return key;
 }
 
-void TerarkBenchmark::Open() {
+void TerichBenchmark::Open() {
     PrintHeader();
     assert(tab == NULL);
     fprintf(stderr, "Open database %s\n", setting.FLAGS_db.c_str());
@@ -63,7 +63,7 @@ void TerarkBenchmark::Open() {
     assert(colgroupId < tab->getColumnNum());
 }
 
-void TerarkBenchmark::DoWrite(bool seq) {
+void TerichBenchmark::DoWrite(bool seq) {
     fprintf(stderr, "Read data from : %s\n", setting.getLoadDataPath().c_str());
     std::string str;
     long long recordnumber = 0;
@@ -107,7 +107,7 @@ void TerarkBenchmark::DoWrite(bool seq) {
     printf("recordnumber %lld, time %s\n", recordnumber, asctime(timenow));
 }
 
-bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPtr &ctx) {
+bool TerichBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPtr &ctx) {
     valvec<byte> inside;
     ctx->getValue(rid, &inside);
     assert(inside.size() == outside.size());
@@ -118,7 +118,7 @@ bool TerarkBenchmark::VerifyOneKey(llong rid, valvec<byte> &outside, DbContextPt
     return true;
 }
 
-bool TerarkBenchmark::ReadOneKey(ThreadState *thread0) {
+bool TerichBenchmark::ReadOneKey(ThreadState *thread0) {
     auto thread = static_cast<Terich_ThreadState*>(thread0);
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey, thread->randGenerator)) {
@@ -134,7 +134,7 @@ bool TerarkBenchmark::ReadOneKey(ThreadState *thread0) {
     return true;
 }
 
-bool TerarkBenchmark::UpdateOneKey(ThreadState *thread0) {
+bool TerichBenchmark::UpdateOneKey(ThreadState *thread0) {
   auto thread = static_cast<Terich_ThreadState*>(thread0);
     std::string &rkey = thread->key;
     if (!getRandomKey(rkey, thread->randGenerator)) {
@@ -160,7 +160,7 @@ bool TerarkBenchmark::UpdateOneKey(ThreadState *thread0) {
     return true;
 }
 
-bool TerarkBenchmark::InsertOneKey(ThreadState *thread0) {
+bool TerichBenchmark::InsertOneKey(ThreadState *thread0) {
   auto thread = static_cast<Terich_ThreadState*>(thread0);
     static const Schema &rowSchema = tab->rowSchema();
     std::string &rstr = thread->str;
@@ -183,44 +183,44 @@ bool TerarkBenchmark::InsertOneKey(ThreadState *thread0) {
     return true;
 }
 
-bool TerarkBenchmark::Compact() {
+bool TerichBenchmark::Compact() {
     tab->compact();
     return true;
 }
 
-std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
+std::string TerichBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())
         return ss.str();
     static const std::unordered_map<std::string,
             std::pair<
-                bool (TerarkBenchmark::*)(const std::string &),
-                std::string (TerarkBenchmark::*)(void)
+                bool (TerichBenchmark::*)(const std::string &),
+                std::string (TerichBenchmark::*)(void)
             >
     > handleFuncMap = {
-        {"write_throttle", { &TerarkBenchmark::updateWriteThrottle,
-                             &TerarkBenchmark::getWriteThrottle }
+        {"write_throttle", { &TerichBenchmark::updateWriteThrottle,
+                             &TerichBenchmark::getWriteThrottle }
         },
-        {"colgroup_mmapPopulate", { &TerarkBenchmark::updateColGroupMmapPopulate,
-                                    &TerarkBenchmark::getColGroupMmapPopulate}
+        {"colgroup_mmapPopulate", { &TerichBenchmark::updateColGroupMmapPopulate,
+                                    &TerichBenchmark::getColGroupMmapPopulate}
         },
-        {"index_mmappopulate", {&TerarkBenchmark::updateIndexMmapPopulate,
-                                &TerarkBenchmark::getIndexMmapPopulate}
+        {"index_mmappopulate", {&TerichBenchmark::updateIndexMmapPopulate,
+                                &TerichBenchmark::getIndexMmapPopulate}
         },
-        {"checksumLevel", {&TerarkBenchmark::updateCheckSumLevel,
-                           &TerarkBenchmark::getCheckSumLevel}
+        {"checksumLevel", {&TerichBenchmark::updateCheckSumLevel,
+                           &TerichBenchmark::getCheckSumLevel}
         },
-        {"dictziosampleratio", {&TerarkBenchmark::updateDictZipSampleRatio,
-                                &TerarkBenchmark::getDictZipSampleRatio}
+        {"dictziosampleratio", {&TerichBenchmark::updateDictZipSampleRatio,
+                                &TerichBenchmark::getDictZipSampleRatio}
         },
-        {"minmergesegnum", {&TerarkBenchmark::updateMinMergeSetNum,
-                            &TerarkBenchmark::getMinMergeSetNum}
+        {"minmergesegnum", {&TerichBenchmark::updateMinMergeSetNum,
+                            &TerichBenchmark::getMinMergeSetNum}
         },
-        {"purgedeletethreshold", {&TerarkBenchmark::updatePurgeDeleteThreshold,
-                                  &TerarkBenchmark::getPurgeDeleteThreshold}
+        {"purgedeletethreshold", {&TerichBenchmark::updatePurgeDeleteThreshold,
+                                  &TerichBenchmark::getPurgeDeleteThreshold}
         },
-        {"maxwritingsegmentsize", {&TerarkBenchmark::updateMaxWritingSegmentSize,
-                                   &TerarkBenchmark::getMaxWritingSegmentSize}
+        {"maxwritingsegmentsize", {&TerichBenchmark::updateMaxWritingSegmentSize,
+                                   &TerichBenchmark::getMaxWritingSegmentSize}
         },
     };
     size_t div = msg.find(':');
@@ -241,7 +241,7 @@ std::string TerarkBenchmark::HandleMessage(const std::string &msg) {
     return ss.str();
 }
 
-bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
+bool TerichBenchmark::updateWriteThrottle(const std::string &val) {
     char *ch;
     size_t bytes = strtol(val.c_str(), &ch, 10);
     if (*ch == 'K' || *ch == 'k') {
@@ -253,7 +253,7 @@ bool TerarkBenchmark::updateWriteThrottle(const std::string &val) {
     return true;
 }
 
-bool TerarkBenchmark::updateColGroupMmapPopulate(const std::string &val) {
+bool TerichBenchmark::updateColGroupMmapPopulate(const std::string &val) {
     if (val == "true")
         tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate = true;
     else if (val == "false")
@@ -263,13 +263,13 @@ bool TerarkBenchmark::updateColGroupMmapPopulate(const std::string &val) {
     return true;
 }
 
-bool TerarkBenchmark::updateCheckSumLevel(const std::string &val) {
+bool TerichBenchmark::updateCheckSumLevel(const std::string &val) {
     int level = stoi(val);
     tab->getColgroupSchemaForChange(colgroupId).m_checksumLevel = level;
     return true;
 }
 
-bool TerarkBenchmark::updateDictZipSampleRatio(const std::string &val) {
+bool TerichBenchmark::updateDictZipSampleRatio(const std::string &val) {
     float value;
     if (1 != sscanf(val.c_str(), "%f", &value))
         return false;
@@ -277,7 +277,7 @@ bool TerarkBenchmark::updateDictZipSampleRatio(const std::string &val) {
     return true;
 }
 
-bool TerarkBenchmark::updateIndexMmapPopulate(const std::string &val) {
+bool TerichBenchmark::updateIndexMmapPopulate(const std::string &val) {
     if (val == "true")
         tab->getIndexSchemaForChange(indexId).m_mmapPopulate = true;
     else if (val == "false")
@@ -287,50 +287,50 @@ bool TerarkBenchmark::updateIndexMmapPopulate(const std::string &val) {
     return true;
 }
 
-std::string TerarkBenchmark::getWriteThrottle(void) {
+std::string TerichBenchmark::getWriteThrottle(void) {
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_writeThrottleBytesPerSecond;
     return ss.str();
 }
 
-std::string TerarkBenchmark::getColGroupMmapPopulate(void) {
+std::string TerichBenchmark::getColGroupMmapPopulate(void) {
     std::stringstream ss;
     ss << tab->getColgroupSchemaForChange(colgroupId).m_mmapPopulate;
     return ss.str();
 }
 
-std::string TerarkBenchmark::getIndexMmapPopulate(void) {
+std::string TerichBenchmark::getIndexMmapPopulate(void) {
     std::stringstream ss;
     ss << tab->getIndexSchemaForChange(indexId).m_mmapPopulate;
     return ss.str();
 }
 
-std::string TerarkBenchmark::getCheckSumLevel(void) {
+std::string TerichBenchmark::getCheckSumLevel(void) {
     std::stringstream ss;
     ss << tab->getColgroupSchemaForChange(colgroupId).m_checksumLevel;
     return ss.str();
 }
 
-std::string TerarkBenchmark::getDictZipSampleRatio(void) {
+std::string TerichBenchmark::getDictZipSampleRatio(void) {
     std::stringstream ss;
     ss << tab->getColgroupSchemaForChange(colgroupId).m_dictZipSampleRatio;
     return ss.str();
 
 }
 
-bool TerarkBenchmark::updateMinMergeSetNum(const std::string &val) {
+bool TerichBenchmark::updateMinMergeSetNum(const std::string &val) {
     size_t value = stoi(val);
     tab->getSchemaConfig().m_minMergeSegNum = value;
     return true;
 }
 
-std::string TerarkBenchmark::getMinMergeSetNum(void) {
+std::string TerichBenchmark::getMinMergeSetNum(void) {
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_minMergeSegNum;
     return ss.str();
 }
 
-bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
+bool TerichBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
     double value;
     if (sscanf(val.c_str(), "%lf", &value) != 1)
         return false;
@@ -338,25 +338,25 @@ bool TerarkBenchmark::updatePurgeDeleteThreshold(const std::string &val) {
     return true;
 }
 
-std::string TerarkBenchmark::getPurgeDeleteThreshold(void) {
+std::string TerichBenchmark::getPurgeDeleteThreshold(void) {
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_purgeDeleteThreshold;
     return ss.str();
 }
 
-bool TerarkBenchmark::updateMaxWritingSegmentSize(const std::string &val) {
+bool TerichBenchmark::updateMaxWritingSegmentSize(const std::string &val) {
     llong value = stoll(val);
     tab->getSchemaConfig().m_maxWritingSegmentSize = value;
     return true;
 }
 
-std::string TerarkBenchmark::getMaxWritingSegmentSize(void) {
+std::string TerichBenchmark::getMaxWritingSegmentSize(void) {
     std::stringstream ss;
     ss << tab->getSchemaConfig().m_maxWritingSegmentSize;
     return ss.str();
 }
 
-ThreadState* TerarkBenchmark::newThreadState(const std::atomic<std::vector<bool>*> *whichSPlan) {
+ThreadState* TerichBenchmark::newThreadState(const std::atomic<std::vector<bool>*> *whichSPlan) {
     return new Terich_ThreadState(threads.size(), whichSPlan, tab);
 }
 

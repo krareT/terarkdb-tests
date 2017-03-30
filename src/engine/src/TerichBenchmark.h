@@ -10,14 +10,14 @@
 
 using namespace terark;
 using namespace terark::terichdb;
-class TerarkBenchmark : public Benchmark{
+class TerichBenchmark : public Benchmark{
 private:
     DbTablePtr tab;
     size_t indexId;
     size_t colgroupId;
 public:
-    TerarkBenchmark(Setting& );
-    ~TerarkBenchmark();
+    TerichBenchmark(Setting& );
+    ~TerichBenchmark();
 private:
     ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSPlan) override;
     void PrintHeader();

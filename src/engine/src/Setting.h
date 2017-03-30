@@ -67,7 +67,7 @@ protected:
     std::string toString();
 
 public:
-    std::string BenchmarkName;
+    static std::string BenchmarkName;
     BaseSetting();
     BaseSetting (const BaseSetting&) = delete;
     uint8_t getSamplingRate(void) const ;
