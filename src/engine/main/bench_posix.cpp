@@ -6,9 +6,8 @@
  */
 
 #include <src/PosixBenchmark.h>
+#include "main_impl.h"
 
-#define default_engine_name "posix"
-
-#define BenchmarkClass PosixBenchmark
-
-#include "main.h"
+int main(int argc, char **argv) {
+  return main_impl(argc, argv, "posix", NEW_BECHMARK(PosixBenchmark));
+}

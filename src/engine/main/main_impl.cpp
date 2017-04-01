@@ -5,6 +5,7 @@
 #include <src/TcpServer.h>
 #include <src/Stats.h>
 #include <src/analysis_worker.h>
+#include "main_impl.h"
 
 using terark::fstring;
 
@@ -37,7 +38,10 @@ void sigint_fuc(int sig) {
 extern char** g_argv;
 extern int g_argc;
 
-int main(int argc, char **argv) {
+int main_impl(int argc, char **argv
+            , const char* default_engine_name
+            , Benchmark* (*newBenchmark)(Setting&)
+            ) {
     fprintf(stderr, "%s is compiled at %s %s\n", argv[0], __DATE__, __TIME__);
     signal(SIGINT, sigint_fuc);
     if (argc < 2) {
@@ -54,7 +58,7 @@ int main(int argc, char **argv) {
     if (!setting.alt_engine_name.empty()) {
         g_worker->engine_name = setting.alt_engine_name;
     }
-    std::unique_ptr<Benchmark> bm(new BenchmarkClass(setting));
+    std::unique_ptr<Benchmark> bm(newBenchmark(setting));
 
     //start a thread for tcp server
     boost::asio::io_service io_service;

@@ -48,6 +48,7 @@ add_library(bench_common SHARED
 	src/Benchmark.cpp src/Benchmark.h
 	src/analysis_worker.cpp util/system_resource.h
 	src/ThreadState.cpp src/ThreadState.h
+	main/main_impl.cpp
 	)
 
 add_executable(bench_terarkdb

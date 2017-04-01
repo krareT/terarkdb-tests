@@ -6,9 +6,8 @@
  */
 
 #include <src/WiredTigerBenchmark.h>
+#include "main_impl.h"
 
-#define default_engine_name "wiredtiger"
-
-#define BenchmarkClass WiredTigerBenchmark
-
-#include "main.h"
+int main(int argc, char **argv) {
+  return main_impl(argc, argv, "wiredtiger", NEW_BECHMARK(WiredTigerBenchmark));
+}

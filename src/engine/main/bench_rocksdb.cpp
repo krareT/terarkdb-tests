@@ -6,9 +6,8 @@
  */
 
 #include <src/RocksDbBenchmark.h>
+#include "main_impl.h"
 
-#define default_engine_name "rocksdb"
-
-#define BenchmarkClass RocksDbBenchmark
-
-#include "main.h"
+int main(int argc, char **argv) {
+  return main_impl(argc, argv, "rocksdb", NEW_BECHMARK(RocksDbBenchmark));
+}

@@ -6,9 +6,8 @@
  */
 
 #include <src/TerocksBenchmark.h>
+#include "main_impl.h"
 
-#define default_engine_name "terarkdb"
-
-#define BenchmarkClass TerocksBenchmark
-
-#include "main.h"
+int main(int argc, char **argv) {
+  return main_impl(argc, argv, "terarkdb", NEW_BECHMARK(TerocksBenchmark));
+}

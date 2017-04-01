@@ -6,9 +6,8 @@
  */
 
 #include <src/TerichBenchmark.h>
+#include "main_impl.h"
 
-#define default_engine_name "terichdb"
-
-#define BenchmarkClass TerichBenchmark
-
-#include "main.h"
+int main(int argc, char **argv) {
+  return main_impl(argc, argv, "terichdb", NEW_BECHMARK(TerichBenchmark));
+}
