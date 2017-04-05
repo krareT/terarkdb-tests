@@ -197,7 +197,7 @@ void RocksDbBenchmark::setRocksDBOptions(Setting& set) {
   }
   bbo.block_size = set.FLAGS_block_size;
 
-  if (set.FLAGS_bloom_bits) {
+  if (set.FLAGS_bloom_bits > 0) {
     bbo.filter_policy.reset(NewBloomFilterPolicy(set.FLAGS_bloom_bits, false));
   }
   options.table_factory.reset(NewBlockBasedTableFactory(bbo));
