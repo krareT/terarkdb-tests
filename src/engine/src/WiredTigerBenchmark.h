@@ -26,7 +26,7 @@ private:
     bool UpdateOneKey(ThreadState *thread) override;
     bool InsertOneKey(ThreadState *thread) override;
     void Open() override;
-    bool Compact() override { return true; };
+    bool Compact() override;
     void DoWrite(bool seq) ;
     void PrintHeader() ;
     void PrintWarnings() ;

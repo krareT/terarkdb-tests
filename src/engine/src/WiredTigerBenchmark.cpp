@@ -200,6 +200,18 @@ void WiredTigerBenchmark::Open(){
     }
 }
 
+bool WiredTigerBenchmark::Compact() {
+  WT_SESSION *session;
+  int ret = conn_->open_session(conn_, NULL, NULL, &session);
+  if (0 == ret) {
+    session->compact(session, uri_.c_str(), NULL);
+    session->close(session, NULL);
+    return true;
+  }
+  fprintf(stderr, "ERROR: WiredTigerBenchmark::Compact() failed\n");
+  return false;
+}
+
 void WiredTigerBenchmark::DoWrite(bool seq) {
     fprintf(stderr, "WiredTigerBenchmark::DoWrite(%d) start\n", seq);
     std::stringstream txn_config;
@@ -246,6 +258,7 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
             fprintf(stderr, "Record number: %lld\n", recordnumber);
     }
     cursor->close(cursor);
+    session->close(session, NULL);
     time_t now;
     struct tm *timenow;
     time(&now);
