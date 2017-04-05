@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include "leveldb/comparator.h"
 #include "leveldb/slice.h"
-#include "port/port.h"
-#include "util/logging.h"
+#include "../port/port.h"
+#include "logging.h"
 
 namespace leveldb {
 

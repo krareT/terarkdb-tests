@@ -4,9 +4,9 @@
 
 #include "leveldb/filter_policy.h"
 
-#include "util/logging.h"
-#include "util/testharness.h"
-#include "util/testutil.h"
+#include "logging.h"
+#include "testharness.h"
+#include "testutil.h"
 
 namespace leveldb {
 

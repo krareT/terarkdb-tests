@@ -21,9 +21,9 @@
 #endif
 #include "leveldb/env.h"
 #include "leveldb/slice.h"
-#include "port/port.h"
-#include "util/logging.h"
-#include "util/posix_logger.h"
+#include "../port/port.h"
+#include "logging.h"
+#include "posix_logger.h"
 
 // fread_unlocked and fdatasync is not available on MacOS.
 #ifdef __APPLE__

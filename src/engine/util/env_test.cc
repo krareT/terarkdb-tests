@@ -3,9 +3,9 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "leveldb/env.h"
-
-#include "port/port.h"
-#include "util/testharness.h"
+#include "../port/atomic_pointer.h"
+#include "../port/port.h"
+#include "testharness.h"
 
 namespace leveldb {
 

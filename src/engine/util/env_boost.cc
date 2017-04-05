@@ -47,12 +47,12 @@
 #include "leveldb/slice.h"
 
 #ifdef WIN32
-#include "util/win_logger.h"
+#include "win_logger.h"
 #else
-#include "util/posix_logger.h"
+#include "posix_logger.h"
 #endif
-#include "port/port.h"
-#include "util/logging.h"
+#include "../port/port.h"
+#include "logging.h"
 
 #ifdef __linux
 #include <sys/sysinfo.h>

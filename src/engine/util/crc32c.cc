@@ -8,7 +8,7 @@
 #include "util/crc32c.h"
 
 #include <stdint.h>
-#include "util/coding.h"
+#include "coding.h"
 
 namespace leveldb {
 namespace crc32c {
