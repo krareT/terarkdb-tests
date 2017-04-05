@@ -204,8 +204,10 @@ bool WiredTigerBenchmark::Compact() {
   WT_SESSION *session;
   int ret = conn_->open_session(conn_, NULL, NULL, &session);
   if (0 == ret) {
+    fprintf(stderr, "INFO: WiredTigerBenchmark::Compact()...\n");
     session->compact(session, uri_.c_str(), NULL);
     session->close(session, NULL);
+    fprintf(stderr, "INFO: WiredTigerBenchmark::Compact()...done!\n");
     return true;
   }
   fprintf(stderr, "ERROR: WiredTigerBenchmark::Compact() failed\n");
