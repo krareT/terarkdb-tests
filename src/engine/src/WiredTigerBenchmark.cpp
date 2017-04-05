@@ -73,8 +73,10 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     if (cursor->search(cursor) == 0) {
         const char* val;
         int ret = cursor->get_value(cursor, &val);
+        cursor->reset(cursor);
         return 0 == ret;
     }
+    cursor->reset(cursor);
     return false;
 }
 
