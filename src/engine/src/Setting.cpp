@@ -95,6 +95,9 @@ Setting::Setting(int argc, char **argv) {
         else if (arg.startsWith("--write_buffer_size=")) {
             FLAGS_write_buffer_size = ParseSizeXiB(arg.p + strlen("--write_buffer_size="));
         }
+        else if (arg.startsWith("--block_size=")) {
+            FLAGS_block_size = ParseSizeXiB(arg.p + strlen("--block_size="));
+        }
         else if (arg.startsWith("--cache_size=")) {
             FLAGS_cache_size = ParseSizeXiB(arg.p + strlen("--cache_size="));
         }

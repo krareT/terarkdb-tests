@@ -61,15 +61,12 @@ void WiredTigerBenchmark::Close(void) {
 }
 
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
-    std::string &rkey = thread->key;
-    std::string &rstr = thread->str;
-    if (!getRandomKey(rstr,thread->randGenerator)){
+    if (!getRandomKey(thread->key, thread->randGenerator)){
         return false;
     }
     auto t = static_cast<WT_ThreadState*>(thread);
     WT_CURSOR *cursor = t->cursor;
-    rkey= rstr;
-    cursor->set_key(cursor, rkey.c_str());
+    cursor->set_key(cursor, thread->key.c_str());
     if (cursor->search(cursor) == 0) {
         const char* val;
         int ret = cursor->get_value(cursor, &val);
@@ -118,7 +115,7 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
         return false;
     }
     cursor->set_key(cursor, rkey.c_str());
-    cursor->set_value(cursor,rval.c_str());
+    cursor->set_value(cursor, rval.c_str());
     ret = cursor->insert(cursor);
     if (ret != 0) {
         fprintf(stderr, "insert error: %s\n", wiredtiger_strerror(ret));
@@ -140,45 +137,38 @@ void WiredTigerBenchmark::Open(){
         config << ",cache_size=" << setting.FLAGS_cache_size;
     config << ",log=(enabled,recover=on)";
     config << ",checkpoint=(log_size=64MB,wait=60)";
-    /* TODO: Translate write_buffer_size - maybe it's chunk size?
-       options.write_buffer_size = FLAGS_write_buffer_size;
-       */
-#ifndef SYMAS_CONFIG
     config << ",extensions=[libwiredtiger_snappy.so]";
-#endif
     //config << ",verbose=[lsm]";
+    auto strConf = config.str();
     system(("mkdir -p " + setting.FLAGS_db).c_str());
-    printf("WT config : %s\n",config.str().c_str());
-    wiredtiger_open(setting.FLAGS_db.c_str(), NULL, config.str().c_str(), &conn_);
+    fprintf(stderr, "INFO: wiredtiger_open(db=%s, conf=%s)\n"
+                  , setting.FLAGS_db.c_str(), strConf.c_str());
+    int err = wiredtiger_open(setting.FLAGS_db.c_str(), NULL, strConf.c_str(), &conn_);
+    if (err) {
+      fprintf(stderr, "ERROR: wiredtiger_open(, %s) = %s\n"
+                    , setting.FLAGS_db.c_str(), wiredtiger_strerror(err));
+      exit(1);
+    }
     assert(conn_ != NULL);
 
     WT_SESSION *session;
-    conn_->open_session(conn_, NULL, NULL, &session);
+    err = conn_->open_session(conn_, NULL, NULL, &session);
+    if (err) {
+      fprintf(stderr, "ERROR: conn_->open_session(%s) = %s\n"
+                    , setting.FLAGS_db.c_str(), wiredtiger_strerror(err));
+      exit(1);
+    }
     assert(session != NULL);
 
     if (!setting.FLAGS_use_existing_db) {
-        // Create tuning options and create the data file
         config.str("");
         config << "key_format=S,value_format=S";
         config << ",columns=[p,val]";
         config << ",prefix_compression=true";
         config << ",checksum=off";
-
-        if (setting.FLAGS_cache_size < SMALL_CACHE && setting.FLAGS_cache_size > 0) {
-            config << ",internal_page_max=4kb";
-            config << ",leaf_page_max=4kb";
-        //  config << ",memory_page_max=" << setting.FLAGS_cache_size;
-        } else {
-            config << ",internal_page_max=16kb";
-            config << ",leaf_page_max=16kb";
-            /*
-            if (setting.FLAGS_cache_size > 0) {
-                long memmax = setting.FLAGS_cache_size * 0.75;
-                // int memmax = setting.FLAGS_cache_size * 0.75;
-                config << ",memory_page_max=" << memmax;
-            }
-            */
-        }
+        config << ",internal_page_max=16kb";
+        config << ",leaf_page_max=" << setting.FLAGS_block_size;
+    //  config << ",memory_page_max=" << setting.FLAGS_cache_size;
         if (setting.FLAGS_use_lsm) {
             config << ",lsm=(";
             if (setting.FLAGS_cache_size > SMALL_CACHE)
@@ -189,11 +179,10 @@ void WiredTigerBenchmark::Open(){
                 config << ",bloom=false";
             config << ")";
         }
-#ifndef SYMAS_CONFIG
         config << ",block_compressor=snappy";
-#endif
-        fprintf(stderr, "Creating %s with config %s\n",uri_.c_str(), config.str().c_str());
-        int ret = session->create(session, uri_.c_str(), config.str().c_str());
+        strConf = config.str();
+        fprintf(stderr, "session->create(uri=%s, conf=%s)\n", uri_.c_str(), strConf.c_str());
+        int ret = session->create(session, uri_.c_str(), strConf.c_str());
         if (ret != 0) {
             fprintf(stderr, "create error: %s\n", wiredtiger_strerror(ret));
             exit(1);
