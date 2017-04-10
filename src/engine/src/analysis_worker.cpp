@@ -1,8 +1,9 @@
 //
 // Created by terark on 16-8-11.
 //
-#include "stdlib.h"
-#include "inttypes.h"
+#include <stdlib.h>
+#include <inttypes.h>
+#include <unistd.h> // for extern "C" char **environ;
 #include "analysis_worker.h"
 #include "util/system_resource.h"
 #include <terark/io/MemStream.hpp>
@@ -321,7 +322,6 @@ void AnalysisWorker::stop() {
 
 char** g_argv;
 int g_argc;
-extern "C" char **environ;
 
 void upload_command_and_env(fstring engine_name) {
   MYSQL_STMT* stmt = prepare(&g_conn, "insert into engine_test_command(engine_name, time, command_line, env) values (?,?,?,?)");
