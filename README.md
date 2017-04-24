@@ -82,7 +82,7 @@ WhichDB 可以是:
 |--flush\_threads=|RocksDB 的 Flush 线程数（将 MemTable 刷新到 SST 文件的线程数），<br/>(Flush 线程的优先级高于 Compact)|
 |--num\_levels=|RocksDB 的 Level 数量|
 |--write\_buffer\_size=|默认 1G|
-|--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数失效<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
+|--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数**失效**<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
 |--enable\_auto\_compact=|1或0，1表示启用自动compact，0表示禁用自动compact，默认为1|
 |--rocksdb\_memtable=|如果指定该参数，必须是 vector(使用VectorRepFactory)<br/>不指定的话，使用rocksdb的默认memtable<br/> vector memtable 仅在 --action=load 时有用，性能更好|
