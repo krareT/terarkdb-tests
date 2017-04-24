@@ -19,7 +19,7 @@ else
 	export LD_LIBRARY_PATH=`cd ..; pwd`/pkg/terarkdb-tests-Linux-x86_64-${CXX}-bmi2-${BMI2}/lib:$LD_LIBRARY_PATH
 fi
 export DictZipBlobStore_zipThreads=12
-../bin/Terark_Engine_Test \
+./Terark_Engine_Test \
   rocksdb \
   --action=run \
   --keys_data_path=/disk2/tmp/lineitem.keys.0.06 \

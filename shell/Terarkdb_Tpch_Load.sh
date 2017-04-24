@@ -19,7 +19,7 @@ else
 	export LD_LIBRARY_PATH=`cd ..; pwd`/pkg/terarkdb-tests-Linux-x86_64-${CXX}-bmi2-${BMI2}/lib:$LD_LIBRARY_PATH
 fi
 export DictZipBlobStore_zipThreads=24
-../bin/Terark_Engine_Test \
+./Terark_Engine_Test \
   terocksdb \
   --action=load \
   --alt_engine_name=terocksdb_load \
