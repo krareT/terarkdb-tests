@@ -35,7 +35,7 @@ diff <(zcat file1.gz) <(zcat file2.gz>
 * Value: 输入数据中，去除掉 Key 以外的所有其它字段，按顺序拼接，并使用记录分隔符分隔。
 
 ### 分离 Key Value
-我们提供了一个程序(`splitkv`)来将文本数据库（每行由分隔符分隔成字段）中的 key value 拆分成分别的 key文件 和 value文件（用 cut 或 awk 也可以，但速度太慢）。
+我们提供了一个程序([splitkv for linux](http://nark.cc/download/splitkv.exe))来将文本数据库（每行由分隔符分隔成字段）中的 key value 拆分成分别的 key文件 和 value文件（用 cut 或 awk 也可以，但速度太慢）。
 
 分离的 Key 与 Value 在文本文件中的格式与在 RocksDB 中存储的格式完全相同。
 
