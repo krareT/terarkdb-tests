@@ -58,7 +58,7 @@ WhichDB 可以是:
 * terichdb
 * wiredtiger
 
-目前经过充分测试的是 rocksdb 和 terarkdb 。
+目前经过充分测试的包括： rocksdb, wiredtiger, terarkdb 。
 
 ### 选项参数(Options)
 
