@@ -82,13 +82,13 @@ WhichDB 可以是:
 |--flush\_threads=|RocksDB 的 Flush 线程数（将 MemTable 刷新到 SST 文件的线程数），<br/>（Flush 线程的优先级高于 Compact）|
 |--num\_levels=|RocksDB 的 Level 数量|
 |--write\_buffer\_size=|默认 1G|
-|--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数**失效**<br/>当此参数 **为0** 时，auto\_slowdown\_write参数**生效**|
+|--write\_rate\_limit=|设定写速度，尽量按此速度进行写入，默认 30MB/s<br/>当此参数 **非0** 时，auto\_slowdown\_write参数**失效**<br/>当此参数 **为 0** 时，auto\_slowdown\_write参数**生效**|
 |--target\_file\_size\_multiplier=|层数每增加一层，单个 SST 文件的尺寸增加到这么多倍|
 |--enable\_auto\_compact=|1 或 0，1 表示启用自动 compact，0 表示禁用自动 compact，默认为 1|
 |--rocksdb\_memtable=|如果指定该参数，必须是 vector（使用VectorRepFactory）<br/>不指定的话，使用 rocksdb 的默认 memtable<br/> vector memtable 仅在 --action=load 时有用，性能更好|
 |--load\_size=|如果输入文件尺寸过大，指定该参数可以只加载这么多数据就停止写操作<br/>(`--action=run`的时候，停止写操作，读操作仍会继续)|
 |--use\_universal\_compaction=|1 或 0，1 表示使用 univeral compaction，0 表示使用 Level based compaction，默认为 1|
-|--auto\_slowdown\_write=|1 或 0，默认 1<br/>为 1 时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为0时，此参数才生效|
+|--auto\_slowdown\_write=|1 或 0，默认 1<br/>为 1 时，可能会因为 compact 太慢，导致写降速，<br/>为 0 时，对写速度不做限制，总是尽最大速度写入<br/>仅当 write\_rate\_limit 参数为 0 时，此参数才生效|
 |--index\_nest\_level=|默认 3，最小为 2，对 TPC-H，设为 2 可以提高大约 10% 的读性能<br/>默认 3 是个比较均衡的值，更大的值有助于提高 index 的压缩率，但会降低性能|
 |--zip\_work\_mem\_soft\_limit=|默认 16G，值越大，越有利于提高大尺寸 SST 的压缩速度(并发度会提高)|
 |--zip\_work\_mem\_hard\_limit=|默认 32G，...|
