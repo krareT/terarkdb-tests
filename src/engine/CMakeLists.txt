@@ -14,11 +14,10 @@ include_directories(/usr/local/include)
 include_directories(/opt/include)
 include_directories(${TERARKDB_PATH}/include)
 include_directories(${TERARKDB_ROCKS}/include)
-include_directories(/usr/local/mysql/include)
 include_directories(/usr/include/mysql)
 
 link_directories(${TERARKDB_PATH}/lib)
-link_directories(${TERARKDB_ROCKS}/lib)
+#link_directories(${TERARKDB_ROCKS}/lib)
 link_directories(/usr/local/mysql/lib)
 link_directories(/usr/lib64/mysql/)
 link_directories(/opt/lib)
@@ -64,6 +63,7 @@ target_link_libraries(bench_terarkdb
 		  rocksdb
 		  snappy
 		  ${COMMON_LIBS}
+		  crypto
 		  )
 
 add_executable(bench_rocksdb

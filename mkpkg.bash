@@ -19,7 +19,7 @@ CompilerList="g++-4.7 g++-4.8 g++-4.9 g++-6 g++-6.1 g++-6.2 g++-5.3 g++-5.4 clan
 #CompilerList="g++-6.1 g++-5.3 clang++"
 #CompilerList="g++-5.3 clang++"
 CompilerList="g++-4.8"
-CompilerList="g++-5.4"
+#CompilerList="g++-5.4"
 #CompilerList="g++-4.9"
 #CompilerList="g++-4.9 g++-5.4"
 for BMI2 in 0 1
@@ -47,7 +47,7 @@ do
 		cp -fa /opt/$COMPILER/lib64/libsnappy*.so*         pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /opt/$COMPILER/lib64/libtbb*.so*            pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /opt/$COMPILER/lib64/libgflags*.so*         pkg/terarkdb-tests-${Suffix}/lib || true # ignore error
-		cp -fa /usr/local/mysql/lib/libmysqlclient*.so*    pkg/terarkdb-tests-${Suffix}/lib
+		cp -fa /usr/lib64/mysql/libmysqlclient*.so*    pkg/terarkdb-tests-${Suffix}/lib
 		cp -fa /usr/lib64/libzstd.so*                      pkg/terarkdb-tests-${Suffix}/lib
 		find * -name CMakeCache.txt | xargs rm -f
 		find * -name CMakeFiles     | xargs rm -fr

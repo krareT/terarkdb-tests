@@ -8,9 +8,12 @@ set(EXECUTABLE_OUTPUT_PATH ./build)
 #  set(TERARKDB_PATH $ENV{HOME}/Documents/pkg/terichdb-Linux-x86_64-g++-5.4-bmi2-1/)
 #endif
 
-#if (TERARKDB_ROCKS)
-#  set(TERARKDB_ROCKS $ENV{HOME}/Documents/pkg/terark-zip-rocksdb-Linux-x86_64-g++-5.4-bmi2-1/)
+#if (${TERARKDB_ROCKS})
+#else
+  #set(TERARKDB_ROCKS rocksdb)
 #endif
+
+set(TERARKDB_ROCKS $ENV{PWD}/../rocksdb)
 
 project(TerarkDB_Test_Framework)
 add_subdirectory(./src/engine)
