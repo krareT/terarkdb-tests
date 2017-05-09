@@ -16,6 +16,10 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
     if (set.terocksdb_tmpdir.empty()) {
         throw std::invalid_argument("argument --terocksdb_tmpdir=/some/dir is required !\n");
     }
+//    if (!set.FLAGS_use_mmap) {
+//        fprintf(stderr, "WARN: TerocksBenchmark: --use_mmap should be true\n");
+//    }
+    options.allow_mmap_reads = true; // force true
     opt.terarkZipMinLevel = set.terocksdbZipMinLevel;
     opt.localTempDir = set.terocksdb_tmpdir;
     opt.sampleRatio = set.terocksdbSampleRatio;
