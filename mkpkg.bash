@@ -29,6 +29,7 @@ do
 	export CXX
 	export BMI2
 	if which $CXX; then
+		rm -rf build # fuck
 		export PATH=/opt/${CXX}/bin:/bin
 		COMPILER=`${CXX} terark-tools/detect-compiler.cpp -o a && ./a && rm -f a a.exe`
 		UNAME_MachineSystem=`uname -m -s | sed 's:[ /]:-:g'`
