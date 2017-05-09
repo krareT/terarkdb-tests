@@ -65,7 +65,7 @@ do
 		cp shell/Terark_Engine_Test pkg/terarkdb-tests-${Suffix}/shell
 		cp shell/Terarkdb_Tpch_*.sh pkg/terarkdb-tests-${Suffix}/shell
 		cd pkg
-		tar czf terarkdb-tests-${Suffix}.tgz terarkdb-tests-${Suffix}
+		tar czf terarkdb-tests-${Suffix}.tgz terarkdb-tests-${Suffix} &
 		cd ..
 	else
 		echo Not found compiler: $CXX
@@ -73,3 +73,4 @@ do
   done
 done
 
+wait
