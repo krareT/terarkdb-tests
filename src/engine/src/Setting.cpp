@@ -167,6 +167,9 @@ Setting::Setting(int argc, char **argv) {
         else if (arg.startsWith("--load_size=")) {
             FLAGS_load_size = ParseSizeXiB(arg.substr(strlen("--load_size=")));
         }
+        else if (arg.startsWith("--use_mmap=")) {
+          FLAGS_use_mmap = lcast(arg.substr(strlen("--use_mmap=")));
+        }
         else if (arg.startsWith("--mysql_passwd=")) {
             extern const char* g_passwd;
             g_passwd = arg.p + strlen("--mysql_passwd=");

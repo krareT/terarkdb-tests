@@ -190,6 +190,7 @@ void RocksDbBenchmark::setRocksDBOptions(Setting& set) {
   using rocksdb::BlockBasedTableOptions;
   using rocksdb::NewBlockBasedTableFactory;
   using rocksdb::NewBloomFilterPolicy;
+  options.allow_mmap_reads = set.FLAGS_use_mmap;
   BlockBasedTableOptions bbo;
   bbo.index_type = BlockBasedTableOptions::kBinarySearch;
   if (setting.FLAGS_cache_size > 0) {
@@ -213,6 +214,7 @@ void RocksDbBenchmark::setRocksDBOptions(Setting& set) {
           options.compression_per_level[i] = rocksdb::kSnappyCompression;
       }
   }
+  printf("options.allow_mmap_read = %d\n", options.allow_mmap_reads);
   for (size_t i = 0; i < options.compression_per_level.size(); i++) {
       printf("options.compression_per_level[%zd]=%d\n", i, options.compression_per_level[i]);
   }

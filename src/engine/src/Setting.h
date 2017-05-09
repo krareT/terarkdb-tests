@@ -193,6 +193,7 @@ public:
     int compactThreads = 2;
     bool rocksdbUniversalCompaction = true;
     bool FLAGS_enable_auto_compact = true;
+    bool FLAGS_use_mmap = true;
     const char* FLAGS_rocksdb_memtable = nullptr;
     size_t FLAGS_load_size = size_t(-1);
 
