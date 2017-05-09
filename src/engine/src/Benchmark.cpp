@@ -172,7 +172,7 @@ void Benchmark::loadInsertData(){
         , setting.ifStop() ? "stopped" : "completed"
         , lines, bytes, pf.sf(t0,t1), bytes/pf.uf(t0,t1)
         );
-    if (!setting.ifStop()) {
+    if (!setting.ifStop() && lines > 0) {
         fprintf(stderr, "Benchmark::loadInsertData(): all data are loaded, wait for %f sec then compact!\n", pf.sf(t0,t1)/2);
         usleep(pf.us(t0,t1)/2);
         fprintf(stderr, "Benchmark::loadInsertData(): start compact ...\n");
