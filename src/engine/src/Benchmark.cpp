@@ -139,7 +139,7 @@ void Benchmark::loadInsertData(){
     const char* fpath = setting.getInsertDataPath().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));
     if (!ifs) {
-        fprintf(stderr, "ERROR: fopen(%s, r) = %s\n", fpath, strerror(errno));
+        fprintf(stderr, "ERROR: Benchmark::loadInsertData(): fopen(%s, r) = %s\n", fpath, strerror(errno));
         return;
     }
     size_t limit = setting.FLAGS_load_size;
