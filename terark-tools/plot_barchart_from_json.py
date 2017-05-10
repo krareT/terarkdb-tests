@@ -10,7 +10,7 @@ import json
 
 def gen_frame(path):
     jsonObj = {
-        "figsize": [12, 9],
+        "figsize": [16, 9],
         "title": "", 
 
         "xlabel": "",
@@ -38,9 +38,12 @@ def draw(path):
 
         # assignment
         n = len(jsonObj["ydata"])
-        width, height = jsonObj["figsize"][0], jsonObj["figsize"][1]
-        barwidth = 0.8 if n > 1 else 0.4
-        fontsize = height * 2.0
+        if (sys.argv[3] and sys.argv[4]):
+            width, height = float(sys.argv[3]), float(sys.argv[4])
+        else:
+            width, height = jsonObj["figsize"][0], jsonObj["figsize"][1]
+        barwidth = 0.4 if n == 1 else 0.6
+        fontsize = height * 2.2
         title = jsonObj["title"]
         x = (jsonObj["xlabel"], jsonObj["xdata"])
         ys = [(obj["label"], obj["ydata"]) for obj in jsonObj["ydata"]]
@@ -59,9 +62,10 @@ def draw(path):
         for line in ax.get_xgridlines():
             line.set_visible(False)
         
-        ind = arange(0, len(x[1]) * n, n) # xticks indices
+        # ind = arange(0, len(x[1]) * n, n) # xticks indices
+        ind = arange(len(x[1]))
         for i in range(n): # plot bars
-            rects = ax.bar(ind + (i - (n - 1) / 2.0) * barwidth, ys[i][1], width = barwidth, label = ys[i][0])
+            rects = ax.bar(ind + i * barwidth / n, ys[i][1], width = barwidth / n, label = ys[i][0], align = 'edge')
             for rect, y in zip(rects, ys[i][1]): # show value above the bar
                 ax.text(rect.get_x() + rect.get_width()/2., rect.get_height()+0.1,
                             # '%f' % float(ys[i][1]),
@@ -69,26 +73,30 @@ def draw(path):
                             fontsize = fontsize, 
                             ha='center', va='bottom')
         if n > 1: # for more than one series of data, need legends
-            ax.set_position([0.1, 0.1, 0.7, 0.8])
-            plt.legend(bbox_to_anchor=(1.01, 0.5), loc=2, fontsize = fontsize)
+            plt.legend(bbox_to_anchor=(0, 1.01, 1, 0.1), loc = 'upper center', fontsize = fontsize, ncol = n)
+            ax.set_position([0.12, 0.06, 0.8, 0.8])
+            ax.set_title(title, fontdict = {'weight': 'bold', 'size': fontsize * 1.5}, y = 1.10)
+        else:
+            ax.set_position([0.12, 0.06, 0.8, 0.8])
+            ax.set_title(title, fontdict = {'weight': 'bold', 'size': fontsize * 1.5}, y = 1.05)
 
         # some axis format settings
-        ax.set_title(title, fontdict = {'weight': 'bold', 'size': fontsize * 1.5}, y= 1.02)
+        ax.set_xlim((-1 + barwidth) / 2.0, len(x[1]) - 1 + barwidth + (1 - barwidth) / 2.0)
         ax.set_xlabel(x[0], fontdict = {'weight': 'normal', 'size': fontsize})
-        ax.set_xticks(ind)
-        ax.set_xticklabels(x[1], fontsize = fontsize)
+        ax.set_xticks(ind + barwidth / 2.0)
+        ax.set_xticklabels(x[1], fontsize = fontsize * 1.3)
         ax.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))
         for yticklabel in ax.get_yticklabels():
             yticklabel.set_fontsize(fontsize)
         # save
         plt.savefig(svgname)
-        plt.savefig(pngname)
+        # plt.savefig(pngname)
         # plt.show()
-        print('save figure to', svgname, pngname)
+        print('save figure to', svgname)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3: 
-        print("usage:", sys.argv[0], "init/plot", "/path/to/data.txt")
+    if len(sys.argv) < 3: 
+        print("usage:", sys.argv[0], "init/plot", "/path/to/data.txt", "[, fig_width, fig_height]")
         print("init: generate a new empty json file (/path/to/data.json) with necessary attributes")
         print("plot: draw charts according to /path/to/data.txt")
         exit(1)
@@ -98,6 +106,6 @@ if __name__ == "__main__":
     elif sys.argv[1] == "plot":
         draw(sys.argv[2])
     else:
-        print("usage:", sys.argv[0], "init/plot", "/path/to/data.txt")
+        print("usage:", sys.argv[0], "init/plot", "/path/to/data.txt", "[, fig_width, fig_height]")
         print("init: generate a new empty json file (/path/to/data.json) with necessary attributes")
         print("plot: draw charts according to /path/to/data.txt")
