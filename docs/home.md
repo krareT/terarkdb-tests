@@ -1,4 +1,4 @@
-[[中文 | Home_CN]]
+[中文](https://github.com/Terark/terarkdb-tests/blob/master/docs/首页.md)
 
 # Terark DB BenchmarkTest
 
