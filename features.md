@@ -29,6 +29,6 @@ shuf movies_flat.txt > movies_flat_shuf.txt
 
 因为总是顺序读一行，所以输入文件可以是管道，例如，只要程序不结束，就一直测试：
 ```
-cmd <(while true; do cat shuf_file; done)
+cmd --verify_kv_file=<(while true; do cat shuf_file; done)
 ```
 
