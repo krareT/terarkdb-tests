@@ -235,13 +235,25 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
     terark::LineBuf line;
     std::string key;
     std::string val;
+    std::mt19937_64 random;
+    auto randomUpper = uint64_t(0.01 * random.max() * setting.getSamplingRate());
     while (line.getline(file) > 0) {
         ret = setting.splitKeyValue(line, &key, &val);
         if (ret == 0)
             continue;
         cursor->set_key(cursor, key.c_str());
         cursor->set_value(cursor,val.c_str());
-        int ret = cursor->insert(cursor);
+        int ret;
+        if (random() < randomUpper) {
+            struct timespec beg, end;
+            clock_gettime(CLOCK_REALTIME, &beg);
+            ret = cursor->insert(cursor);
+            clock_gettime(CLOCK_REALTIME, &end);
+            Stats::FinishedSingleOp(OP_TYPE::INSERT, beg, end);
+        }
+        else {
+            ret = cursor->insert(cursor);
+        }
         if (ret != 0) {
             fprintf(stderr, "set error: %s\n", wiredtiger_strerror(ret));
             exit(1);
