@@ -25,6 +25,7 @@ private:
     bool ReadOneKey(ThreadState *thread) override;
     bool UpdateOneKey(ThreadState *thread) override;
     bool InsertOneKey(ThreadState *thread) override;
+    bool VerifyOneKey(ThreadState *) override;
     void Open() override;
     bool Compact() override;
     void DoWrite(bool seq) ;

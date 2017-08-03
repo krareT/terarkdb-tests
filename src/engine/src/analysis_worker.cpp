@@ -156,6 +156,17 @@ static bool open_stat_files(std::string fprefix) {
   ;
 }
 
+static std::ofstream ofs_verify;
+static bool open_verify_file(std::string fprefix) {
+  std::string fpath = fprefix + "-verify-fail.txt";
+  ofs_verify.open(fpath);
+  if(!ofs_verify.is_open()) {
+    fprintf(stderr, "ERROR: ofstream(%s) = %s\n", fpath.c_str(), strerror(errno));
+    return false;
+  }
+  return true;
+}
+
 static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo, *ps_latency;
 static void prepair_all_stmt() {
     ps_ops = prepare(&g_conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
@@ -274,37 +285,46 @@ static void upload_sys_stat(terark::AutoGrownMemIO& buf,
 void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE opType) {
     std::pair<uint64_t, uint64_t> tt;
     const int type = int(opType) + 1;
-	int loop_cnt = 0;
+	  int loop_cnt = 0;
     while (Stats::opsDataCq[int(opType)].try_pop(tt)) {
-		loop_cnt++;
-        int next_bucket = findTimeBucket(tt.first);
-        if (next_bucket > current_bucket) {
-            // when meet the next bucket, upload previous one first, default step is 10 seconds
-            // * 100 / (10 * sampleRate) // sampleRate : (0, 100]
-            int ops = int(operation_count * 10.0 / sampleRate);
-            buf.rewind();
-            Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
-            for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
-                auto latency = g_latencyTimePeriodsUS[i];
-                auto cnt = int(g_latencyStat.cnts[i] * 100.0 / sampleRate);
-                if (cnt) {
-                    Exec_stmt(ofs_latency, ps_latency,
-                        current_bucket, type, latency, cnt, engine_name);
-                }
-            }
-            buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d, loop = %7d"
-					, current_bucket, ops, type, loop_cnt);
-            upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
-            fprintf(stderr, "%s\n", buf.begin());
-            g_latencyStat.reset();
-            g_latencyStat.update(tt);
-            operation_count = 1;
-            current_bucket = next_bucket;
-            break;
-        } else {
-            operation_count++;
-            g_latencyStat.update(tt);
-        }
+      loop_cnt++;
+      int next_bucket = findTimeBucket(tt.first);
+      if (next_bucket > current_bucket) {
+          // when meet the next bucket, upload previous one first, default step is 10 seconds
+          // * 100 / (10 * sampleRate) // sampleRate : (0, 100]
+          int ops = int(operation_count * 10.0 / sampleRate);
+          buf.rewind();
+          Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
+          for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
+              auto latency = g_latencyTimePeriodsUS[i];
+              auto cnt = int(g_latencyStat.cnts[i] * 100.0 / sampleRate);
+              if (cnt) {
+                  Exec_stmt(ofs_latency, ps_latency,
+                      current_bucket, type, latency, cnt, engine_name);
+              }
+          }
+          buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d, loop = %7d"
+        , current_bucket, ops, type, loop_cnt);
+          upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
+          fprintf(stderr, "%s\n", buf.begin());
+          g_latencyStat.reset();
+          g_latencyStat.update(tt);
+          operation_count = 1;
+          current_bucket = next_bucket;
+          break;
+      } else {
+          operation_count++;
+          g_latencyStat.update(tt);
+      }
+    }
+}
+
+static void write_verify_fail_data() {
+    std::string str;
+    while (Stats::verifyFailDataCq.try_pop(str)) {
+      if (ofs_verify.is_open()) {
+        ofs_verify << str;
+      }
     }
 }
 
@@ -354,6 +374,18 @@ void AnalysisWorker::run() {
           return;
         }
     }
+    if (setting->getAction() == "verify") {
+        std::string fprefix;
+        if (const char* env_fprefix = getenv("MONITOR_STAT_FILE_PREFIX")) {
+          fprefix = env_fprefix;
+        }
+        else {
+          fprefix = "benchmark";
+        }
+        if (!open_verify_file(fprefix)) {
+          return ;
+        }
+    }
     g_hasConn = Mysql_connect(&g_conn);
     if (!g_hasConn) {
         if (!ofs_ops.is_open()) {
@@ -392,6 +424,9 @@ void AnalysisWorker::run() {
         search_bucket.update_ops(buf, samplingRate, OP_TYPE::SEARCH);
         insert_bucket.update_ops(buf, samplingRate, OP_TYPE::INSERT);
         update_bucket.update_ops(buf, samplingRate, OP_TYPE::UPDATE);
+        if (setting->getAction() == "verify") {
+          write_verify_fail_data();
+        }
         timespec ts1;
         clock_gettime(CLOCK_REALTIME, &ts1);
         unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;

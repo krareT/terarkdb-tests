@@ -183,6 +183,10 @@ bool TerichBenchmark::InsertOneKey(ThreadState *thread0) {
     return true;
 }
 
+bool TerichBenchmark::VerifyOneKey(ThreadState *) {
+    return false;
+}
+
 bool TerichBenchmark::Compact() {
     tab->compact();
     return true;

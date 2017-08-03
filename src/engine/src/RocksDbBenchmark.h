@@ -22,6 +22,7 @@ public:
     bool ReadOneKey(ThreadState *) override;
     bool UpdateOneKey(ThreadState *) override;
     bool InsertOneKey(ThreadState *) override;
+    bool VerifyOneKey(ThreadState *) override;
     ThreadState* newThreadState(const std::atomic<std::vector<bool>*> *whichSamplingPlan) override;
     bool Compact(void) override;
 };

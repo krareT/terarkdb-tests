@@ -181,6 +181,122 @@ void Benchmark::loadInsertData(){
     }
 }
 
+
+void Benchmark::Verify() {
+    int old_samplingRate = -1;
+    std::thread loadVerifyDataThread(&Benchmark::loadVerifyKvData, this);
+    while (!setting.ifStop()) {
+        int samplingRate = setting.getSamplingRate();
+        if (old_samplingRate != samplingRate) {
+            old_samplingRate = samplingRate;
+            adjustSamplingPlan(samplingRate);
+        }
+        int threadNum = setting.getThreadNums();
+      adjustVerifyThreadNum(threadNum, &samplingPlanAddr);
+        checkExecutePlan();
+        int handle_messge_times = 5;
+        while (handle_messge_times--) {
+            reportMessage(HandleMessage(setting.getMessage()));
+            sleep(5);
+        }
+    }
+  adjustVerifyThreadNum(0, nullptr);
+    loadVerifyDataThread.join();
+}
+
+void Benchmark::adjustVerifyThreadNum(uint32_t target, const std::atomic<std::vector<bool>*>* whichPlan) {
+    while (target > threads.size()) {
+        ThreadState *state = newThreadState(whichPlan);
+        threads.emplace_back(std::thread([=](){executeVerify(state);}), state);
+    }
+    while (target < threads.size()){
+        threads.back().second->STOP.store(true);
+        threads.back().first.join();
+        delete threads.back().second;
+        threads.pop_back();
+    }
+}
+
+void Benchmark::executeVerify(ThreadState *thread) {
+    fprintf(stderr, "Thread %2d run Benchmark::verifyOneKey() start...\n", thread->tid);
+    char *tempStr= new char[748578000 * 2];
+    while (!thread->STOP.load()) {
+      std::vector<bool> &samplingPlan = *thread->whichSamplingPlan->load();
+      bool useSampling;
+      if (thread->verifySamplingRecord < samplingPlan.size()) {
+        useSampling = samplingPlan[thread->verifySamplingRecord++];
+      } else {
+        useSampling = samplingPlan[0];
+        thread->verifySamplingRecord = 1;
+      }
+      bool ret;
+      if (useSampling) {
+        struct timespec start, end;
+        clock_gettime(CLOCK_REALTIME, &start);
+        ret = VerifyOneKey(thread);
+        if (ret) {
+          clock_gettime(CLOCK_REALTIME, &end);
+          Stats::FinishedSingleOp(OP_TYPE(int(thread->verifyResult)), start, end);
+        }
+      } else {
+        ret = VerifyOneKey(thread);
+      }
+      if(ret) {
+        if(thread->verifyResult == VERIFY_TYPE::MISMATCH) {
+          sprintf(tempStr, "MISMATCH: key(%s)\tstoreValue(%s)\tvalue(%s)\n"
+                  , thread->key.c_str()
+                  , thread->storeValue.c_str()
+                  , thread->value.c_str());
+          Stats::RecordVerifyData(tempStr);
+          fprintf(stderr, "MISMATCH: key(%s)\n", thread->key.c_str());
+        } else if (thread->verifyResult == VERIFY_TYPE::FAIL) {
+          sprintf(tempStr, "FAIL: key(%s)\n", thread->key.c_str());
+          Stats::RecordVerifyData(tempStr);
+          fprintf(stderr, "%s", tempStr);
+        }
+      }
+    }
+    delete tempStr;
+    fprintf(stderr, "Thread %2d run Benchmark::verifyOneKey() exit...\n", thread->tid);
+}
+
+void Benchmark::loadVerifyKvData() {
+    const char* fpath = setting.getVerifyKvFile().c_str();
+    Auto_fclose ifs(fopen(fpath, "r"));
+    if (!ifs) {
+        fprintf(stderr, "ERROR: Benchmark::loadVerifyKvData(): fopen(%s, r) = %s\n", fpath, strerror(errno));
+        return;
+    }
+    size_t limit = setting.FLAGS_load_size;
+    fprintf(stderr, "Benchmark::loadVerifyKvData(%s) start, limit = %f GB\n", fpath, limit/1e9);
+    LineBuf line;
+    size_t lines = 0;
+    terark::profiling pf;
+    long long t0 = pf.now();
+    size_t bytes = 0;
+    while(bytes < limit && !setting.ifStop() && !feof(ifs)) {
+        size_t count = 0;
+        while (bytes < limit && verifyDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+            line.chomp();
+            bytes += line.size();
+            verifyDataCq.push(std::string(line.p, line.n));
+            count++;
+        }
+        lines += count;
+        usleep(300000);
+    }
+    long long t1 = pf.now();
+    fprintf(stderr
+    , "Benchmark::loadVerifyKvData(%s) %s, lines = %zd, bytes = %zd, time = %f sec, speed = %f MB/sec\n"
+    , fpath
+    , setting.ifStop() ? "stopped" : "completed"
+    , lines, bytes, pf.sf(t0, t1), bytes/pf.uf(t0, t1)
+    );
+    if (!setting.ifStop() && lines > 0) {
+        fprintf(stderr, "Benchmark::loadVerifykvData(): all data are loaded");
+    }
+}
+
 void Benchmark::clearThreads() {
   for (auto& e : this->threads) {
     delete e.second;
@@ -202,6 +318,9 @@ void Benchmark::Run(void) {
     }
     else if (setting.getAction() == "compact") {
         this->Compact();
+    }
+    else if (setting.getAction() == "verify") {
+        this->Verify();
     }
     else {
         loadKeys();

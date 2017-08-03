@@ -25,6 +25,7 @@ struct PlanConfig{
 };
 
 enum class OP_TYPE{SEARCH, INSERT, UPDATE};
+enum class VERIFY_TYPE{MATCH, MISMATCH, FAIL};
 
 class BaseSetting{
 public:
@@ -41,6 +42,7 @@ private:
     std::string insertDataPath;
     std::string loadDataPath;
     std::string keysDataPath;
+    std::string verifyKvFile;
     std::string action;
     tbb::concurrent_queue<std::string> message_cq;
     tbb::concurrent_queue<std::string> response_message_cq;
@@ -55,6 +57,7 @@ public:
     bool strSetLoadDataPath(std::string &);
     bool setAction(std::string &);
     bool strSetKeysDataPath(std::string &);
+    bool strSetVerifyKvFile(std::string &);
     bool strSetCompactTimes(std::string &);
     bool strSetMessage(std::string &);
     bool strSetPlanConfigs(std::string &);
@@ -76,6 +79,7 @@ public:
     const std::string &getInsertDataPath(void) const ;
     const std::string &getLoadDataPath(void) const ;
     const std::string &getKeysDataPath(void) const ;
+    const std::string &getVerifyKvFile(void) const;
     bool getPlanConfig(uint32_t, PlanConfig &planConfig);
     std::string getMessage(void);
     bool ifStop(void) const ;

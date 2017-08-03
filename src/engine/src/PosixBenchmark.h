@@ -15,6 +15,7 @@ private:
     virtual bool ReadOneKey(ThreadState*) override;
     virtual bool UpdateOneKey(ThreadState *) override;
     virtual bool InsertOneKey(ThreadState *)  override ;
+    virtual bool VerifyOneKey(ThreadState *) override;
 public:
     PosixBenchmark(Setting& setting);
     virtual ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSamplingPlan) override;

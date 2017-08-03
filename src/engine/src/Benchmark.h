@@ -36,13 +36,17 @@ private:
 
     void loadKeys();
     void loadInsertData();
+    void loadVerifyKvData();
     void checkExecutePlan();
     void updatePlan(const PlanConfig &pc,std::vector<OP_TYPE > &plan);
     void updateSamplingPlan(std::vector<bool> &plan, uint8_t percent);
     void shufflePlan(std::vector<uint8_t > &plan);
     void adjustThreadNum(uint32_t target, const std::atomic<std::vector<bool>*>* whichSPlan);
+    void adjustVerifyThreadNum(uint32_t target, const std::atomic<std::vector<bool>*>* whichSPlan);
+    void executeVerify(ThreadState *thread);
     void adjustSamplingPlan(uint8_t samplingRate);
     void RunBenchmark(void);
+    void Verify(void);
     bool executeOneOperation(ThreadState* state,OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
     void reportMessage(const std::string &);
@@ -54,6 +58,7 @@ public:
     std::vector<std::pair<std::thread, ThreadState*>> threads;
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;
+    tbb::concurrent_queue<std::string> verifyDataCq;
 
     Benchmark(Setting&);
     virtual ~Benchmark();
@@ -63,6 +68,7 @@ public:
     virtual bool ReadOneKey(ThreadState*) = 0;
     virtual bool UpdateOneKey(ThreadState*) = 0;
     virtual bool InsertOneKey(ThreadState*) = 0;
+    virtual bool VerifyOneKey(ThreadState *) = 0;
     virtual ThreadState* newThreadState(const std::atomic<std::vector<bool>*>* whichSamplingPlan) = 0;
     virtual bool Compact(void) = 0;
 

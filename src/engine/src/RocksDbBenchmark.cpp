@@ -347,6 +347,36 @@ bool RocksDbBenchmark::InsertOneKey(ThreadState *ts) {
     return true;
 }
 
+bool RocksDbBenchmark::VerifyOneKey(ThreadState *ts) {
+    if (!verifyDataCq.try_pop(ts->str)){
+        return false;
+    }
+    auto ret = setting.splitKeyValue(ts->str, &ts->key, &ts->value);
+    if (ret == 0) {
+        fprintf(stderr, "RocksDbBenchmark::VerifyOneKey:getKeyAndValue fail\n");
+        return false;
+    }
+    std::string value;
+    auto res = db->Get(read_options, ts->key, &value);
+    if (res.ok()) {
+        if (value == ts->value) {
+            ts->verifyResult = VERIFY_TYPE::MATCH;
+        }
+        else {
+            ts->storeValue = value;
+            ts->verifyResult = VERIFY_TYPE::MISMATCH;
+        }
+        return true;
+    }
+    else if (res.IsNotFound()) {
+      ts->verifyResult = VERIFY_TYPE::FAIL;
+      return true;
+    }
+    else {
+        return false;
+    }
+}
+
 bool RocksDbBenchmark::Compact(void) {
     size_t numLevels = size_t(setting.FLAGS_num_levels);
     fprintf(stderr

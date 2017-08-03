@@ -18,10 +18,13 @@ struct ThreadState {
     std::string key;
     std::string value;
     std::string str;
+    std::string storeValue;
     PlanConfig planConfig;
     std::vector<OP_TYPE> executePlan[2];
     std::atomic<uint32_t> whichPlan;
     uint32_t samplingRecord[3] = {0, 0, 0}; // index is OP_TYPE
+    uint32_t verifySamplingRecord = 0;
+    VERIFY_TYPE verifyResult = VERIFY_TYPE::FAIL;
 
     ThreadState(int index, const std::atomic<std::vector<bool>*>* wsp);
     virtual ~ThreadState();

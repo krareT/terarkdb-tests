@@ -256,6 +256,7 @@ BaseSetting::BaseSetting() :
                 {"--load_data_path"    , &BaseSetting::strSetLoadDataPath},
                 {"--action"            , &BaseSetting::setAction},
                 {"--keys_data_path"    , &BaseSetting::strSetKeysDataPath},
+                {"--verify_kv_file"    , &BaseSetting::strSetVerifyKvFile},
                 {"--compact"           , &BaseSetting::strSetCompactTimes},
                 {"--message"           , &BaseSetting::strSetMessage},
                 {"--plan_config"       , &BaseSetting::strSetPlanConfigs},
@@ -341,6 +342,7 @@ std::string BaseSetting::toString() {
     ret << "keys_data_path:\t"  << getKeysDataPath() << std::endl;
     ret << "insert_data_path:\t"<< getInsertDataPath() << std::endl;
     ret << "load_data_path:\t"  << getLoadDataPath() << std::endl;
+    ret << "verify_kv_file:\t" << getVerifyKvFile() << std::endl;
     ret << "compact times:\t"   << static_cast<int >(getCompactTimes()) << std::endl;
     ret << "message from " << BenchmarkName << std::endl;
     std::string msg;
@@ -439,6 +441,17 @@ bool BaseSetting::strSetKeysDataPath(std::string &value) {
     if(value.empty())
         return false;
     keysDataPath = value;
+    return true;
+}
+
+const std::string &BaseSetting::getVerifyKvFile(void) const {
+    return verifyKvFile;
+}
+
+bool BaseSetting::strSetVerifyKvFile(std::string &value) {
+    if(value.empty())
+        return false;
+    verifyKvFile = value;
     return true;
 }
 

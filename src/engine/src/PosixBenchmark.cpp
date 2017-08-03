@@ -108,6 +108,10 @@ bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
     return true;
 }
 
+bool PosixBenchmark::VerifyOneKey(ThreadState *) {
+    return false;
+}
+
 bool PosixBenchmark::Compact(void) {
     return false;
 }

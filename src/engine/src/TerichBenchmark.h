@@ -30,6 +30,7 @@ private:
     bool ReadOneKey(ThreadState *thread) override;
     bool UpdateOneKey(ThreadState *thread) override ;
     bool InsertOneKey(ThreadState *thread) override ;
+    virtual bool VerifyOneKey(ThreadState *) override;
     bool Compact() override ;
 
     std::string HandleMessage(const std::string &msg) override;

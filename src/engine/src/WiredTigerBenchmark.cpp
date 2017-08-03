@@ -101,6 +101,10 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     return true;
 }
 
+bool WiredTigerBenchmark::VerifyOneKey(ThreadState *){
+  return false;
+}
+
 bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
