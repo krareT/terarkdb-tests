@@ -36,8 +36,13 @@ CMakeFiles
 cmake_install.cmake
 #clion file
 .idea/
+cmake-build-debug/
 build/*
 shell/experiment
 
 # fuck, vim backup
 *~
+
+# my own thing
+src/engine/CMakeLists.txt
+src/engine/include/rocksdb

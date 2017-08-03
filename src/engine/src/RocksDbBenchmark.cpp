@@ -14,6 +14,9 @@
 
 using namespace terark;
 
+/**
+ * 打开
+ */
 void RocksDbBenchmark::Open() {
   const std::string& dbname = setting.FLAGS_db;
   printf("rocksdb::DB::Open(%s)\n", dbname.c_str());
@@ -25,6 +28,7 @@ void RocksDbBenchmark::Open() {
   }
   const auto& opt = db->GetOptions();
   typedef long long ll;
+  // 震惊...C++居然有多行字符串...学到了...
   fprintf(stderr,
 R"EOS(RocksDbBenchmark::Open():
   opt.write_buffer_size                   = %lld

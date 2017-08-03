@@ -7,6 +7,12 @@
 
 #include <src/Benchmark.h>
 #include <src/Setting.h>
+
+/**
+ * Posix表示可移植操作系统接口
+ * Portable Operating System Interface of UNIX
+ * 此处Posix大概表示这是系统默认读写基准吧（猜的
+ */
 class PosixBenchmark : public Benchmark{
 private:
     virtual void Open(void) override ;

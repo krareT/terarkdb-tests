@@ -161,7 +161,7 @@ public:
     bool FLAGS_use_existing_db = false;
 
 // Use the db with the following name.
-    std::string FLAGS_db;
+    std::string FLAGS_db; // 数据库目录
     const char* FLAGS_resource_data = nullptr;
     const char* FLAGS_keys_data = nullptr;
     int *shuff = nullptr;
