@@ -102,7 +102,8 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
 }
 
 /**
- *
+ * 验证
+ * 利用WiredtigerAPI进行验证
  * @author wiklvrain
  * @param thread
  * @return
