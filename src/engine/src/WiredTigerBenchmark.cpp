@@ -101,8 +101,43 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     return true;
 }
 
-bool WiredTigerBenchmark::VerifyOneKey(ThreadState *){
-  return false;
+/**
+ *
+ * @author wiklvrain
+ * @param thread
+ * @return
+ */
+bool WiredTigerBenchmark::VerifyOneKey(ThreadState *thread) {
+    auto t = static_cast<WT_ThreadState *>(thread);
+    std::string &rkey = thread->key;
+    std::string &rval = thread->value;
+    std::string &rstr = thread->str;
+    WT_CURSOR *cursor = t->cursor;
+    if (!verifyDataCq.try_pop(rstr)) {
+        return false;
+    }
+    int ret = setting.splitKeyValue(rstr, &rkey, &rval);
+    if (ret == 0) {
+        return false;
+    }
+    cursor->set_key(cursor, thread->str.c_str());
+    if (cursor->search(cursor) == 0) {
+        std::string val;
+        int ret = cursor->get_value(cursor, &val);
+        if (ret == 0) {
+            if (rval == val) {
+                thread->verifyResult = VERIFY_TYPE::MATCH;
+            } else {
+                thread->verifyResult = VERIFY_TYPE::MISMATCH;
+                thread->storeValue = val;
+            }
+        } else {
+            thread->verifyResult = VERIFY_TYPE::FAIL;
+        }
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
