@@ -238,6 +238,11 @@ void Benchmark::loadInsertData(){
 
 /**
  * 验证
+ * 创建加载验证KvData线程，并且保证这个线程未执行完之前不会继续执行父线程
+ * 在程序的Stop未true之前，更新SamplingRate
+ * 再更新验证线程数量
+ * 检查执行的Plan是否正确
+ * 在程序的Stop变成true之后，将验证线程全部销毁
  */
 void Benchmark::Verify() {
     int old_samplingRate = -1;
@@ -261,6 +266,12 @@ void Benchmark::Verify() {
     loadVerifyDataThread.join();
 }
 
+/**
+ * 调整验证线程数目
+ * 目标多则创建目标少则销毁
+ * @param target
+ * @param whichPlan
+ */
 void Benchmark::adjustVerifyThreadNum(uint32_t target, const std::atomic<std::vector<bool>*>* whichPlan) {
     while (target > threads.size()) {
         ThreadState *state = newThreadState(whichPlan);
@@ -274,6 +285,15 @@ void Benchmark::adjustVerifyThreadNum(uint32_t target, const std::atomic<std::ve
     }
 }
 
+/**
+ * 执行验证
+ * 在程序未Stop之前，通过samplingPlan的最后一个记录来判断是否需要采样
+ * 如果需要采样，则记录时间
+ * 如果不需要采样则单纯记录时间
+ * 如果执行VerifyOneKey成功，则判断验证结果
+ * 如果是MISMATCH或FAIL则记录到verifyFailDataCq
+ * @param thread
+ */
 void Benchmark::executeVerify(ThreadState *thread) {
     fprintf(stderr, "Thread %2d run Benchmark::verifyOneKey() start...\n", thread->tid);
     char *tempStr= new char[748578000 * 2];
@@ -317,6 +337,12 @@ void Benchmark::executeVerify(ThreadState *thread) {
     fprintf(stderr, "Thread %2d run Benchmark::verifyOneKey() exit...\n", thread->tid);
 }
 
+/**
+ * 加载验证KV数据
+ * 首先通过setting读取验证kv文件
+ * 然后计算读取的开始时间和结束时间
+ * 最后输出信息
+ */
 void Benchmark::loadVerifyKvData() {
     const char* fpath = setting.getVerifyKvFile().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));

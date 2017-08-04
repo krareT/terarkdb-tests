@@ -151,10 +151,60 @@ bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
 
 /**
  * 验证
+ * @author wiklvrain
  * @return
  */
-bool PosixBenchmark::VerifyOneKey(ThreadState *) {
-    return false;
+bool PosixBenchmark::VerifyOneKey(ThreadState *ts) {
+    if (!verifyDataCq.try_pop(ts->key)) {
+        return false;
+    }
+
+    // 打开验证文件
+    ts->str = setting.getVerifyKvFile() + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> verify_source_file(fopen(ts->str.c_str(), "r"), fclose);
+
+    // 打开数据库中对应的key文件
+    ts->str = setting.FLAGS_db + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> verify_target_file(fopen(ts->str.c_str(), "r"), fclose);
+
+    // 如果数据库中找不到对应的key文件
+    if (verify_target_file.get() == nullptr) {
+        ts->verifyResult = VERIFY_TYPE::FAIL;
+        return true;
+    }
+
+    size_t source_size = FileStream::fpsize(verify_source_file.get());
+    size_t target_size = FileStream::fpsize(verify_target_file.get());
+
+    std::unique_ptr<char> source_buf(new char[source_size]);
+    std::unique_ptr<char> target_buf(new char[target_size]);
+
+    // 如果source文件打不开说明发生错误
+    if (source_size != fread(source_buf.get(), 1, source_size, verify_source_file.get())) {
+        fprintf(stderr, "posix verify read source error:%s\n", strerror(errno));
+        return false;
+    }
+
+    // 如果两个大小不同则一定不匹配
+    if (source_size == target_size) {
+        if (target_size != fread(target_buf.get(), 1, target_size, verify_target_file.get())) {
+            fprintf(stderr, "posix verify read target error:%s\n", strerror(errno));
+            return false;
+        }
+
+        // 比较两个文件内容，如果相同则匹配否则不匹配
+        if (strcmp(source_buf.get(), target_buf.get()) == 0) {
+            ts->verifyResult = VERIFY_TYPE::MATCH;
+        } else {
+            ts->storeValue = std::string(source_buf.get());
+            ts->verifyResult = VERIFY_TYPE::MISMATCH;
+        }
+        return true;
+    } else {
+        ts->storeValue = std::string(source_buf.get());
+        ts->verifyResult = VERIFY_TYPE::MISMATCH;
+        return true;
+    }
 }
 
 /**
