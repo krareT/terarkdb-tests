@@ -15,7 +15,7 @@
 using namespace terark;
 
 /**
- * 打开
+ * 打开数据库
  */
 void RocksDbBenchmark::Open() {
   const std::string& dbname = setting.FLAGS_db;

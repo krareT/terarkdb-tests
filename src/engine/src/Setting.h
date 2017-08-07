@@ -94,7 +94,7 @@ class Setting : public BaseSetting {
 public:
     uint64_t FLAGS_block_size;
     uint32_t FLAGS_min_level_to_compress;
-    uint64_t FLAGS_num_levels = 7;
+    uint64_t FLAGS_num_levels = 7; // rocksdb的level数量
     //BaseSetting baseSetting;
     const char* FLAGS_benchmarks =
                     "fillseq,"
@@ -185,7 +185,7 @@ public:
     unsigned char fieldsDelim = '\t';
     std::vector<size_t> keyFields;
 
-    std::vector<std::string> dbdirs;
+    std::vector<std::string> dbdirs; // 数据库目录
     std::string logdir;
     std::string waldir;
     std::string alt_engine_name;
