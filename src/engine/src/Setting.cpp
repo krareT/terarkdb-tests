@@ -321,6 +321,11 @@ uint32_t BaseSetting::getThreadNums(void) const {
 void BaseSetting::setStop(void){
     stop.store(true);
 }
+
+/**
+ * 输出所有配置信息
+ * @return
+ */
 std::string BaseSetting::toString() {
     std::stringstream ret;
     ret << "benchmark name:\t"  << BenchmarkName << std::endl;
@@ -352,6 +357,12 @@ std::string BaseSetting::toString() {
     }
     return ret.str();
 }
+
+/**
+ * 设置基础配置
+ * @param line
+ * @return
+ */
 std::string BaseSetting::setBaseSetting(std::string &line) {
     std::vector<std::string> strvec;
     fstring(line).split(' ', &strvec);
