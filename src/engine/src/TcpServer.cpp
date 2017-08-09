@@ -25,7 +25,6 @@ void Session::do_read(){
 			  do_read();
 		  });
 }
-
 void Session::read_line_handler(const boost::system::error_code& ec,std::size_t size) {
     if (ec)
         return;

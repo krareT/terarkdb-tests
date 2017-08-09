@@ -156,7 +156,6 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     }
     return true;
 }
-
 void WiredTigerBenchmark::Open(){
     PrintHeader();
     PrintEnvironment();

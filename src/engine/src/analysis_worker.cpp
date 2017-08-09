@@ -79,7 +79,6 @@ struct LatencyStat {
     void reset() { memset(cnts, 0, sizeof(cnts)); }
     void update(std::pair<uint64_t, uint64_t> tt);
 };
-
 void LatencyStat::update(std::pair<uint64_t, uint64_t> tt) {
   int latencyUS = int((tt.second - tt.first) * 0.001);
   size_t idx = terark::lower_bound_0(g_latencyTimePeriodsUS, dimof(g_latencyTimePeriodsUS), latencyUS);
@@ -203,7 +202,6 @@ int Escape_arg(const int &val) {
 double Escape_arg(const double& val) {
   return val;
 }
-
 std::string Escape_arg(fstring val) {
   std::string esc(val.size()*3, '\0');
   size_t len = mysql_escape_string(&esc[0], val.data(), val.size());
