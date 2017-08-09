@@ -19,7 +19,7 @@ using terark::fstring;
 class TimeBucket {
 private:
     const char* engine_name; //
-    const std::vector<std::string>& dbdirs; // 数据库目录
+    const std::vector<std::string>& dbdirs;
 
     int current_bucket = 0;  // seconds
     int operation_count = 0;

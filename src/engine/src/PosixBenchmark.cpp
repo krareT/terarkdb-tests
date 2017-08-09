@@ -9,18 +9,9 @@
 
 using terark::FileStream;
 
-/**
- * 构造函数
- * 调用基类的构造函数来构造
- */
 PosixBenchmark::PosixBenchmark(Setting& setting):Benchmark(setting){
 }
 
-/**
- * 打开
- * 首先打开setting中需要使用的db
- * 然后关闭（雾
- */
 void PosixBenchmark::Open(void) {
     DIR *dir;
     dir = opendir(setting.FLAGS_db.c_str());
@@ -33,17 +24,9 @@ void PosixBenchmark::Open(void) {
     }
 }
 
-/**
- * 关闭
- * 空函数...
- */
 void PosixBenchmark::Close(void) {
 }
 
-/**
- * 加载
- * 将setting的loadDataPath复制到db的目录下
- */
 void PosixBenchmark::Load(void) {
     DIR *dir;
     fprintf(stderr, "PosixBenchmakr::Load to : %s\n", setting.getLoadDataPath().c_str());
@@ -68,14 +51,6 @@ void PosixBenchmark::Load(void) {
     return ;
 }
 
-/**
- * 读取一个key
- * 首先获取随机key
- * 然后从数据库中读取这个key所代表的文件
- * 最后读取到buf指针指向的空间中
- * @param ts
- * @return
- */
 bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
     if (!getRandomKey(ts->key, ts->randGenerator))
         return false;
@@ -91,14 +66,6 @@ bool PosixBenchmark::ReadOneKey(ThreadState *ts) {
     return true;
 }
 
-/**
- * 更新一个key
- * 首先随机获取一个key
- * 然后获取更新文件目录
- * 然后先读取更新文件，再写入
- * @param ts
- * @return
- */
 bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
     if (!getRandomKey(ts->key, ts->randGenerator)){
         fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
@@ -119,14 +86,6 @@ bool PosixBenchmark::UpdateOneKey(ThreadState *ts) {
     return true;
 }
 
-/**
- * 插入一个key
- * 首先随机获取一个要插入的key
- * 然后得到setting里面的insertDataPath和数据库的路径
- * 最后先读出insertDataPath中的数据，再写入数据库
- * @param ts
- * @return
- */
 bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
     if (!updateDataCq.try_pop(ts->key)) {
         return false;
@@ -149,25 +108,17 @@ bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
     return true;
 }
 
-/**
- * 验证
- * @author wiklvrain
- * @return
- */
 bool PosixBenchmark::VerifyOneKey(ThreadState *ts) {
     if (!verifyDataCq.try_pop(ts->key)) {
         return false;
     }
 
-    // 打开验证文件
     ts->str = setting.getVerifyKvFile() + "/" + ts->key;
     std::unique_ptr<FILE, decltype(&fclose)> verify_source_file(fopen(ts->str.c_str(), "r"), fclose);
 
-    // 打开数据库中对应的key文件
     ts->str = setting.FLAGS_db + "/" + ts->key;
     std::unique_ptr<FILE, decltype(&fclose)> verify_target_file(fopen(ts->str.c_str(), "r"), fclose);
 
-    // 如果数据库中找不到对应的key文件
     if (verify_target_file.get() == nullptr) {
         ts->verifyResult = VERIFY_TYPE::FAIL;
         return true;
@@ -179,20 +130,17 @@ bool PosixBenchmark::VerifyOneKey(ThreadState *ts) {
     std::unique_ptr<char> source_buf(new char[source_size]);
     std::unique_ptr<char> target_buf(new char[target_size]);
 
-    // 如果source文件打不开说明发生错误
     if (source_size != fread(source_buf.get(), 1, source_size, verify_source_file.get())) {
         fprintf(stderr, "posix verify read source error:%s\n", strerror(errno));
         return false;
     }
 
-    // 如果两个大小不同则一定不匹配
     if (source_size == target_size) {
         if (target_size != fread(target_buf.get(), 1, target_size, verify_target_file.get())) {
             fprintf(stderr, "posix verify read target error:%s\n", strerror(errno));
             return false;
         }
 
-        // 比较两个文件内容，如果相同则匹配否则不匹配
         if (strcmp(source_buf.get(), target_buf.get()) == 0) {
             ts->verifyResult = VERIFY_TYPE::MATCH;
         } else {
@@ -207,23 +155,12 @@ bool PosixBenchmark::VerifyOneKey(ThreadState *ts) {
     }
 }
 
-/**
- * 压缩
- * 直接返回false
- * @return
- */
 bool PosixBenchmark::Compact(void) {
     return false;
 }
 
-/**
- * 创建一个ThreadState对象
- * @param whichSamplingPlan
- * @return
- */
 ThreadState *PosixBenchmark::newThreadState(const std::atomic<std::vector<bool>*>* whichSamplingPlan) {
     return new ThreadState(threads.size(), whichSamplingPlan);
 }
-
 
 
