@@ -18,7 +18,7 @@ using terark::fstring;
 
 class TimeBucket {
 private:
-    const char* engine_name; //
+    const char* engine_name;
     const std::vector<std::string>& dbdirs;
 
     int current_bucket = 0;  // seconds
@@ -34,11 +34,6 @@ public:
     void update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE opType);
 };
 
-/**
- * 将time从秒变成纳秒
- * @param time
- * @return
- */
 static int findTimeBucket(uint64_t time) {
     static const uint64_t step_in_seconds = 10; // in seconds
     uint64_t t = time / (1000 * 1000 * 1000 * step_in_seconds);
@@ -85,12 +80,6 @@ struct LatencyStat { // 延迟状态
     void update(std::pair<uint64_t, uint64_t> tt); // 更新
 };
 
-/**
- * 更新cnts
- * 二分查找g_latencyTimePeriodsUS中第一个大于当前延迟的元素
- * 更新这个元素出现的次数
- * @param tt
- */
 void LatencyStat::update(std::pair<uint64_t, uint64_t> tt) {
   int latencyUS = int((tt.second - tt.first) * 0.001);
   size_t idx = terark::lower_bound_0(g_latencyTimePeriodsUS, dimof(g_latencyTimePeriodsUS), latencyUS);
@@ -98,12 +87,6 @@ void LatencyStat::update(std::pair<uint64_t, uint64_t> tt) {
 }
 LatencyStat g_latencyStat;
 
-/**
- * 建立mysql连接，成功则返回true，失败返回false
- * 选项可以通过环境变量设置，如host,username,port，password
- * @param conn
- * @return
- */
 static bool Mysql_connect(MYSQL* conn) {
     if(g_passwd == NULL || strlen(g_passwd) == 0) {
         fprintf(stderr, "no MYSQL_PASSWD set, analysis thread will not upload data!\n");
@@ -142,12 +125,6 @@ static bool Mysql_connect(MYSQL* conn) {
     return true;
 }
 
-/**
- * 生成MYSQL_STMT句柄
- * @param conn
- * @param sql
- * @return
- */
 static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
     MYSQL_STMT* stmt = mysql_stmt_init(conn);
     int err = mysql_stmt_prepare(stmt, sql.data(), sql.size());
@@ -159,12 +136,6 @@ static MYSQL_STMT* prepare(MYSQL* conn, fstring sql) {
 }
 
 // also write monitor stat to file
-/**
- * 打开一些文件
- * ops/memory/cpu/dbsize/diskinfo/latency
- * @param fprefix
- * @return
- */
 static std::ofstream ofs_ops, ofs_memory, ofs_cpu, ofs_dbsize, ofs_diskinfo, ofs_latency;
 static bool open_stat_files(std::string fprefix) {
   auto open1 = [&](std::ofstream& ofs, const char* suffix) -> bool {
@@ -186,11 +157,6 @@ static bool open_stat_files(std::string fprefix) {
   ;
 }
 
-/**
- * 打开验证文件
- * @param fprefix
- * @return
- */
 static std::ofstream ofs_verify;
 static bool open_verify_file(std::string fprefix) {
   std::string fpath = fprefix + "-verify-fail.txt";
@@ -202,9 +168,6 @@ static bool open_verify_file(std::string fprefix) {
   return true;
 }
 
-/**
- * 获取一些MYSQL_STMT句柄
- */
 static MYSQL_STMT *ps_ops, *ps_memory, *ps_cpu, *ps_dbsize, *ps_diskinfo, *ps_latency;
 static void prepair_all_stmt() {
     ps_ops = prepare(&g_conn, "INSERT INTO engine_test_ops_10s(time_bucket, ops, ops_type, engine_name) VALUES(?, ?, ?, ?)");
@@ -215,11 +178,6 @@ static void prepair_all_stmt() {
     ps_latency = prepare(&g_conn, "INSERT INTO engine_test_latency_10s(time_bucket, op_type, latency_us, cnt, `engine_name`) VALUES(?, ?, ?, ?, ?)");
 }
 
-/**
- * 将val绑定到b上
- * @param b
- * @param val
- */
 void Bind_arg(MYSQL_BIND &b, const int &val) {
     memset(&b, 0, sizeof(b));
     b.buffer_length = 4;
@@ -239,12 +197,6 @@ void Bind_arg(MYSQL_BIND& b, fstring val) {
     b.buffer = (void*)val.data();
 }
 
-/**
- * 直接返回val
- * 大概目的是去引用？
- * @param val
- * @return
- */
 int Escape_arg(const int &val) {
   return val;
 }
@@ -252,11 +204,6 @@ double Escape_arg(const double& val) {
   return val;
 }
 
-/**
- * 通过mysql_escape_string将val变成一个合法的SQL语句
- * @param val
- * @return
- */
 std::string Escape_arg(fstring val) {
   std::string esc(val.size()*3, '\0');
   size_t len = mysql_escape_string(&esc[0], val.data(), val.size());
@@ -264,16 +211,6 @@ std::string Escape_arg(fstring val) {
   return esc;
 }
 
-/**
- * 执行stmt句柄
- * 首先获取变长参数，把参数绑定到stmt句柄中，再执行
- * 成功返回true，失败返回false
- * 如果失败的原因是与mysql服务器断开连接，则重新连接并重新初始化所有stmt句柄
- * @tparam Args
- * @param stmt
- * @param args
- * @return
- */
 template<class... Args>
 bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
     MYSQL_BIND  b[sizeof...(Args)];
@@ -294,16 +231,6 @@ bool Exec_stmt(st_mysql_stmt* stmt, const Args&... args) {
     return true;
 }
 
-/**
- * 如果ofs是已经打开的，则将参数写入ofs，并且数据库未连接则true，否则false
- * 否则如果数据库未连接，则返回false
- * 如果数据库已连接，则执行stmt句柄，并返回执行结果
- * @tparam Args
- * @param ofs
- * @param stmt
- * @param args
- * @return
- */
 template<class... Args>
 bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     if (ofs.is_open()) {
@@ -323,13 +250,6 @@ bool Exec_stmt(std::ofstream& ofs, st_mysql_stmt* stmt, const Args&... args) {
     return Exec_stmt(stmt, args...);
 }
 
-/**
- * 上传系统用量
- * @param buf
- * @param dbdirs
- * @param bucket
- * @param engine_name
- */
 static int g_prev_sys_stat_bucket = 0;
 static void upload_sys_stat(terark::AutoGrownMemIO& buf,
                             const std::vector<std::string>& dbdirs,
@@ -340,44 +260,30 @@ static void upload_sys_stat(terark::AutoGrownMemIO& buf,
     }
     g_prev_sys_stat_bucket = bucket;
     int arr[4];
-    // 获取内存用量
     benchmark::getPhysicalMemoryUsage(arr);
-    // 写入ofs_memory的文件中，并写入数据库的engine_test_memory_10s表中
     Exec_stmt(ofs_memory, ps_memory, bucket, arr[0], arr[1], arr[2], arr[3], engine_name);
     buf.printf("    total memory = %5.2f GiB", arr[0]/1024.0);
 
     double cpu[2];
-    // 获取CPU占用百分比
     benchmark::getCPUPercentage(cpu);
     if(cpu > 0){
-        // 写入ofs_cpu的文件中，并写入数据库的engine_test_memory_10s表中
         Exec_stmt(ofs_cpu, ps_cpu, bucket, cpu[0], cpu[1], engine_name);
     }
     buf.printf("    cpu usage = %5.2f iowait = %5.2f", cpu[0], cpu[1]);
 
-    // 获取磁盘用量------以kb表示
     int dbsizeKB = benchmark::getDiskUsageByKB(dbdirs);
     if(dbsizeKB > 0) {
-        // 写入ofs_dbsize文件中，并写入数据库的engine_test_dbsize_10s表中
         Exec_stmt(ofs_dbsize, ps_dbsize, bucket, dbsizeKB, engine_name);
     }
     buf.printf("    dbsize = %5.2f GiB", dbsizeKB/1024.0/1024);
 
-    // 获取磁盘用量
     std::string diskinfo;
     benchmark::getDiskFileInfo(dbdirs, diskinfo);
     if(diskinfo.length() > 0) {
-        // 写入ofs_diskinfo文件中，并写入数据库的engine_test_diskinfo_10s表中
         Exec_stmt(ofs_diskinfo, ps_diskinfo, bucket, fstring(diskinfo), engine_name);
     }
 }
 
-/**
- * 更新操作
- * @param buf
- * @param sampleRate
- * @param opType
- */
 void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE opType) {
     std::pair<uint64_t, uint64_t> tt;
     const int type = int(opType) + 1;
@@ -385,17 +291,12 @@ void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE
     while (Stats::opsDataCq[int(opType)].try_pop(tt)) {
       loop_cnt++;
       int next_bucket = findTimeBucket(tt.first);
-      // 在当前bucket之前的一段bucket被统一记录并上传
-      // 每次遇到开始时间晚于当前bucket的bucket，就开始上传，并更新新的bucket
-      if (next_bucket > current_bucket) { // 如果下一个bucket开始时间晚于当前时间
+      if (next_bucket > current_bucket) {
           // when meet the next bucket, upload previous one first, default step is 10 seconds
           // * 100 / (10 * sampleRate) // sampleRate : (0, 100]
-          int ops = int(operation_count * 10.0 / sampleRate); //执行操作的次数*10与采样比例的比
+          int ops = int(operation_count * 10.0 / sampleRate);
           buf.rewind();
-          // 写入ofs_ops的文件并插入数据库的engine_test_ops_10s表中
           Exec_stmt(ofs_ops, ps_ops, current_bucket, ops, type, engine_name);
-          // 对于g_latencyStat的所有记录
-          // 如果次数不为0的话，则写入ofs_latency的文件，并插入数据库的engine_test_latency_10s表中
           for (size_t i = 0; i < dimof(g_latencyStat.cnts); ++i) {
               auto latency = g_latencyTimePeriodsUS[i];
               auto cnt = int(g_latencyStat.cnts[i] * 100.0 / sampleRate);
@@ -406,7 +307,6 @@ void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE
           }
           buf.printf("upload statistic time bucket[%d], ops = %7d, type = %d, loop = %7d"
         , current_bucket, ops, type, loop_cnt);
-          // 上传系统用量
           upload_sys_stat(buf, dbdirs, current_bucket, engine_name);
           fprintf(stderr, "%s\n", buf.begin());
           g_latencyStat.reset();
@@ -421,9 +321,6 @@ void TimeBucket::update_ops(terark::AutoGrownMemIO& buf, int sampleRate, OP_TYPE
     }
 }
 
-/**
- * 将验证错误的数据写入ofs_verify的文件中
- */
 static void write_verify_fail_data() {
     std::string str;
     while (Stats::verifyFailDataCq.try_pop(str)) {
@@ -433,24 +330,14 @@ static void write_verify_fail_data() {
     }
 }
 
-/**
- * 构造函数
- * @param setting
- */
 AnalysisWorker::AnalysisWorker(Setting* setting) {
     this->setting = setting;
 }
 
-/**
- * 析构函数
- */
 AnalysisWorker::~AnalysisWorker() {
     fprintf(stderr, "analysis worker is stopped!\n");
 }
 
-/**
- * 将shoud_stop设置为true，则AnalysisWorker线程将会停止
- */
 void AnalysisWorker::stop() {
     shoud_stop = true;
 }
@@ -458,10 +345,6 @@ void AnalysisWorker::stop() {
 char** g_argv;
 int g_argc;
 
-/**
- * 上传命令和参数到数据库
- * @param engine_name
- */
 void upload_command_and_env(fstring engine_name) {
   MYSQL_STMT* stmt = prepare(&g_conn, "insert into engine_test_command(engine_name, time, command_line, env) values (?,?,?,?)");
   std::string cmd, env;
@@ -487,9 +370,6 @@ void upload_command_and_env(fstring engine_name) {
   mysql_stmt_close(stmt);
 }
 
-/**
- * 执行分析工作
- */
 void AnalysisWorker::run() {
     if (const char* fprefix = getenv("MONITOR_STAT_FILE_PREFIX")) {
         if (!open_stat_files(fprefix)) {
@@ -553,7 +433,6 @@ void AnalysisWorker::run() {
         clock_gettime(CLOCK_REALTIME, &ts1);
         unsigned long long tt = 1000000000ull * ts1.tv_sec + ts1.tv_nsec;
         int curr_bucket = findTimeBucket(tt);
-        // 如果当前时间晚于之前系统状态的时间,则更新系统状态
         if (curr_bucket > g_prev_sys_stat_bucket) {
             buf.rewind();
             buf.printf("upload statistic time bucket[%d], nop", curr_bucket);
@@ -562,7 +441,6 @@ void AnalysisWorker::run() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-    // 销毁所有的stmt句柄
     if (g_hasConn) {
         mysql_stmt_close(ps_ops);
         mysql_stmt_close(ps_memory);

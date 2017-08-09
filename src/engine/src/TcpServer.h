@@ -30,7 +30,7 @@ private:
     Benchmark *benchmark;
 };
 class Server {
-    tcp::acceptor acceptor_; // 用于接收新的socket连接
+    tcp::acceptor acceptor_;
     tcp::socket socket_;
     Setting &setting;
     Benchmark *benchmark;

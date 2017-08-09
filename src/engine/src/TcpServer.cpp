@@ -57,7 +57,7 @@ Server::Server(boost::asio::io_service& io_service, short port,
     setting(setting1),
     benchmark(bm)
 {
-  acceptor_.set_option(tcp::acceptor::reuse_address(true)); // 设置socket允许被绑定到一个正在使用的address中
+  acceptor_.set_option(tcp::acceptor::reuse_address(true));
   do_accept();
 }
 

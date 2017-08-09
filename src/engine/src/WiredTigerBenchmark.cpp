@@ -172,7 +172,7 @@ void WiredTigerBenchmark::Open(){
     fprintf(stderr, "INFO: wiredtiger_open(db=%s, conf=%s)\n"
                   , setting.FLAGS_db.c_str(), strConf.c_str());
     int err = wiredtiger_open(setting.FLAGS_db.c_str(), NULL, strConf.c_str(), &conn_);
-    if (err) { // wiredtiger_open成功返回0，失败返回非0值
+    if (err) {
       fprintf(stderr, "ERROR: wiredtiger_open(, %s) = %s\n"
                     , setting.FLAGS_db.c_str(), wiredtiger_strerror(err));
       exit(1);
@@ -334,7 +334,7 @@ void WiredTigerBenchmark::PrintWarnings() {
     }
 }
 void WiredTigerBenchmark::PrintEnvironment() {
-    int wtmaj, wtmin, wtpatch; // 主版本号，次版本号，补丁版本号(a.b.c)
+    int wtmaj, wtmin, wtpatch;
     const char *wtver = wiredtiger_version(&wtmaj, &wtmin, &wtpatch);
     fprintf(stdout, "WiredTiger:    version %s, lib ver %d, lib rev %d patch %d\n",
             wtver, wtmaj, wtmin, wtpatch);
