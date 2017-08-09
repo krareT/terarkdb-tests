@@ -73,11 +73,11 @@ static const int g_latencyTimePeriodsUS[] = {
 };
 #define dimof(array) (sizeof(array)/sizeof(array[0]))
 
-struct LatencyStat { // 延迟状态
-    int cnts[dimof(g_latencyTimePeriodsUS)]; // 第多少个延迟有多少次
+struct LatencyStat {
+    int cnts[dimof(g_latencyTimePeriodsUS)];
     LatencyStat() : cnts{0} {}
-    void reset() { memset(cnts, 0, sizeof(cnts)); } // 重置
-    void update(std::pair<uint64_t, uint64_t> tt); // 更新
+    void reset() { memset(cnts, 0, sizeof(cnts)); }
+    void update(std::pair<uint64_t, uint64_t> tt);
 };
 
 void LatencyStat::update(std::pair<uint64_t, uint64_t> tt) {

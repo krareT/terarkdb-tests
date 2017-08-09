@@ -20,7 +20,6 @@ void Benchmark::updateSamplingPlan(std::vector<bool> &plan, uint8_t percent) {
 void Benchmark::shufflePlan(std::vector<uint8_t > &plan){
     std::shuffle(plan.begin(),plan.end(),std::default_random_engine());
 }
-
 void Benchmark::adjustThreadNum(uint32_t target, const std::atomic<std::vector<bool>*>* whichSPlan) {
     while (target > threads.size()){
         ThreadState* state = newThreadState(whichSPlan);
@@ -181,6 +180,7 @@ void Benchmark::loadInsertData(){
         fprintf(stderr, "Benchmark::loadInsertData(): compaction finished!\n");
     }
 }
+
 
 void Benchmark::Verify() {
     int old_samplingRate = -1;

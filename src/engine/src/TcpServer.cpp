@@ -9,11 +9,13 @@ Session::Session(tcp::socket socket) : socket_(std::move(socket)) {
   setting = NULL;
   benchmark = NULL;
 }
+
 void Session::start(Setting *setting1, Benchmark *bm) {
     setting = setting1;
     benchmark = bm;
     do_read();
 }
+
 void Session::do_read(){
     auto self(shared_from_this());
     boost::asio::async_read_until(socket_, buf_, "\n",
@@ -23,6 +25,7 @@ void Session::do_read(){
 			  do_read();
 		  });
 }
+
 void Session::read_line_handler(const boost::system::error_code& ec,std::size_t size) {
     if (ec)
         return;
@@ -35,6 +38,7 @@ void Session::read_line_handler(const boost::system::error_code& ec,std::size_t 
     message += "\nEND\r\n";
     do_write(message);
 }
+
 void Session::do_write(std::string &message) {
   auto self(shared_from_this());
   boost::asio::async_write(socket_, boost::asio::buffer(message,message.size()),

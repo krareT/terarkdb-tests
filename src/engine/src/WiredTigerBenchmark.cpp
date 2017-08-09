@@ -53,11 +53,13 @@ WiredTigerBenchmark::newThreadState(const std::atomic<std::vector<bool>*>* which
 void WiredTigerBenchmark::Load(void) {
     DoWrite(true);
 }
+
 void WiredTigerBenchmark::Close(void) {
     clearThreads();
     conn_->close(conn_, NULL);
     conn_ = NULL;
 }
+
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     if (!getRandomKey(thread->key, thread->randGenerator)){
         return false;
@@ -74,6 +76,7 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     cursor->reset(cursor);
     return false;
 }
+
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
@@ -97,6 +100,7 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     }
     return true;
 }
+
 bool WiredTigerBenchmark::VerifyOneKey(ThreadState *thread) {
     auto t = static_cast<WT_ThreadState *>(thread);
     std::string &rkey = thread->key;
@@ -129,6 +133,7 @@ bool WiredTigerBenchmark::VerifyOneKey(ThreadState *thread) {
         return false;
     }
 }
+
 bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
@@ -151,6 +156,7 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     }
     return true;
 }
+
 void WiredTigerBenchmark::Open(){
     PrintHeader();
     PrintEnvironment();
@@ -218,6 +224,7 @@ void WiredTigerBenchmark::Open(){
         session->close(session, NULL);
     }
 }
+
 bool WiredTigerBenchmark::Compact() {
   WT_SESSION *session;
   int ret = conn_->open_session(conn_, NULL, NULL, &session);
@@ -231,6 +238,7 @@ bool WiredTigerBenchmark::Compact() {
   fprintf(stderr, "ERROR: WiredTigerBenchmark::Compact() failed\n");
   return false;
 }
+
 void WiredTigerBenchmark::DoWrite(bool seq) {
     fprintf(stderr, "WiredTigerBenchmark::DoWrite(%d) start\n", seq);
     std::stringstream txn_config;
@@ -296,6 +304,7 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
     timenow = localtime(&now);
     fprintf(stderr, "recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
 }
+
 void WiredTigerBenchmark::PrintHeader() {
     const int kKeySize = 16;
     PrintEnvironment();
@@ -313,6 +322,7 @@ void WiredTigerBenchmark::PrintHeader() {
     PrintWarnings();
     fprintf(stdout, "------------------------------------------------\n");
 }
+
 void WiredTigerBenchmark::PrintWarnings() {
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
     fprintf(stdout,
@@ -333,6 +343,7 @@ void WiredTigerBenchmark::PrintWarnings() {
         fprintf(stdout, "WARNING: Snappy compression is not effective\n");
     }
 }
+
 void WiredTigerBenchmark::PrintEnvironment() {
     int wtmaj, wtmin, wtpatch;
     const char *wtver = wiredtiger_version(&wtmaj, &wtmin, &wtpatch);
