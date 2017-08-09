@@ -36,7 +36,6 @@ CMakeFiles
 cmake_install.cmake
 #clion file
 .idea/
-cmake-build-debug/
 build/*
 shell/experiment
 
