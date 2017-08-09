@@ -50,27 +50,14 @@ WiredTigerBenchmark::newThreadState(const std::atomic<std::vector<bool>*>* which
     return new WT_ThreadState(threads.size(), conn_, uri_.c_str(), whichSPlan);
 }
 
-/**
- * 加载key，value
- */
 void WiredTigerBenchmark::Load(void) {
     DoWrite(true);
 }
-
-/**
- * 关闭与wiredtiger的连接
- */
 void WiredTigerBenchmark::Close(void) {
     clearThreads();
     conn_->close(conn_, NULL);
     conn_ = NULL;
 }
-
-/**
- * 读一个key
- * @param thread
- * @return
- */
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     if (!getRandomKey(thread->key, thread->randGenerator)){
         return false;
@@ -87,12 +74,6 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
     cursor->reset(cursor);
     return false;
 }
-
-/**
- * 更新一个key
- * @param thread
- * @return
- */
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
@@ -116,14 +97,6 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     }
     return true;
 }
-
-/**
- * 验证
- * 利用WiredtigerAPI进行验证
- * @author wiklvrain
- * @param thread
- * @return
- */
 bool WiredTigerBenchmark::VerifyOneKey(ThreadState *thread) {
     auto t = static_cast<WT_ThreadState *>(thread);
     std::string &rkey = thread->key;
@@ -156,12 +129,6 @@ bool WiredTigerBenchmark::VerifyOneKey(ThreadState *thread) {
         return false;
     }
 }
-
-/**
- * 插入一个key
- * @param thread
- * @return
- */
 bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
@@ -184,18 +151,11 @@ bool WiredTigerBenchmark::InsertOneKey(ThreadState *thread){
     }
     return true;
 }
-
-/**
- * 打开WiredTiger连接
- * 如果FLAGS_use_existing_db是false则创建数据库
- * 否则正常连接
- * 如果是创建数据库，则创建columns
- */
 void WiredTigerBenchmark::Open(){
     PrintHeader();
     PrintEnvironment();
     PrintWarnings();
-#define SMALL_CACHE (10*1024*1024)
+#define SMALL_CACHE 10*1024*1024
     std::stringstream config;
     config.str("");
     if (!setting.FLAGS_use_existing_db) {
@@ -258,11 +218,6 @@ void WiredTigerBenchmark::Open(){
         session->close(session, NULL);
     }
 }
-
-/**
- * 压缩一个实时的行或列存储的B tree或LSM tree
- * @return
- */
 bool WiredTigerBenchmark::Compact() {
   WT_SESSION *session;
   int ret = conn_->open_session(conn_, NULL, NULL, &session);
@@ -276,15 +231,6 @@ bool WiredTigerBenchmark::Compact() {
   fprintf(stderr, "ERROR: WiredTigerBenchmark::Compact() failed\n");
   return false;
 }
-
-/**
- * 执行写操作
- * 打开loadDataPath所代表的文件
- * 然后从中读取key和value
- * 利用wiredtiger的api插入到数据库中
- * 如果需要采样，则计算插入一条数据所需要的时间
- * @param seq
- */
 void WiredTigerBenchmark::DoWrite(bool seq) {
     fprintf(stderr, "WiredTigerBenchmark::DoWrite(%d) start\n", seq);
     std::stringstream txn_config;
@@ -350,13 +296,6 @@ void WiredTigerBenchmark::DoWrite(bool seq) {
     timenow = localtime(&now);
     fprintf(stderr, "recordnumber %lld,  time %s\n",recordnumber, asctime(timenow));
 }
-
-/**
- * 打印头部信息
- * 首先打印环境信息
- * 其次输出key、value的size，以及原始数据的size和文件size
- * 最后输出警告
- */
 void WiredTigerBenchmark::PrintHeader() {
     const int kKeySize = 16;
     PrintEnvironment();
@@ -374,10 +313,6 @@ void WiredTigerBenchmark::PrintHeader() {
     PrintWarnings();
     fprintf(stdout, "------------------------------------------------\n");
 }
-
-/**
- * 打印警告
- */
 void WiredTigerBenchmark::PrintWarnings() {
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
     fprintf(stdout,
@@ -398,12 +333,6 @@ void WiredTigerBenchmark::PrintWarnings() {
         fprintf(stdout, "WARNING: Snappy compression is not effective\n");
     }
 }
-
-/**
- * 打印环境信息
- * 打印wiredtiger版本号
- * 如果是Linux环境下，则输出cpu信息
- */
 void WiredTigerBenchmark::PrintEnvironment() {
     int wtmaj, wtmin, wtpatch; // 主版本号，次版本号，补丁版本号(a.b.c)
     const char *wtver = wiredtiger_version(&wtmaj, &wtmin, &wtpatch);

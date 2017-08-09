@@ -52,13 +52,6 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
     setting.dbdirs.push_back(opt.localTempDir);
 }
 
-/**
- * 处理信息
- * 如果msg是key:value这种类型，则根据key执行不同的函数
- * 同时将所有key:value打印出来
- * @param msg
- * @return
- */
 std::string TerocksBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())
