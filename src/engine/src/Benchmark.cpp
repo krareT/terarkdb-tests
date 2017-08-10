@@ -135,6 +135,20 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
     return true;
 }
 
+bool Benchmark::getShufKey(std::string &key) {
+    if (allkeys.empty()) {
+        return false;
+    }
+    if (shufKeyIndex >= allkeys.size()) {
+      shufKeyIndex = 0;
+    }
+    const char* p = allkeys.beg_of(shufKeyIndex);
+    const size_t n = allkeys.slen(shufKeyIndex);
+    key.assign(p, n);
+    ++shufKeyIndex;
+    return true;
+}
+
 void Benchmark::loadInsertData(){
     const char* fpath = setting.getInsertDataPath().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));
@@ -219,7 +233,7 @@ void Benchmark::adjustVerifyThreadNum(uint32_t target, const std::atomic<std::ve
 
 void Benchmark::executeVerify(ThreadState *thread) {
     fprintf(stderr, "Thread %2d run Benchmark::verifyOneKey() start...\n", thread->tid);
-    char *tempStr= new char[748578000 * 2];
+    char *tempStr= new char[3598300 * 2];
     while (!thread->STOP.load()) {
       std::vector<bool> &samplingPlan = *thread->whichSamplingPlan->load();
       bool useSampling;
@@ -337,6 +351,7 @@ Benchmark::Benchmark(Setting& s)
 , setting(s)
 {
     compactTimes = s.getCompactTimes();
+    shufKeyIndex = 0;
 }
 
 Benchmark::~Benchmark() {}

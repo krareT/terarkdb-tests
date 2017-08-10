@@ -30,6 +30,7 @@ private:
     std::atomic<std::vector<bool>*> samplingPlanAddr;
     std::vector<bool> samplingPlan[2];
     std::mt19937_64 random;
+    uint64_t shufKeyIndex;
     bool whichSPlan = false;
     uint8_t compactTimes;
     terark::fstrvec allkeys;
@@ -55,6 +56,7 @@ protected:
 public:
     void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
+    bool getShufKey(std::string &key);
     std::vector<std::pair<std::thread, ThreadState*>> threads;
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;

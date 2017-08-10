@@ -59,6 +59,10 @@ Setting::Setting(int argc, char **argv) {
             disableWAL = true;
             printf("disable_wal = true\n");
         }
+        else if (arg.startsWith("--use_shuf_key") || arg.startsWith("--useShufKey")) {
+            useShufKey = true;
+            printf("use_shuf_key = true\n");
+        }
         else if (arg.startsWith("--sync_index=")) {
             FLAGS_sync_index = (int)lcast(arg.substr(strlen("--sync_index=")));
         }

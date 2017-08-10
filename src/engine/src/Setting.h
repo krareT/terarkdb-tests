@@ -171,6 +171,9 @@ public:
     bool disableWAL = false;
     bool autoSlowDownWrite = true;
 
+ //use shufed keys if ture, otherwise use Random
+    bool useShufKey = false;
+
     int FLAGS_max_compact_wait = 1200;
     int terocksdbIndexNestLevel = 3;
 

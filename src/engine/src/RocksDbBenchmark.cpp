@@ -299,8 +299,15 @@ void RocksDbBenchmark::Load() {
 }
 
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
-    if (!getRandomKey(ts->key, ts->randGenerator))
+    if (setting.useShufKey) {
+      if (!getShufKey(ts->key))
         return false;
+    }
+    else {
+      if (!getRandomKey(ts->key, ts->randGenerator))
+        return false;
+    }
+
     if (!db->Get(read_options, ts->key, &(ts->value)).ok())
         return false;
     return true;
