@@ -206,7 +206,7 @@ void Benchmark::Verify() {
             adjustSamplingPlan(samplingRate);
         }
         int threadNum = setting.getThreadNums();
-      adjustVerifyThreadNum(threadNum, &samplingPlanAddr);
+        adjustVerifyThreadNum(threadNum, &samplingPlanAddr);
         checkExecutePlan();
         int handle_messge_times = 5;
         while (handle_messge_times--) {
@@ -214,7 +214,7 @@ void Benchmark::Verify() {
             sleep(5);
         }
     }
-  adjustVerifyThreadNum(0, nullptr);
+    adjustVerifyThreadNum(0, nullptr);
     loadVerifyDataThread.join();
 }
 

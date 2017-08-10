@@ -108,8 +108,51 @@ bool PosixBenchmark::InsertOneKey(ThreadState *ts) {
     return true;
 }
 
-bool PosixBenchmark::VerifyOneKey(ThreadState *) {
-    return false;
+bool PosixBenchmark::VerifyOneKey(ThreadState *ts) {
+    if (!verifyDataCq.try_pop(ts->key)) {
+        return false;
+    }
+
+    ts->str = setting.getVerifyKvFile() + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> verify_source_file(fopen(ts->str.c_str(), "r"), fclose);
+
+    ts->str = setting.FLAGS_db + "/" + ts->key;
+    std::unique_ptr<FILE, decltype(&fclose)> verify_target_file(fopen(ts->str.c_str(), "r"), fclose);
+
+    if (verify_target_file.get() == nullptr) {
+        ts->verifyResult = VERIFY_TYPE::FAIL;
+        return true;
+    }
+
+    size_t source_size = FileStream::fpsize(verify_source_file.get());
+    size_t target_size = FileStream::fpsize(verify_target_file.get());
+
+    std::unique_ptr<char> source_buf(new char[source_size]);
+    std::unique_ptr<char> target_buf(new char[target_size]);
+
+    if (source_size != fread(source_buf.get(), 1, source_size, verify_source_file.get())) {
+        fprintf(stderr, "posix verify read source error:%s\n", strerror(errno));
+        return false;
+    }
+
+    if (source_size == target_size) {
+        if (target_size != fread(target_buf.get(), 1, target_size, verify_target_file.get())) {
+            fprintf(stderr, "posix verify read target error:%s\n", strerror(errno));
+            return false;
+        }
+
+        if (strcmp(source_buf.get(), target_buf.get()) == 0) {
+            ts->verifyResult = VERIFY_TYPE::MATCH;
+        } else {
+            ts->storeValue = std::string(source_buf.get());
+            ts->verifyResult = VERIFY_TYPE::MISMATCH;
+        }
+        return true;
+    } else {
+        ts->storeValue = std::string(source_buf.get());
+        ts->verifyResult = VERIFY_TYPE::MISMATCH;
+        return true;
+    }
 }
 
 bool PosixBenchmark::Compact(void) {
