@@ -167,6 +167,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
         if (!setting.FLAGS_enable_auto_compact) {
           options.level0_file_num_compaction_trigger = INT_MAX;
         }
+        options.delayed_write_rate = INT_MAX >> 1;
     }
     else if (setting.write_rate_limit) {
         // limit write rate being stable
@@ -187,6 +188,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
         options.hard_pending_compaction_bytes_limit = 0;
         options.min_write_buffer_number_to_merge = 1;
         options.level0_file_num_compaction_trigger = 6;
+        options.delayed_write_rate = INT_MAX >> 1;
         fprintf(stderr, "INFO: rocksdb disabled auto slowdown write\n");
     }
     else {
