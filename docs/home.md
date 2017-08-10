@@ -28,7 +28,7 @@ This program read **Data Source** sequentially, so when you have a huge dataset 
 
 
 ```bash
-diff <(zcat file1.gz) <(zcat file2.gz>
+diff <(zcat file1.gz) <(zcat file2.gz)
 ```
 
 This will diff directly the content of `file1.gz` and `file2.gz` without de-compressed tmp files.
