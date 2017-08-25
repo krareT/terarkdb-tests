@@ -76,11 +76,11 @@ The required options are followed by a `=`, e.g. `--keyfields='|'`
 |------------|---------------|
 |--action=|`load` or `run`<br/>`load` is for write only, write all data into DB ASAP and compact, the program will exit after the compaction.<br/>`run` will excute the read & write test, keeps running until user press `Ctrl + C`|
 |--key\_fields=   |Numbers that are separated by a comma (,)<br/> Each number represent a field (start from 0)|
-|--fields\_num=   |每条记录有多少个字段，仅用于数据合法性检查|
-|--fields\_delim= |字段分隔符，不指定该参数时，默认'\t'，TPC-H数据的分隔符是'&#124;'，<br/>shell脚本中需要将'&#124;'放入引号中，否则'&#124;' 会被解释为管道|
-|--insert\_data\_path=|**数据源**的文件名，可以是 shell 替换，例如 `<(zcat data.gz)`|
-|--load\_data\_path=|**数据源**的文件名，可以是 shell 替换，例如 `<(zcat data.gz)`<br/>load 速度比较快，`zcat`的速度可能跟不上，所以，最好使用SSD上存储的未压缩的文件|
-|--keys\_data\_path=|预抽取出来的 key 文件，用来进行随机读|
+|--fields\_num=   |How many fields each record, only use for data validation|
+|--fields\_delim= |Fields delimator, default '\t'，TPC-H's delimator is '&#124;'，<br/>when using under shell script, '&#124;' shoule be placed between '', or it will be treated as shell pipeline|
+|--insert\_data\_path=|**data source** filename，could use shell as replacement, e.g. `<(zcat data.gz)`|
+|--load\_data\_path=|**data source** filename，could use shell as replacement, e.g. `<(zcat data.gz)`<br/>since load is very fast，`zcat` may couldn't follow, so its better to use uncompressed files in SSD|
+|--keys\_data\_path=|pre-loaded key files，using for random read|
 |--cache\_size=|RocksDB/wiredtiger 数据库缓存的尺寸，可以使用 K,M,G,T 后缀。<br/>注意：操作系统的 pagecache 需要另外的内存，如果 cache\_size 设置过大，<br/>可能会导致操作系统 pagecache 太小不够用而引起一些问题|
 |--logdir=|用于自定义 RocksDB 的 logdir(记录状态和出错信息)|
 |--waldir=|用于自定义 RocksDB 的 waldir(wal 指 Write Ahead Log)|
