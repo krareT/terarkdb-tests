@@ -16,6 +16,7 @@
 #include <thread>
 #include <tbb/concurrent_vector.h>
 #include <terark/util/fstrvec.hpp>
+#include <terark/util/autoclose.hpp>
 #include "ThreadState.h"
 #include "Setting.h"
 
@@ -52,6 +53,9 @@ private:
     bool executeOneOperation(ThreadState* state,OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
     void reportMessage(const std::string &);
+
+    std::shared_ptr<terark::Auto_fclose> ifs;
+
 protected:
     void clearThreads();
 public:
