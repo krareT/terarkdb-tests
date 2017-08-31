@@ -38,6 +38,7 @@ private:
     void loadKeys();
     void loadInsertData();
     void loadVerifyKvData();
+    void loadShufKeyData();
     void checkExecutePlan();
     void updatePlan(const PlanConfig &pc,std::vector<OP_TYPE > &plan);
     void updateSamplingPlan(std::vector<bool> &plan, uint8_t percent);
@@ -60,6 +61,7 @@ public:
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;
     tbb::concurrent_queue<std::string> verifyDataCq;
+    tbb::concurrent_queue<std::string> shufKeyDataCq;
 
     Benchmark(Setting&);
     virtual ~Benchmark();

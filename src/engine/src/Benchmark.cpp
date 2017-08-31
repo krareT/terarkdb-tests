@@ -49,7 +49,7 @@ void Benchmark::RunBenchmark(void){
     std::thread loadInsertDataThread(&Benchmark::loadInsertData, this);
     std::thread *loadShufKeyDataThreadPtr;
     if (setting.useShufKey) {
-        loadShufKeyDataThreadPtr = new std::thread(&Benchmark::loadVerifyKvData, this);
+        loadShufKeyDataThreadPtr = new std::thread(&Benchmark::loadShufKeyData, this);
     }
     while (!setting.ifStop()){
         int samplingRate = setting.getSamplingRate();
@@ -142,7 +142,7 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
         key.assign(p, n);
         return true;
     } else {
-        return verifyDataCq.try_pop(key);
+        return shufKeyDataCq.try_pop(key);
     }
 }
 
@@ -311,6 +311,49 @@ void Benchmark::loadVerifyKvData() {
     }
     if (!setting.ifStop() && lines > 0) {
         fprintf(stderr, "Benchmark::loadVerifykvData(): all data are loaded");
+    }
+}
+
+void Benchmark::loadShufKeyData() {
+    const char* fpath = setting.getKeysDataPath().c_str();
+    Auto_fclose ifs(fopen(fpath, "r"));
+    if (!ifs) {
+        fprintf(stderr, "ERROR: Benchmark::loadShufKeyData(): fopen(%s, r) = %s\n", fpath, strerror(errno));
+        return;
+    }
+    size_t limit = setting.FLAGS_load_size;
+    fprintf(stderr, "Benchmark::loadShufKeyData(%s) start, limit = %f GB\n", fpath, limit/1e9);
+    LineBuf line;
+    size_t lines = 0;
+    terark::profiling pf;
+    long long t0 = pf.now();
+    size_t bytes = 0;
+    while(bytes < limit && !setting.ifStop() && !feof(ifs)) {
+        size_t count = 0;
+        while (bytes < limit && shufKeyDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+            line.chomp();
+            bytes += line.size();
+            shufKeyDataCq.push(std::string(line.p, line.n));
+            count++;
+        }
+        lines += count;
+        usleep(300000);
+    }
+    long long t1 = pf.now();
+    fprintf(stderr
+            , "Benchmark::loadShufKeyData(%s) %s, lines = %zd, bytes = %zd, time = %f sec, speed = %f MB/sec\n"
+            , fpath
+            , setting.ifStop() ? "stopped" : "completed"
+            , lines, bytes, pf.sf(t0, t1), bytes/pf.uf(t0, t1)
+    );
+
+    // when read all verify_kv_file, stop process
+    if (feof(ifs)) {
+        extern void stop_test();
+        stop_test();
+    }
+    if (!setting.ifStop() && lines > 0) {
+        fprintf(stderr, "Benchmark::loadShufKeyData(): all data are loaded");
     }
 }
 
