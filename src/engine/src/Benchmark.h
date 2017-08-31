@@ -56,7 +56,6 @@ protected:
 public:
     void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
-    bool getShufKey(std::string &key);
     std::vector<std::pair<std::thread, ThreadState*>> threads;
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;

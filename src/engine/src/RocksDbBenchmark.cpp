@@ -7,6 +7,7 @@
 #include <rocksdb/cache.h>
 #include <rocksdb/table.h>
 #include <rocksdb/filter_policy.h>
+#include <rocksdb/rate_limiter.h>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/autoclose.hpp>
 #include <terark/util/profiling.hpp>
@@ -56,6 +57,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
     options.enable_write_thread_adaptive_yield = true;
     options.allow_mmap_reads = true;
     options.allow_mmap_writes = true;
+    //options.rate_limiter = rocksdb::NewGenericRateLimiter(1000, 10 * 1000);
 // end
 
     write_options.disableWAL = set.disableWAL;
@@ -309,14 +311,8 @@ void RocksDbBenchmark::Load() {
 }
 
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
-    if (setting.useShufKey) {
-      if (!getShufKey(ts->key))
+    if (!getRandomKey(ts->key, ts->randGenerator))
         return false;
-    }
-    else {
-      if (!getRandomKey(ts->key, ts->randGenerator))
-        return false;
-    }
 
     if (!db->Get(read_options, ts->key, &(ts->value)).ok())
         return false;

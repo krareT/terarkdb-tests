@@ -47,6 +47,10 @@ void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
 void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
     std::thread loadInsertDataThread(&Benchmark::loadInsertData, this);
+    std::thread *loadShufKeyDataThreadPtr;
+    if (setting.useShufKey) {
+        loadShufKeyDataThreadPtr = new std::thread(&Benchmark::loadVerifyKvData, this);
+    }
     while (!setting.ifStop()){
         int samplingRate = setting.getSamplingRate();
         if (old_samplingRate != samplingRate){
@@ -73,6 +77,9 @@ void Benchmark::RunBenchmark(void){
     }
     adjustThreadNum(0, nullptr);
     loadInsertDataThread.join();
+    if (setting.useShufKey) {
+        loadShufKeyDataThreadPtr->join();
+    }
 }
 
 bool Benchmark::executeOneOperation(ThreadState* state, OP_TYPE type){
@@ -125,28 +132,18 @@ void Benchmark::loadKeys() {
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
-    if (allkeys.empty()){
-        return false;
+    if (!setting.useShufKey) {
+        if (allkeys.empty()){
+            return false;
+        }
+        auto randomIndex = rg() % allkeys.size();
+        const char*  p = allkeys.beg_of(randomIndex);
+        const size_t n = allkeys.slen(randomIndex);
+        key.assign(p, n);
+        return true;
+    } else {
+        return verifyDataCq.try_pop(key);
     }
-    auto randomIndex = rg() % allkeys.size();
-    const char*  p = allkeys.beg_of(randomIndex);
-    const size_t n = allkeys.slen(randomIndex);
-    key.assign(p, n);
-    return true;
-}
-
-bool Benchmark::getShufKey(std::string &key) {
-    if (allkeys.empty()) {
-        return false;
-    }
-    if (shufKeyIndex >= allkeys.size()) {
-      shufKeyIndex = 0;
-    }
-    const char* p = allkeys.beg_of(shufKeyIndex);
-    const size_t n = allkeys.slen(shufKeyIndex);
-    key.assign(p, n);
-    ++shufKeyIndex;
-    return true;
 }
 
 void Benchmark::loadInsertData(){
@@ -306,6 +303,12 @@ void Benchmark::loadVerifyKvData() {
     , setting.ifStop() ? "stopped" : "completed"
     , lines, bytes, pf.sf(t0, t1), bytes/pf.uf(t0, t1)
     );
+
+    // when read all verify_kv_file, stop process
+    if (feof(ifs)) {
+      extern void stop_test();
+      stop_test();
+    }
     if (!setting.ifStop() && lines > 0) {
         fprintf(stderr, "Benchmark::loadVerifykvData(): all data are loaded");
     }
@@ -337,7 +340,9 @@ void Benchmark::Run(void) {
         this->Verify();
     }
     else {
-        loadKeys();
+        if (!setting.useShufKey) {
+            loadKeys();
+        }
         RunBenchmark();
     }
     Close();
