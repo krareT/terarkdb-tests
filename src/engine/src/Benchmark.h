@@ -17,6 +17,7 @@
 #include <tbb/concurrent_vector.h>
 #include <terark/util/fstrvec.hpp>
 #include <terark/util/autoclose.hpp>
+#include <terark/util/linebuf.hpp>
 #include "ThreadState.h"
 #include "Setting.h"
 
@@ -31,7 +32,6 @@ private:
     std::atomic<std::vector<bool>*> samplingPlanAddr;
     std::vector<bool> samplingPlan[2];
     std::mt19937_64 random;
-    uint64_t shufKeyIndex;
     bool whichSPlan = false;
     uint8_t compactTimes;
     terark::fstrvec allkeys;
@@ -54,13 +54,13 @@ private:
     void ReadWhileWriting(ThreadState *thread);
     void reportMessage(const std::string &);
 
-    std::shared_ptr<terark::Auto_fclose> ifs;
 
 protected:
     void clearThreads();
 public:
     void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
+    bool getShufKey(terark::LineBuf &line);
     std::vector<std::pair<std::thread, ThreadState*>> threads;
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;
@@ -80,6 +80,9 @@ public:
     virtual bool Compact(void) = 0;
 
     virtual std::string HandleMessage(const std::string &msg);
+
+private:
+    terark::Auto_fclose _shufKeyIfs;
 };
 
 

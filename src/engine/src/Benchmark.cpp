@@ -54,8 +54,6 @@ void Benchmark::RunBenchmark(void){
     }
 #endif
 
-  loadShufKeyData();
-
     while (!setting.ifStop()){
         int samplingRate = setting.getSamplingRate();
         if (old_samplingRate != samplingRate){
@@ -139,35 +137,34 @@ void Benchmark::loadKeys() {
 }
 
 bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
-    if (!setting.useShufKey) {
-        if (allkeys.empty()){
-            return false;
-        }
-        auto randomIndex = rg() % allkeys.size();
-        const char*  p = allkeys.beg_of(randomIndex);
-        const size_t n = allkeys.slen(randomIndex);
-        key.assign(p, n);
-        return true;
-    } else {
-#if 0
-        return shufKeyDataCq.try_pop(key);
-#endif
-      LineBuf line;
-        if(!feof(*ifs)) {
-          if (line.getline((*ifs)) > 0) {
-            line.chomp();
-            key.assign(line.p, line.n);
-          } else {
-            return false;
-          }
-        } else {
-          extern void stop_test();
-          stop_test();
-          return false;
-        }
-      //fprintf(stderr, "key: %s\n", key.c_str());
-      return true;
+    if (allkeys.empty()){
+        return false;
     }
+    auto randomIndex = rg() % allkeys.size();
+    const char*  p = allkeys.beg_of(randomIndex);
+    const size_t n = allkeys.slen(randomIndex);
+    key.assign(p, n);
+    return true;
+}
+
+bool Benchmark::getShufKey(LineBuf &line) {
+#if 0
+  return shufKeyDataCq.try_pop(key);
+#endif
+
+  if(!feof(_shufKeyIfs)) {
+    if (line.getline((_shufKeyIfs)) > 0) {
+      line.chomp();
+    } else {
+      return false;
+    }
+  } else {
+    extern void stop_test();
+    stop_test();
+    return false;
+  }
+  //fprintf(stderr, "key: %s\n", key.c_str());
+  return true;
 }
 
 void Benchmark::loadInsertData(){
@@ -383,13 +380,6 @@ void Benchmark::loadShufKeyData() {
         fprintf(stderr, "Benchmark::loadShufKeyData(): all data are loaded");
     }
 #endif
-
-  const char* fpath = setting.getKeysDataPath().c_str();
-  ifs.reset(new Auto_fclose(fopen(fpath, "r")));
-  if (!ifs) {
-    fprintf(stderr, "ERROR: Benchmark::loadShufKeyData(): fopen(%s, r) = %s\n", fpath, strerror(errno));
-    return;
-  }
 }
 
 void Benchmark::clearThreads() {
@@ -432,9 +422,13 @@ Benchmark::Benchmark(Setting& s)
                  &Benchmark::UpdateOneKey,
         }
 , setting(s)
+, _shufKeyIfs(setting.useShufKey ? fopen(setting.getKeysDataPath().c_str(), "r") : nullptr)
 {
     compactTimes = s.getCompactTimes();
-    shufKeyIndex = 0;
+  if (setting.useShufKey && !_shufKeyIfs) {
+    fprintf(stderr, "ERROR: Open shufKeyIfs: fopen(%s, r) = %s\n", setting.getKeysDataPath().c_str(), strerror(errno));
+    exit(1);
+  }
 }
 
 Benchmark::~Benchmark() {}

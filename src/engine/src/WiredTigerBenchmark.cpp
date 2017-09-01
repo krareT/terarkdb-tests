@@ -61,12 +61,22 @@ void WiredTigerBenchmark::Close(void) {
 }
 
 bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
-    if (!getRandomKey(thread->key, thread->randGenerator)){
-        return false;
+    const char *key;
+    if (!setting.useShufKey) {
+        if (!getRandomKey(thread->key, thread->randGenerator)){
+            return false;
+        }
+      key = thread->key.c_str();
+    } else {
+        if (!getShufKey(thread->line)) {
+            return false;
+        }
+      key = thread->line.p;
     }
+
     auto t = static_cast<WT_ThreadState*>(thread);
     WT_CURSOR *cursor = t->cursor;
-    cursor->set_key(cursor, thread->key.c_str());
+    cursor->set_key(cursor, key);
     if (cursor->search(cursor) == 0) {
         const char* val;
         int ret = cursor->get_value(cursor, &val);
@@ -78,15 +88,26 @@ bool WiredTigerBenchmark::ReadOneKey(ThreadState *thread){
 }
 
 bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
+    const char *key;
     auto t = static_cast<WT_ThreadState*>(thread);
     std::string &rkey = thread->key;
-    if (!getRandomKey(rkey,thread->randGenerator)){
-        return false;
+
+    if (!setting.useShufKey) {
+        if (!getRandomKey(rkey, thread->randGenerator)){
+            return false;
+        }
+      key = rkey.c_str();
+    } else {
+        if (!getShufKey(thread->line)) {
+            return false;
+        }
+      key = thread->line.p;
     }
+
     WT_CURSOR *cursor = t->cursor;
-    cursor->set_key(cursor, rkey.c_str());
+    cursor->set_key(cursor, key);
     if (cursor->search(cursor) != 0){
-        fprintf(stderr, "ERROR: cursor search: %s\n", rkey.c_str());
+        fprintf(stderr, "ERROR: cursor search: %s\n", key);
         return false;
     }
     const char *val;
@@ -95,7 +116,7 @@ bool WiredTigerBenchmark::UpdateOneKey(ThreadState *thread){
     cursor->set_value(cursor,val);
     ret = cursor->insert(cursor);
     if (ret != 0){
-        fprintf(stderr, "ERROR: cursor insert: %s\n", rkey.c_str());
+        fprintf(stderr, "ERROR: cursor insert: %s\n", key);
         return false;
     }
     return true;
