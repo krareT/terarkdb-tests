@@ -171,7 +171,7 @@ public:
     bool disableWAL = false;
     bool autoSlowDownWrite = true;
 
- //use shufed keys if ture, otherwise use Random
+// use shufed keys if ture, otherwise use Random
     bool useShufKey = false;
 
     int FLAGS_max_compact_wait = 1200;
@@ -184,6 +184,7 @@ public:
     size_t terocksdbSmallTaskMemory = 1200ull<<20; // 1.2G
     double terocksdbSampleRatio = 0.015;
     double terocksdbIndexCacheRatio = 0.002;
+    int terocksdbCacheShards = 0;
     size_t numFields = size_t(-1);
     unsigned char fieldsDelim = '\t';
     std::vector<size_t> keyFields;
