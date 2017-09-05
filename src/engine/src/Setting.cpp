@@ -181,6 +181,9 @@ Setting::Setting(int argc, char **argv) {
         else if (arg.startsWith("--cache_shards=")) {
             terocksdbCacheShards = lcast(arg.substr(strlen("--cache_shards=")));
         }
+        else if (arg.startsWith("--min_pread_len=")) {
+            terocksdbMinPreadLen = lcast(arg.substr(strlen("--min_pread_len=")));
+        }
     }
     if (FLAGS_db.empty()) {
         fprintf(stderr, "ERROR: missing argument --db=...\n");

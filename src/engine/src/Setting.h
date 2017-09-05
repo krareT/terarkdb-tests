@@ -185,6 +185,7 @@ public:
     double terocksdbSampleRatio = 0.015;
     double terocksdbIndexCacheRatio = 0.002;
     int terocksdbCacheShards = 0;
+    int terocksdbMinPreadLen = -1;
     size_t numFields = size_t(-1);
     unsigned char fieldsDelim = '\t';
     std::vector<size_t> keyFields;

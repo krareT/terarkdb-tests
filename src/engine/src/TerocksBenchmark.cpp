@@ -32,6 +32,7 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
     if (set.terocksdbCacheShards > 0) {
         opt.cacheShards = set.terocksdbCacheShards;
         opt.cacheCapacityBytes = set.FLAGS_cache_size;
+        opt.minPreadLen = set.terocksdbMinPreadLen;
         fprintf(stderr, "cacheShards: %d, cacheCapacityBytes: %lu\n", opt.cacheShards, opt.cacheCapacityBytes);
     }
 #if 1
