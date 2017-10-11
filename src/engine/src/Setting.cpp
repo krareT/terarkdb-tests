@@ -220,7 +220,7 @@ Setting::splitKeyValue(fstring row, std::string* key, std::string* val) const {
   if (strvec.size() < numFields)
     return 0;
   for (size_t field: keyFields) {
-    key->append(strvec[field].data(), strvec[field].size());
+    strvec[field].append_to(key);
     key->push_back(delim);
   }
   key->pop_back();
