@@ -29,6 +29,12 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
     opt.softZipWorkingMemLimit = set.terocksdbZipWorkingMemSoftLimit;
     opt.hardZipWorkingMemLimit = set.terocksdbZipWorkingMemHardLimit;
     opt.smallTaskMemory = set.terocksdbSmallTaskMemory;
+    if (set.terocksdbCacheShards > 0) {
+        opt.cacheShards = set.terocksdbCacheShards;
+        opt.cacheCapacityBytes = set.FLAGS_cache_size;
+        opt.minPreadLen = set.terocksdbMinPreadLen;
+        fprintf(stderr, "cacheShards: %d, cacheCapacityBytes: %lu\n", opt.cacheShards, opt.cacheCapacityBytes);
+    }
 #if 1
     rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());
 #else

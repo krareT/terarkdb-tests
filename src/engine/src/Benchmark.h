@@ -16,6 +16,8 @@
 #include <thread>
 #include <tbb/concurrent_vector.h>
 #include <terark/util/fstrvec.hpp>
+#include <terark/util/autoclose.hpp>
+#include <terark/util/linebuf.hpp>
 #include "ThreadState.h"
 #include "Setting.h"
 
@@ -37,6 +39,7 @@ private:
     void loadKeys();
     void loadInsertData();
     void loadVerifyKvData();
+    void loadShufKeyData();
     void checkExecutePlan();
     void updatePlan(const PlanConfig &pc,std::vector<OP_TYPE > &plan);
     void updateSamplingPlan(std::vector<bool> &plan, uint8_t percent);
@@ -50,15 +53,19 @@ private:
     bool executeOneOperation(ThreadState* state,OP_TYPE type);
     void ReadWhileWriting(ThreadState *thread);
     void reportMessage(const std::string &);
+
+
 protected:
     void clearThreads();
 public:
     void Run(void);
     bool getRandomKey(std::string &key,std::mt19937_64 &rg);
+    bool getShufKey(terark::LineBuf &line);
     std::vector<std::pair<std::thread, ThreadState*>> threads;
     Setting& setting;
     tbb::concurrent_queue<std::string> updateDataCq;
     tbb::concurrent_queue<std::string> verifyDataCq;
+    tbb::concurrent_queue<std::string> shufKeyDataCq;
 
     Benchmark(Setting&);
     virtual ~Benchmark();
@@ -73,6 +80,9 @@ public:
     virtual bool Compact(void) = 0;
 
     virtual std::string HandleMessage(const std::string &msg);
+
+private:
+    terark::Auto_fclose _shufKeyIfs;
 };
 
 

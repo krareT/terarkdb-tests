@@ -7,6 +7,7 @@
 #include <rocksdb/cache.h>
 #include <rocksdb/table.h>
 #include <rocksdb/filter_policy.h>
+#include <rocksdb/rate_limiter.h>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/autoclose.hpp>
 #include <terark/util/profiling.hpp>
@@ -56,6 +57,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
     options.enable_write_thread_adaptive_yield = true;
     options.allow_mmap_reads = true;
     options.allow_mmap_writes = true;
+    //options.rate_limiter = rocksdb::NewGenericRateLimiter(1000, 10 * 1000);
 // end
 
     write_options.disableWAL = set.disableWAL;
@@ -309,23 +311,46 @@ void RocksDbBenchmark::Load() {
 }
 
 bool RocksDbBenchmark::ReadOneKey(ThreadState *ts) {
-    if (!getRandomKey(ts->key, ts->randGenerator))
+    if (!setting.useShufKey) {
+      if (!getRandomKey(ts->key, ts->randGenerator)) {
+          fprintf(stderr,"RocksDbBenchmark::ReadOneKey:getRandomKey false\n");
+          return false;
+      }
+      if (!db->Get(read_options, ts->key, &(ts->value)).ok())
         return false;
-    if (!db->Get(read_options, ts->key, &(ts->value)).ok())
+    } else {
+      if (!getShufKey(ts->line)) {
+          fprintf(stderr,"RocksDbBenchmark::ReadOneKey:getShufKey false\n");
+          return false;
+      }
+      rocksdb::Slice key(ts->line.p, ts->line.n);
+      if (!db->Get(read_options, key, &(ts->value)).ok())
         return false;
+    }
+
     return true;
 }
 
 bool RocksDbBenchmark::UpdateOneKey(ThreadState *ts) {
-    if (!getRandomKey(ts->key, ts->randGenerator)) {
-     	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
-	    return false;
+    if (!setting.useShufKey) {
+        if (!getRandomKey(ts->key, ts->randGenerator)) {
+            fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
+            return false;
+        }
+      if (!db->Get(read_options, ts->key, &(ts->value)).ok()) {
+        return false;
+      }
+    } else {
+        if (!getShufKey(ts->line)) {
+            fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:getRandomKey false\n");
+            return false;
+        }
+      rocksdb::Slice key(ts->line.p, ts->line.n);
+      if (!db->Get(read_options, key, &(ts->value)).ok()) {
+        return false;
+      }
     }
-    if (!db->Get(read_options, ts->key, &(ts->value)).ok()) {
-    // 	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Get false, value.size:%05zd, key:%s\n"
-    //            , ts->value.size(), ts->key.c_str());
-	    return false;
-    }
+
     auto status = db->Put(write_options, ts->key, ts->value);
     if (false == status.ok()){
      	fprintf(stderr,"RocksDbBenchmark::UpdateOneKey:db-Put false\n key:%s\nvalue:%s\n",ts->key.c_str(),ts->value.c_str());

@@ -59,6 +59,10 @@ Setting::Setting(int argc, char **argv) {
             disableWAL = true;
             printf("disable_wal = true\n");
         }
+        else if (arg.startsWith("--use_shuf_key") || arg.startsWith("--useShufKey")) {
+            useShufKey = true;
+            printf("use_shuf_key = true\n");
+        }
         else if (arg.startsWith("--sync_index=")) {
             FLAGS_sync_index = (int)lcast(arg.substr(strlen("--sync_index=")));
         }
@@ -168,11 +172,17 @@ Setting::Setting(int argc, char **argv) {
             FLAGS_load_size = ParseSizeXiB(arg.substr(strlen("--load_size=")));
         }
         else if (arg.startsWith("--use_mmap=")) {
-          FLAGS_use_mmap = lcast(arg.substr(strlen("--use_mmap=")));
+            FLAGS_use_mmap = lcast(arg.substr(strlen("--use_mmap=")));
         }
         else if (arg.startsWith("--mysql_passwd=")) {
             extern const char* g_passwd;
             g_passwd = arg.p + strlen("--mysql_passwd=");
+        }
+        else if (arg.startsWith("--cache_shards=")) {
+            terocksdbCacheShards = lcast(arg.substr(strlen("--cache_shards=")));
+        }
+        else if (arg.startsWith("--min_pread_len=")) {
+            terocksdbMinPreadLen = lcast(arg.substr(strlen("--min_pread_len=")));
         }
     }
     if (FLAGS_db.empty()) {

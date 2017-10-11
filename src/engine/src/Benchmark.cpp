@@ -47,6 +47,13 @@ void Benchmark::adjustSamplingPlan(uint8_t samplingRate){
 void Benchmark::RunBenchmark(void){
     int old_samplingRate = -1;
     std::thread loadInsertDataThread(&Benchmark::loadInsertData, this);
+#if 0
+    std::unique_ptr<std::thread> loadShufKeyDataThreadPtr;
+    if (setting.useShufKey) {
+        loadShufKeyDataThreadPtr.reset(new std::thread(&Benchmark::loadShufKeyData, this));
+    }
+#endif
+
     while (!setting.ifStop()){
         int samplingRate = setting.getSamplingRate();
         if (old_samplingRate != samplingRate){
@@ -73,6 +80,11 @@ void Benchmark::RunBenchmark(void){
     }
     adjustThreadNum(0, nullptr);
     loadInsertDataThread.join();
+#if 0
+    if (loadShufKeyDataThreadPtr) {
+        loadShufKeyDataThreadPtr->join();
+    }
+#endif
 }
 
 bool Benchmark::executeOneOperation(ThreadState* state, OP_TYPE type){
@@ -135,6 +147,26 @@ bool Benchmark::getRandomKey(std::string &key,std::mt19937_64 &rg) {
     return true;
 }
 
+bool Benchmark::getShufKey(LineBuf &line) {
+#if 0
+  return shufKeyDataCq.try_pop(key);
+#endif
+
+  if(!feof(_shufKeyIfs)) {
+    if (line.getline((_shufKeyIfs)) > 0) {
+      line.chomp();
+    } else {
+      return false;
+    }
+  } else {
+    extern void stop_test();
+    stop_test();
+    return false;
+  }
+  //fprintf(stderr, "key: %s\n", key.c_str());
+  return true;
+}
+
 void Benchmark::loadInsertData(){
     const char* fpath = setting.getInsertDataPath().c_str();
     Auto_fclose ifs(fopen(fpath, "r"));
@@ -156,7 +188,7 @@ void Benchmark::loadInsertData(){
     while (bytes < limit && !setting.ifStop() && !feof(ifs)) {
         size_t count = 0;
         while (bytes < limit && updateDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
-            line.chomp();
+            //line.chomp();
             bytes += line.size();
             updateDataCq.push(std::string(line.p, line.n));
             count++;
@@ -219,7 +251,7 @@ void Benchmark::adjustVerifyThreadNum(uint32_t target, const std::atomic<std::ve
 
 void Benchmark::executeVerify(ThreadState *thread) {
     fprintf(stderr, "Thread %2d run Benchmark::verifyOneKey() start...\n", thread->tid);
-    char *tempStr= new char[748578000 * 2];
+    char *tempStr= new char[3598300 * 2];
     while (!thread->STOP.load()) {
       std::vector<bool> &samplingPlan = *thread->whichSamplingPlan->load();
       bool useSampling;
@@ -277,7 +309,7 @@ void Benchmark::loadVerifyKvData() {
     while(bytes < limit && !setting.ifStop() && !feof(ifs)) {
         size_t count = 0;
         while (bytes < limit && verifyDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
-            line.chomp();
+            //line.chomp();
             bytes += line.size();
             verifyDataCq.push(std::string(line.p, line.n));
             count++;
@@ -292,9 +324,62 @@ void Benchmark::loadVerifyKvData() {
     , setting.ifStop() ? "stopped" : "completed"
     , lines, bytes, pf.sf(t0, t1), bytes/pf.uf(t0, t1)
     );
+
+    // when read all verify_kv_file, stop process
+    if (feof(ifs)) {
+      extern void stop_test();
+      stop_test();
+    }
     if (!setting.ifStop() && lines > 0) {
         fprintf(stderr, "Benchmark::loadVerifykvData(): all data are loaded");
     }
+}
+
+void Benchmark::loadShufKeyData() {
+#if 0
+    const char* fpath = setting.getKeysDataPath().c_str();
+    Auto_fclose ifs(fopen(fpath, "r"));
+    if (!ifs) {
+        fprintf(stderr, "ERROR: Benchmark::loadShufKeyData(): fopen(%s, r) = %s\n", fpath, strerror(errno));
+        return;
+    }
+    size_t limit = setting.FLAGS_load_size;
+    size_t lines;
+    while(!setting.ifStop()) {
+        fprintf(stderr, "Benchmark::loadShufKeyData(%s) start, limit = %f GB\n", fpath, limit/1e9);
+        LineBuf line;
+        lines = 0;
+        terark::profiling pf;
+        long long t0 = pf.now();
+        size_t bytes = 0;
+        while(bytes < limit && !setting.ifStop() && !feof(ifs)) {
+            size_t count = 0;
+            while (bytes < limit && shufKeyDataCq.unsafe_size() < 200000 && line.getline(ifs) > 0) {
+                line.chomp();
+                bytes += line.size();
+                shufKeyDataCq.push(std::string(line.p, line.n));
+                count++;
+            }
+            lines += count;
+            usleep(300000);
+        }
+        long long t1 = pf.now();
+        fprintf(stderr
+                , "Benchmark::loadShufKeyData(%s) %s, lines = %zd, bytes = %zd, time = %f sec, speed = %f MB/sec\n"
+                , fpath
+                , setting.ifStop() ? "stopped" : "completed"
+                , lines, bytes, pf.sf(t0, t1), bytes/pf.uf(t0, t1)
+        );
+
+        // when read all key data, begin again
+        if (feof(ifs)) {
+            rewind(ifs);
+        }
+    }
+    if (!setting.ifStop() && lines > 0) {
+        fprintf(stderr, "Benchmark::loadShufKeyData(): all data are loaded");
+    }
+#endif
 }
 
 void Benchmark::clearThreads() {
@@ -323,7 +408,9 @@ void Benchmark::Run(void) {
         this->Verify();
     }
     else {
-        loadKeys();
+        if (!setting.useShufKey) {
+            loadKeys();
+        }
         RunBenchmark();
     }
     Close();
@@ -335,8 +422,13 @@ Benchmark::Benchmark(Setting& s)
                  &Benchmark::UpdateOneKey,
         }
 , setting(s)
+, _shufKeyIfs(setting.useShufKey ? fopen(setting.getKeysDataPath().c_str(), "r") : nullptr)
 {
     compactTimes = s.getCompactTimes();
+  if (setting.useShufKey && !_shufKeyIfs) {
+    fprintf(stderr, "ERROR: Open shufKeyIfs: fopen(%s, r) = %s\n", setting.getKeysDataPath().c_str(), strerror(errno));
+    exit(1);
+  }
 }
 
 Benchmark::~Benchmark() {}

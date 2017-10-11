@@ -7,6 +7,7 @@
 
 #include "Stats.h"
 #include <random>
+#include <terark/util/linebuf.hpp>
 
 struct ThreadState {
     int tid;             // 0..n-1 when running in n threads
@@ -19,6 +20,7 @@ struct ThreadState {
     std::string value;
     std::string str;
     std::string storeValue;
+    terark::LineBuf line;
     PlanConfig planConfig;
     std::vector<OP_TYPE> executePlan[2];
     std::atomic<uint32_t> whichPlan;
