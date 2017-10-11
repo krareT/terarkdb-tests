@@ -236,8 +236,8 @@ Setting::splitKeyValue(fstring row, std::string* key, std::string* val) const {
   }
   key->pop_back();
   if (val) {
-    size_t normFields = std::min(strvec.size(), numFields);
     auto isKeyField = keyFieldsBits.bldata();
+    size_t normFields = std::min(strvec.size(), numFields);
     size_t i = 0;
     for (; i < normFields; i++) {
       if (!terark_bit_test(isKeyField, i)) {
