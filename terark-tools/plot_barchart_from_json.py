@@ -3,6 +3,8 @@
 import sys
 import os
 from numpy import *
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 from matplotlib import ticker
@@ -38,7 +40,7 @@ def draw(path):
 
         # assignment
         n = len(jsonObj["ydata"])
-        if (sys.argv[3] and sys.argv[4]):
+        if (len(sys.argv) > 4 and sys.argv[3] and sys.argv[4]):
             width, height = float(sys.argv[3]), float(sys.argv[4])
         else:
             width, height = jsonObj["figsize"][0], jsonObj["figsize"][1]
