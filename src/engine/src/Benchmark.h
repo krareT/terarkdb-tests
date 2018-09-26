@@ -81,6 +81,8 @@ public:
 
     virtual std::string HandleMessage(const std::string &msg);
 
+    virtual void PrintCacheState(void);
+
 private:
     terark::Auto_fclose _shufKeyIfs;
 };

@@ -58,6 +58,25 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
     setting.dbdirs.push_back(opt.localTempDir);
 }
 
+void TerocksBenchmark::Close()
+{
+      PrintTerarkdbCacheState();
+      RocksDbBenchmark::Close();
+}
+
+void TerocksBenchmark::PrintCacheState()
+{
+      PrintTerarkdbCacheState();
+}
+
+void TerocksBenchmark::PrintTerarkdbCacheState()
+{
+      FILE *file = fopen("/dev/stderr", "w");
+      fprintf(stderr, "%s\n", "call TerarkZipTablePrintCacheStat");
+      rocksdb::TerarkZipTablePrintCacheStat(db->GetOptions().table_factory.get(), file);
+      fclose(file);
+}
+
 std::string TerocksBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
     if (msg.empty())

@@ -19,8 +19,12 @@ private:
     std::string getIndexNestLevel(void);
     bool setEstimateCompressionRatio(const std::string &);
     std::string getEstimateCompressionRatio(void);
+
+    void PrintTerarkdbCacheState();
 public:
     TerocksBenchmark(Setting& set);
+    void Close() override;
+    void PrintCacheState() override ;
 };
 
 

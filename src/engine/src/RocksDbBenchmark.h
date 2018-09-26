@@ -7,11 +7,11 @@
 
 class RocksDbBenchmark : public Benchmark {
 private:
-    rocksdb::DB *db;
     rocksdb::WriteOptions write_options;
     rocksdb::ReadOptions read_options;
     void setRocksDBOptions(Setting& set);
 protected:
+    rocksdb::DB *db;
     rocksdb::Options options;
 public:
     ~RocksDbBenchmark();

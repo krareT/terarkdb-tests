@@ -6,6 +6,7 @@
 #include <terark/util/autoclose.hpp>
 #include <terark/util/linebuf.hpp>
 #include <terark/util/profiling.hpp>
+#include "analysis_worker.h"
 
 using namespace terark;
 
@@ -30,8 +31,10 @@ void Benchmark::adjustThreadNum(uint32_t target, const std::atomic<std::vector<b
         state->whichPlan.store(0,std::memory_order_relaxed);
         threads.emplace_back(std::thread([=](){ReadWhileWriting(state);}), state);
     }
+    for (size_t i = target; i < threads.size(); ++i){
+        threads[i].second->STOP.store(true);
+    }
     while (target < threads.size()){
-        threads.back().second->STOP.store(true);
         threads.back().first.join();
         delete threads.back().second;
         threads.pop_back();
@@ -468,3 +471,8 @@ void Benchmark::checkExecutePlan() {
         eachThread.second->whichPlan.store(!which);
     }
 };
+
+void Benchmark::PrintCacheState()
+{
+    fprintf(stderr, "%s\n", "There no cache state to print");
+}

@@ -33,7 +33,12 @@ void Session::read_line_handler(const boost::system::error_code& ec,std::size_t 
     std::getline(is, line);
     fprintf(stderr, "Get: %s\n", line.c_str());
     std::string message;
-    message = setting->setBaseSetting(line);
+    if (!line.compare("print cache state")) {
+        benchmark->PrintCacheState();
+        message = "print cache state success\n";
+    } else {
+        message = setting->setBaseSetting(line);
+    }
     message += "\nEND\r\n";
     do_write(message);
 }
