@@ -14,8 +14,15 @@ include_directories(third/rocksdb/include
                     third/benchmark/include)
 
 target_link_libraries(scan_perf
-        third/rocksdb/librocksdb.a
-        third/benchmark/build/src/libbenchmark.a
+        "-Wl,--whole-archive"
+        /home/wangfo/src/terark-zip-rocksdb/pkg/terark-zip-rocksdb-Linux-x86_64-g++-5.4-bmi2-0/lib_static/libterark-zip-rocksdb-r.a
+        /home/wangfo/src/terark-zip-rocksdb/pkg/terark-zip-rocksdb-Linux-x86_64-g++-5.4-bmi2-0/lib_static/libterark-zbs-r.a
+        /home/wangfo/src/terark-zip-rocksdb/pkg/terark-zip-rocksdb-Linux-x86_64-g++-5.4-bmi2-0/lib_static/libterark-fsa-r.a
+        /home/wangfo/src/terark-zip-rocksdb/pkg/terark-zip-rocksdb-Linux-x86_64-g++-5.4-bmi2-0/lib_static/libterark-core-r.a
+        "-Wl,--no-whole-archive"
+        gomp
+        ${CMAKE_SOURCE_DIR}/third/rocksdb/librocksdb.a
+        ${CMAKE_SOURCE_DIR}/third/benchmark/build/src/libbenchmark.a
         pthread
         zstd
         lz4

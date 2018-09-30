@@ -10,23 +10,42 @@
 #include <rocksdb/db.h>
 #include <rocksdb/options.h>
 
+struct Settings {
+  std::string db_name = "testdb";
+  std::string file_path;
+  size_t limit = 100;
+
+  rocksdb::Options opt;
+};
+
 class RocksDB {
 public:
-  explicit RocksDB(std::string&& db_name);
+  explicit RocksDB(Settings& settings);
   ~RocksDB();
-  bool load(std::string fpath, size_t limit);
+  bool load();
   bool compact();
-  void run();
+  void load_keys();
+  void scan();
+  void scan_rev();
+  void seek();
+  void seek_prev(int64_t prev_times);
+  void seek_next(int64_t next_times);
+  void verify();
 
 private:
+  Settings settings;
+
   std::string db_name;
   rocksdb::DB* db;
   rocksdb::WriteOptions write_options;
   rocksdb::ReadOptions read_options;
   rocksdb::Options db_options;
-  std::vector<std::string> keys;
 
-  void load_key(std::string fpath, size_t limit);
+  FILE* data_file;
+  std::vector<std::string> keys;
+  std::vector<std::pair<std::string, std::string>> keys_values;
+
+  void read_line(char* key, char* value);
 };
 
 

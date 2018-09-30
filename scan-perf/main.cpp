@@ -1,54 +1,85 @@
 #include <iostream>
 #include <benchmark/benchmark.h>
-#include <unistd.h>
+#include <rocksdb/table.h>
 
 #include "rocksdb.h"
 
 using namespace rocksdb;
 
-/*
-static void test(benchmark::State& state, RocksDB* db)
-{
+auto scan = [](benchmark::State& state, RocksDB* db) {
   for (auto _ : state) {
-    printf("%s\n", "once");
-    db->run();
+    db->scan();
   }
-}
-*/
+};
 
-auto test = [](benchmark::State& state, RocksDB* db) {
+auto scan_rev = [](benchmark::State& state, RocksDB* db) {
   for (auto _ : state) {
-    db->run();
+    db->scan_rev();
+  }
+};
+
+auto seek = [](benchmark::State& state, RocksDB* db) {
+  for (auto _ : state) {
+    db->seek();
+  }
+};
+
+auto seek_next = [](benchmark::State& state, RocksDB* db) {
+  for (auto _ : state) {
+    db->seek_next(state.range(0));
+  }
+};
+
+auto seek_prev = [](benchmark::State& state, RocksDB* db) {
+  for (auto _ : state) {
+    db->seek_prev(state.range(0));
   }
 };
 
 int main(int argc, char* argv[])
 {
-  RocksDB* db = new RocksDB("testdb");
+  Settings settings;
+  settings.db_name = "testdb";
+
+  // rocksdb options
+  settings.opt.create_if_missing = true;
+  rocksdb::BlockBasedTableOptions bbto;
+  bbto.block_cache = rocksdb::NewLRUCache(32ULL << 10, 8, false);
+  settings.opt.table_factory.reset(rocksdb::NewBlockBasedTableFactory(bbto));
+
+  if (argc >= 3) {
+    settings.file_path = argv[2];
+  }
+  if (argc >= 4) {
+    settings.limit = (size_t)atoi(argv[3]);
+  }
+
+  RocksDB* db = new RocksDB(settings);
 
   if (argc < 2) {
     goto usage;
   }
+
   if (!strcmp(argv[1], "load")) {
-    std::string file_path = "data.txt";
-    size_t nums = 1000;
-
-    if (argc >= 3) {
-      file_path = argv[2];
-    }
-    if (argc >= 4) {
-      nums = (size_t)atoi(argv[3]);
-    }
-
-    db->load(file_path, nums);
+    db->load();
     db->compact();
   } else if (!strcmp(argv[1], "compact")) {
     db->compact();
   } else if (!strcmp(argv[1], "run")) {
+    db->load_keys();
     printf("%s\n", "benchmark begin!");
 
-    benchmark::RegisterBenchmark("test", test, db);
+    benchmark::RegisterBenchmark("warn-up", scan, db)->Unit(benchmark::kMillisecond);
+    benchmark::RegisterBenchmark("scan", scan, db)->Unit(benchmark::kMillisecond);
+    benchmark::RegisterBenchmark("scan_rev", scan_rev, db)->Unit(benchmark::kMillisecond);
+    benchmark::RegisterBenchmark("seek", seek, db)->Unit(benchmark::kMillisecond);
+    benchmark::RegisterBenchmark("seek_next", seek_next, db)->Unit(benchmark::kMillisecond)
+            ->Arg(10)->Arg(20);
+    benchmark::RegisterBenchmark("seek_prev", seek_prev, db)->Unit(benchmark::kMillisecond)
+            ->Arg(10)->Arg(20);
     benchmark::RunSpecifiedBenchmarks();
+  } else if (!strcmp(argv[1], "verify")) {
+    db->verify();
   } else {
     goto usage;
   }
@@ -58,6 +89,6 @@ int main(int argc, char* argv[])
   return 0;
 
   usage:
-  fprintf(stderr, "%s\n", "Usage: ./scan_perf {load [file path] [nums]}/compact/run");
+  fprintf(stderr, "%s\n", "Usage: ./scan_perf {load [file_path] [nums]}/{run [file_path] [nums]}/compact");
   return 1;
 }
