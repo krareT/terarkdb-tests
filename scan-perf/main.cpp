@@ -44,7 +44,9 @@ int main(int argc, char* argv[])
   // rocksdb options
   settings.opt.create_if_missing = true;
   rocksdb::BlockBasedTableOptions bbto;
-  bbto.block_cache = rocksdb::NewLRUCache(32ULL << 10, 8, false);
+  bbto.block_cache = rocksdb::NewLRUCache(32ULL << 30, 8, false);
+  bbto.block_size = 16 << 10;
+  settings.opt.compression = CompressionType::kSnappyCompression;
   settings.opt.table_factory.reset(rocksdb::NewBlockBasedTableFactory(bbto));
 
   if (argc >= 3) {
@@ -62,21 +64,23 @@ int main(int argc, char* argv[])
 
   if (!strcmp(argv[1], "load")) {
     db->load();
-    db->compact();
+    //db->compact();
   } else if (!strcmp(argv[1], "compact")) {
     db->compact();
   } else if (!strcmp(argv[1], "run")) {
-    db->load_keys();
+    //db->load_keys();
     printf("%s\n", "benchmark begin!");
 
     benchmark::RegisterBenchmark("warn-up", scan, db)->Unit(benchmark::kMillisecond);
-    benchmark::RegisterBenchmark("scan", scan, db)->Unit(benchmark::kMillisecond);
+    benchmark::RegisterBenchmark("scan", scan, db)->Unit(benchmark::kMillisecond)->Iterations(100);
     benchmark::RegisterBenchmark("scan_rev", scan_rev, db)->Unit(benchmark::kMillisecond);
-    benchmark::RegisterBenchmark("seek", seek, db)->Unit(benchmark::kMillisecond);
-    benchmark::RegisterBenchmark("seek_next", seek_next, db)->Unit(benchmark::kMillisecond)
-            ->Arg(10)->Arg(20);
-    benchmark::RegisterBenchmark("seek_prev", seek_prev, db)->Unit(benchmark::kMillisecond)
-            ->Arg(10)->Arg(20);
+    //benchmark::RegisterBenchmark("seek", seek, db)->Unit(benchmark::kMillisecond);
+    //benchmark::RegisterBenchmark("seek_next", seek_next, db)->Unit(benchmark::kMillisecond)->Arg(1);
+    //benchmark::RegisterBenchmark("seek_prev", seek_prev, db)->Unit(benchmark::kMillisecond)->Arg(1);
+    //benchmark::RegisterBenchmark("seek_next", seek_next, db)->Unit(benchmark::kMillisecond)->Arg(10);
+    //benchmark::RegisterBenchmark("seek_prev", seek_prev, db)->Unit(benchmark::kMillisecond)->Arg(10);
+    //benchmark::RegisterBenchmark("seek_next", seek_next, db)->Unit(benchmark::kMillisecond)->Arg(100);
+    //benchmark::RegisterBenchmark("seek_prev", seek_prev, db)->Unit(benchmark::kMillisecond)->Arg(100);
     benchmark::RunSpecifiedBenchmarks();
   } else if (!strcmp(argv[1], "verify")) {
     db->verify();

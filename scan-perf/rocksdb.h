@@ -45,7 +45,7 @@ private:
   std::vector<std::string> keys;
   std::vector<std::pair<std::string, std::string>> keys_values;
 
-  void read_line(char* key, char* value);
+  bool read_line(char* key, char* value);
 };
 
 

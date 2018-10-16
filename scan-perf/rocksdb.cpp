@@ -61,7 +61,7 @@ RocksDB::~RocksDB()
   delete db;
 }
 
-void RocksDB::read_line(char* key, char* value)
+bool RocksDB::read_line(char* key, char* value)
 {
   assert(data_file != nullptr);
 
@@ -84,8 +84,10 @@ void RocksDB::read_line(char* key, char* value)
     }
     free(buf);
   } else {
-    fprintf(stderr, "ERROR: file EOF, lines < limit(%ld).\n", settings.limit);
+    fprintf(stderr, "Reach file EOF.\n");
+    return false;
   }
+  return true;
 }
 
 bool RocksDB::load()
@@ -103,7 +105,7 @@ bool RocksDB::load()
   rocksdb::Status s;
   while (nums < settings.limit) {
     read_line(key, value);
-    s = db->Put(write_options, key, value);
+    s = db->Put(write_options, key, "");
     // printf("key: %s value: %s\n", key, value);
     if (!s.ok()) {
       fprintf(stderr, "ERROR: error insert: %s && %s\n", key, value);
@@ -154,11 +156,12 @@ void RocksDB::load_keys()
   size_t nums = 0;
   auto key = (char *)malloc(20480 * sizeof(char));
 
-  while (nums < settings.limit) {
-    read_line(key, nullptr);
+  while (read_line(key, nullptr)) {
     keys.emplace_back(std::string(key));
     nums++;
   }
+
+  printf("Read %lu keys.\n", nums);
 
   free(key);
   //if (data_file != nullptr) {
@@ -169,6 +172,12 @@ void RocksDB::load_keys()
 
   auto seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::shuffle(keys.begin(), keys.end(), std::default_random_engine(seed));
+  if (settings.limit <= nums) {
+    keys.resize(settings.limit);
+    printf("Reserve %lu keys.\n", settings.limit);
+  } else {
+    printf("Settings.limit(%lu) < nums(%lu)\n", settings.limit, nums);
+  }
 
   printf("%s\n", "Load keys done");
 }
