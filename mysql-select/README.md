@@ -2,14 +2,14 @@
 
 用于测试 select * from tables 速度的小工具
 
-测试数据库：mysql-5.6.35（InnoDB）
-select语句：select * from lineitem
+测试数据库：MySQL-5.6.35(InnoDB)，TerarkSQL(TerarkDB)
+select语句：`select * from lineitem;`
 
 ## 测试结果
 
-### 1. 客户端与服务端不同机器同内网
+## 1. InnoDB
 
-结果：
+### 1.1. 客户端与服务端不同机器同内网
 
 ```
 Fetching results ...
@@ -24,11 +24,9 @@ sys	0m10.583s
 
 速度：**106.26 MB/s**
 
-mysqld 内存占用： **38.91G**，cpu 占用：**100%**
+mysqld 内存占用： **38.91 G**，cpu 占用：**100%**
 
-### 2. 客户端与服务端在同一台机器
-
-结果：
+### 1.2. 客户端与服务端在同一台机器
 
 ```
 total rows fetched: 100000000
@@ -42,7 +40,41 @@ sys	0m12.740s
 
 速度：**101.45 MB/s**
 
-mysqld 内存占用： **38.91G**，cpu 占用：**100%**
+mysqld 内存占用： **38.91 G**，cpu 占用：**100%**
+
+## 2. TerarkDB
+
+### 2.1 客户端与服务端不同机器同内网
+
+```
+total rows fetched: 100000000
+total length of data: 19297617734
+average length of data: 192
+
+real	3m43.364s
+user	0m22.851s
+sys	0m9.873s
+```
+
+速度： **80.46 MB/s**
+
+mysqld 内存占用： **9.80 G**，cpu 占用：**100%**
+
+### 2.2. 客户端与服务端在同一台机器
+
+```
+total rows fetched: 100000000
+total length of data: 19297617734
+average length of data: 192
+
+real	3m59.217s
+user	0m36.995s
+sys	0m13.576s
+```
+
+mysqld 内存占用： **9.80 G**，cpu 占用：**100%**
+
+速度：**75.13 MB/s**
 
 ## 测试数据
 
