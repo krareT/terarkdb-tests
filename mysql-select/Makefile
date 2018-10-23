@@ -5,7 +5,7 @@ INCLUDE=-I. -I/usr/include/mysql
 LIB=/usr/local/mysql/lib/libmysqlclient.a -lpthread -lz -lm -lrt -ldl
 
 all:
-	${CXX} ${CXXFLAGS} ${INCLUDE} -o select main.cpp ${LIB} 
+	${CXX} ${CXXFLAGS} ${INCLUDE} -o select main.c ${LIB}
 
 clean:
 	rm select

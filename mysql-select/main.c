@@ -1,13 +1,6 @@
-#include <cstdio>
-#include <cstring>
+#include <stdio.h>
+#include <string.h>
 #include <mysql/mysql.h>
-#include <string>
-
-const char* host = "192.168.0.106";
-const int port = 6607;
-const char* user = "root";
-const char* passwd = "";
-const char* database = "tpch";
 
 void bind_bigint(MYSQL_BIND& b_, const long long& val_,
                  my_bool* is_null_, unsigned long* length_,
@@ -80,9 +73,16 @@ void bind_date(MYSQL_BIND& b_, const MYSQL_TIME& val_,
 }
 
 int main() {
+  /* mysql connect string */
+  const char* host = "192.168.0.106";
+  const int port = 6607;
+  const char* user = "root";
+  const char* passwd = "";
+  const char* database = "tpch";
+
   MYSQL* conn;
-  conn = mysql_init(nullptr);
-  if (conn == nullptr) {
+  conn = mysql_init(NULL);
+  if (conn == NULL) {
     int ret = mysql_errno(conn);
     fprintf(stderr, "ERROR: mysql_init error: %d\n", ret);
     return ret;
@@ -90,7 +90,7 @@ int main() {
 
   unsigned long client_flag = CLIENT_REMEMBER_OPTIONS;
   if (!mysql_real_connect(conn, host, user, passwd,
-                          database, port, nullptr, client_flag)) {
+                          database, port, NULL, client_flag)) {
     fprintf(stderr,
             "ERROR: mysql_real_connect(host=%s, user=%s, passwd=%s, "
                     "db=%s, port=%d, NULL, CLIENT_REMEMBER_OPTIONS) = %s\n "
@@ -103,12 +103,12 @@ int main() {
 
   MYSQL_STMT* stmt = mysql_stmt_init(conn);
 
-  std::string query = "select * from lineitem";
+  const char* query = "select * from lineitem";
 
-  int err = mysql_stmt_prepare(stmt, query.c_str(), query.size());
+  int err = mysql_stmt_prepare(stmt, query, strlen(query));
   if (err) {
     fprintf(stderr, "ERROR: mysql_stmt_prepare(%s) = %s\n",
-            query.c_str(), mysql_error(conn));
+            query, mysql_error(conn));
     mysql_stmt_close(stmt);
     return -1;
   }
@@ -177,7 +177,7 @@ int main() {
     return -1;
   }
 
-  // fetching data
+  /* fetching data */
   unsigned long long row_count = 0;
   unsigned long long total_length = 0;
   fprintf(stdout, "Fetching results ...\n");
@@ -185,22 +185,22 @@ int main() {
     row_count++;
     for (int i = 0; i < 16; ++i) {
       if (!is_null[i]) {
-        //fprintf(stdout, "row: %d, length: %lu \t", i, length[i]);
+        /* fprintf(stdout, "row: %d, length: %lu \t", i, length[i]); */
         total_length += length[i];
       }
     }
-    //fprintf(stdout, "\n");
+    /* fprintf(stdout, "\n"); */
   }
 
   fprintf(stdout, "total rows fetched: %llu\n", row_count);
   fprintf(stdout, "total length of data: %llu\n", total_length);
-  fprintf(stdout, "average length of data: %llu\n", total_length / (row_count ? row_count : 1));
+  fprintf(stdout, "average length of data: %llu\n",
+          total_length / (row_count ? row_count : 1));
 
   free(val4);free(val5);free(val6);free(val7);free(val8);free(val9);
   free(val13);free(val14);free(val15);
 
   mysql_free_result(prepare_meta_result);
-
   mysql_stmt_close(stmt);
   mysql_close(conn);
 
