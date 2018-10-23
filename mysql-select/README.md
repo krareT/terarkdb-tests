@@ -1,6 +1,6 @@
 # mysql-select
 
-用于测试 select * from tables 速度的小工具
+[mysql-select](https://github.com/Terark/terarkdb-tests/tree/master/mysql-select) 是用于测试 select 查询速度的小工具。
 
 测试数据库：MySQL-5.6.35(InnoDB)，TerarkSQL(TerarkDB)
 
@@ -25,7 +25,7 @@ sys	0m10.583s
 
 速度：**106.26 MB/s**
 
-mysqld 内存占用： **38.91 G**，cpu 占用：**100%**
+mysqld 内存占用： **23.55 G**，cpu 占用：**100%**
 
 ### 1.2. 客户端与服务端在同一台机器
 
@@ -41,9 +41,11 @@ sys	0m12.740s
 
 速度：**101.45 MB/s**
 
-mysqld 内存占用： **38.91 G**，cpu 占用：**100%**
+mysqld 内存占用： **23.55 G**，cpu 占用：**100%**
 
 ## 2. TerarkDB
+
+导入数据后手动执行了 compact 操作。
 
 ### 2.1 客户端与服务端不同机器同内网
 
@@ -52,14 +54,14 @@ total rows fetched: 100000000
 total length of data: 19297617734
 average length of data: 192
 
-real	3m43.364s
-user	0m22.851s
-sys	0m9.873s
+real	3m38.701s
+user	0m23.226s
+sys	0m9.685s
 ```
 
-速度： **80.46 MB/s**
+速度： **84.42 MB/s**
 
-mysqld 内存占用： **9.80 G**，cpu 占用：**100%**
+mysqld 内存占用： **4.25 G**，cpu 占用：**100%**
 
 ### 2.2. 客户端与服务端在同一台机器
 
@@ -68,14 +70,14 @@ total rows fetched: 100000000
 total length of data: 19297617734
 average length of data: 192
 
-real	3m59.217s
-user	0m36.995s
-sys	0m13.576s
+real	3m29.348s
+user	0m34.272s
+sys	0m12.694s
 ```
 
-mysqld 内存占用： **9.80 G**，cpu 占用：**100%**
+mysqld 内存占用： **4.25 G**，cpu 占用：**100%**
 
-速度：**75.13 MB/s**
+速度：**88.06 MB/s**
 
 ## 测试数据
 
@@ -99,7 +101,7 @@ CREATE TABLE `lineitem` (
   `L_SHIPINSTRUCT` char(25) COLLATE utf8_bin NOT NULL,
   `L_SHIPMODE` char(10) COLLATE utf8_bin NOT NULL,
   `L_COMMENT` varchar(512) COLLATE utf8_bin NOT NULL
-) ENGINE=InnoDB;
+);
 ```
 
 ### 2. 源数据
@@ -111,6 +113,7 @@ env L_CMNT_LEN=10 ./dbgen -T L -s 12
 ```
 
 总条数： **100,000,000**
+总大小：**10.67 G**
 
 数据示例：
 
