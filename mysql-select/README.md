@@ -3,6 +3,7 @@
 用于测试 select * from tables 速度的小工具
 
 测试数据库：MySQL-5.6.35(InnoDB)，TerarkSQL(TerarkDB)
+
 select语句：`select * from lineitem;`
 
 ## 测试结果
