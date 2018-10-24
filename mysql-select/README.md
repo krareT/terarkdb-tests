@@ -106,7 +106,30 @@ CREATE TABLE `lineitem` (
 );
 ```
 
-### 2. 源数据
+### 2. 数据库大小
+
+<table>
+<tr>
+  <th colspan="2" align="right">数据库尺寸</th>
+  <th rowspan="3"></th>
+  <th>数据条数</th>
+  <th>单条尺寸</th>
+  <th>总尺寸</th>
+</tr>
+<tr>
+  <td align="right">InnoDB</td>
+  <td align="right">13.92 G</td>
+  <td align="center" rowspan="2">100,000,000</td>
+  <td align="center" rowspan="2">115 B</td>
+  <td align="center" rowspan="2">10.67 G</td>
+</tr>
+<tr>
+  <td align="right">TerarkDB</td>
+  <td align="right">3.95 G</td>
+</tr>
+</table>
+
+### 3. 源数据
 
 tpch-dbgen 生成数据
 
