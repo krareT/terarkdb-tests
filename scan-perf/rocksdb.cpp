@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 #include <chrono>
+#include <cstdlib>
 #include <rocksdb/table.h>
 #include "rocksdb.h"
 

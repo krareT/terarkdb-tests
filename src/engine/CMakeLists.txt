@@ -4,7 +4,11 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Terark_Engine_Test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=gnu++1y -g3 -O2 -DNDEBUG")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=gnu++1y -g3 -O2 -DNDEBUG")
+SET(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 aux_source_directory(./ SRC_LIST)
 
@@ -66,6 +70,12 @@ target_link_libraries(bench_terarkdb
 		  crypto
 		  )
 
+add_executable(tcp_client
+		main/tcp_client.cpp)
+target_link_libraries(tcp_client
+		boost_system
+		pthread)
+
 add_executable(bench_rocksdb
 		  main/bench_rocksdb.cpp
 		  src/RocksDbBenchmark.cpp src/RocksDbBenchmark.h
@@ -77,17 +87,17 @@ target_link_libraries(bench_rocksdb
 		  ${COMMON_LIBS}
 		  )
 
-add_executable(bench_terichdb
-		  main/bench_terichdb.cpp
-		  src/TerichBenchmark.cpp src/TerichBenchmark.h
-		  )
-target_link_libraries(bench_terichdb
-		  terichdb-r
-		  terark-zbs-r
-		  terark-fsa-r
-		  terark-core-r
-		  ${COMMON_LIBS}
-		  )
+#add_executable(bench_terichdb
+#		  main/bench_terichdb.cpp
+#		  src/TerichBenchmark.cpp src/TerichBenchmark.h
+#		  )
+#target_link_libraries(bench_terichdb
+#		  terichdb-r
+#		  terark-zbs-r
+#		  terark-fsa-r
+#		  terark-core-r
+#		  ${COMMON_LIBS}
+#		  )
 
 add_executable(bench_wiredtiger
 		  main/bench_wiredtiger.cpp
