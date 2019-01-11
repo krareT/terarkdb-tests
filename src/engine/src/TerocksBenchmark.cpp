@@ -36,7 +36,7 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
         fprintf(stderr, "cacheShards: %d, cacheCapacityBytes: %lu\n", opt.cacheShards, opt.cacheCapacityBytes);
     }
 #if 1
-    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, NewBlockBasedTableFactory());
+    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, std::shared_ptr<TableFactory>(rocksdb::NewBlockBasedTableFactory()));
 #else
 //    options.prefix_extractor.reset(rocksdb::NewFixedPrefixTransform(2)); // fuck fuck
 //    rocksdb::PlainTableOptions pto;
@@ -60,15 +60,16 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
 
 void TerocksBenchmark::Close()
 {
-      PrintTerarkdbCacheState();
+      //PrintTerarkdbCacheState();
       RocksDbBenchmark::Close();
 }
 
 void TerocksBenchmark::PrintCacheState()
 {
-      PrintTerarkdbCacheState();
+      //PrintTerarkdbCacheState();
 }
 
+/*
 void TerocksBenchmark::PrintTerarkdbCacheState()
 {
       FILE *file = fopen("/dev/stderr", "w");
@@ -76,6 +77,7 @@ void TerocksBenchmark::PrintTerarkdbCacheState()
       rocksdb::TerarkZipTablePrintCacheStat(db->GetOptions().table_factory.get(), file);
       fclose(file);
 }
+*/
 
 std::string TerocksBenchmark::HandleMessage(const std::string &msg) {
     std::stringstream ss;
