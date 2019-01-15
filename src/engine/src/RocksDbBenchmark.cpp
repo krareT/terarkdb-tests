@@ -5,6 +5,7 @@
 #include "RocksDbBenchmark.h"
 #include <rocksdb/memtablerep.h>
 #include <rocksdb/cache.h>
+#include <rocksdb/convenience.h>
 #include <rocksdb/table.h>
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/rate_limiter.h>
@@ -117,7 +118,7 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
     if (setting.getAction() == "load") {
         options.allow_concurrent_memtable_write = false;
         if (setting.FLAGS_rocksdb_memtable) {
-            if (strcmp(setting.FLAGS_rocksdb_memtable, "vector") == 0) {
+            /*if (strcmp(setting.FLAGS_rocksdb_memtable, "vector") == 0) {
                 options.memtable_factory.reset(new rocksdb::VectorRepFactory());
                 fprintf(stderr, "RocksDB: use VectorRepFactory\n");
             }
@@ -125,7 +126,17 @@ RocksDbBenchmark::RocksDbBenchmark(Setting& set) : Benchmark(set) {
                 fprintf(stderr, "ERROR: invalid rocksdb_memtable(canbe vector or <empty>): %s\n",
                         setting.FLAGS_rocksdb_memtable);
                 exit(1);
+            }*/
+            std::unique_ptr<rocksdb::MemTableRepFactory> new_mem_factory;
+            rocksdb::Status mem_factory_s =
+                    rocksdb::GetMemTableRepFactoryFromString(
+                            setting.FLAGS_rocksdb_memtable, &new_mem_factory);
+            if (!mem_factory_s.ok()) {
+                fprintf(stderr, "ERROR: invalid rocksdb_memtable: %s\n",
+                        setting.FLAGS_rocksdb_memtable);
+                exit(1);
             }
+            options.memtable_factory.reset(new_mem_factory.release());
         }
         if (!setting.FLAGS_enable_auto_compact) {
             options.disable_auto_compactions = true;

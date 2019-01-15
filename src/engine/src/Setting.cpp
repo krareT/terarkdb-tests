@@ -126,6 +126,9 @@ Setting::Setting(int argc, char **argv) {
         else if (arg.startsWith("--target_file_size_multiplier=")) {
             target_file_size_multiplier = lcast(arg.substr(strlen("--target_file_size_multiplier=")));
         }
+        else if (arg.startsWith("--target_file_size_base=")) {
+            target_file_size_base = ParseSizeXiB(arg.p + strlen("--target_file_size_base="));
+        }
         else if (arg.startsWith("--terocksdb_tmpdir=")) {
             terocksdb_tmpdir = arg.substr(strlen("--terocksdb_tmpdir=")).c_str();
         }

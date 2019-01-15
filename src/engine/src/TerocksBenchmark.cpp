@@ -49,6 +49,7 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
 
     options.target_file_size_base = 512 << 20; // 512M
     options.target_file_size_multiplier = set.target_file_size_multiplier;
+    options.target_file_size_base = set.target_file_size_base;
 
     // for TerarkZipTable, set to 1 will yield larger SST file.
     // for rocksdb's official SST,

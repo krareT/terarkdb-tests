@@ -155,6 +155,8 @@ public:
 
     int target_file_size_multiplier = 2;
 
+    long target_file_size_base = 10L << 30;
+
 // If true, do not destroy the existing database.  If you set this
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
