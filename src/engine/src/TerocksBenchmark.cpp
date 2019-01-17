@@ -36,7 +36,8 @@ TerocksBenchmark::TerocksBenchmark(Setting& set) : RocksDbBenchmark(set) {
         fprintf(stderr, "cacheShards: %d, cacheCapacityBytes: %lu\n", opt.cacheShards, opt.cacheCapacityBytes);
     }
 #if 1
-    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, std::shared_ptr<TableFactory>(rocksdb::NewBlockBasedTableFactory()));
+    std::shared_ptr<TableFactory> fallback(rocksdb::NewBlockBasedTableFactory());
+    rocksdb::TableFactory *factory = NewTerarkZipTableFactory(opt, fallback);
 #else
 //    options.prefix_extractor.reset(rocksdb::NewFixedPrefixTransform(2)); // fuck fuck
 //    rocksdb::PlainTableOptions pto;
